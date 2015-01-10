@@ -298,26 +298,38 @@ $Mesh = Mesh;
 
 Surface = Class() :: @{
 	$__string = @() "Surface(" + $sid + ") {type: " + $type + ", from: " + $from + "}";
-	$destroy = @() $_texture.delete();
+	$destroy = @{};
 	$build = @(resolve, sids) {
 		$_from = resolve("#" + $from);
 		$_from.build(resolve);
-		$_texture = gl.Texture();
-		gl.active_texture(gl.TEXTURE0);
-		gl.bind_texture(gl.TEXTURE_2D, $_texture);
-		gl.tex_image2d(gl.TEXTURE_2D, 0, gl.RGBA, $_from.width, $_from.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, $_from.data);
-		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.bind_texture(gl.TEXTURE_2D, null);
 	};
 };
 
 Sampler2D = Class() :: @{
+	$__initialize = @{
+		$minfilter = "NEAREST";
+		$magfilter = "NEAREST";
+		$built = false;
+	};
 	$__string = @() "Sampler2D(" + $sid + ") {source: " + $source + "}";
-	$destroy = @{};
+	$destroy = @{
+		if ($built) $_texture.delete();
+	};
 	$build = @(resolve, sids) {
+		if ($built) return;
 		$_source = sids[$source];
 		$_source.build(resolve, sids);
+		from = $_source._from;
+		$_texture = gl.Texture();
+		gl.active_texture(gl.TEXTURE0);
+		gl.bind_texture(gl.TEXTURE_2D, $_texture);
+		gl.tex_image2d(gl.TEXTURE_2D, 0, gl.RGBA, from.width, from.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, from.data);
+		filter = gl.(Symbol($minfilter));
+		if (filter === gl.NEAREST_MIPMAP_NEAREST || filter === gl.NEAREST_MIPMAP_LINEAR || filter === gl.LINEAR_MIPMAP_NEAREST || filter === gl.LINEAR_MIPMAP_LINEAR) gl.generate_mipmap(gl.TEXTURE_2D);
+		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.(Symbol($magfilter)));
+		gl.bind_texture(gl.TEXTURE_2D, null);
+		$built = true;
 	};
 };
 
@@ -403,7 +415,7 @@ Blinn = Class(ShadingModel) :: @{
 	$skin_shader = @(shaders, joints, weights) $diffuse.: === Texture ? shaders.skin_texture(joints, weights, 'blinn) : shaders.skin_color(joints, weights, 'blinn);
 	$setup = @(uniforms, attributes, others) {
 		uniforms.color = $emission + $ambient * 0.125;
-		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._source._texture : $diffuse;
+		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._texture : $diffuse;
 		uniforms.specular = $specular;
 		uniforms.shininess = $shininess.value;
 		uniforms.refraction = $index_of_refraction.value;
@@ -434,7 +446,7 @@ Lambert = Class(ShadingModel) :: @{
 	$skin_shader = @(shaders, joints, weights) $diffuse.: === Texture ? shaders.skin_texture(joints, weights, 'lambert) : shaders.skin_color(joints, weights, 'lambert);
 	$setup = @(uniforms, attributes, others) {
 		uniforms.color = $emission + $ambient * 0.125;
-		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._source._texture : $diffuse;
+		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._texture : $diffuse;
 		if ($diffuse.: === Texture) attributes.texcoords = others[$diffuse.texcoord];
 	};
 };
@@ -445,7 +457,7 @@ Phong = Class(ShadingModel) :: @{
 	$skin_shader = @(shaders, joints, weights) $diffuse.: === Texture ? shaders.skin_texture(joints, weights, 'phong) : shaders.skin_color(joints, weights, 'phong);
 	$setup = @(uniforms, attributes, others) {
 		uniforms.color = $emission + $ambient * 0.125;
-		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._source._texture : $diffuse;
+		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._texture : $diffuse;
 		uniforms.specular = $specular;
 		uniforms.shininess = $shininess.value;
 		if ($diffuse.: === Texture) attributes.texcoords = others[$diffuse.texcoord];
@@ -1371,7 +1383,7 @@ $load = @(source) {
 	profile_COMMON_newparam_sampler2D_elements = {
 		"source": @(x) x.source = reader.read_element_text(),
 		"minfilter": @(x) x.minfilter = reader.read_element_text(),
-		"maxfilter": @(x) x.maxfilter = reader.read_element_text()
+		"magfilter": @(x) x.magfilter = reader.read_element_text()
 	};
 	profile_COMMON_newparam_elements = {
 		"surface": @(x) {
