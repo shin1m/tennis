@@ -12,6 +12,9 @@ cairo = Module("cairo");
 xraft = Module("xraft");
 collada = Module("collada");
 
+xraft.Key.VOLUMEUP = 0x1008FF13;
+xraft.Key.VOLUMEDOWN = 0x1008FF11;
+
 print_time = false;
 
 Matrix3 = glmatrix.Matrix3;
@@ -512,7 +515,7 @@ Player = Class() :: @{
 	$__initialize = @(stage, model) {
 		$stage = stage;
 		$ball = stage.ball;
-		$scene = collada.load((io.Path(system.script) / "../data" / model).__string());
+		$scene = collada.load((io.Path(system.script) / ".." / model).__string());
 		$scene.build(stage.main.shaders);
 		$node = $scene.ids["Armature"];
 		$node.transforms.clear();
@@ -631,7 +634,18 @@ Player = Class() :: @{
 		z = v.x * p.x + v.z * p.z - swing.spot[11];
 		swing.spot[1] > 0.0 ? Vector3(-x, y, -z) : Vector3(x, y, z);
 	};
-	$step = @() $state.step[$]();
+	$step = @{
+		$state.step[$]();
+		position = $placement.position;
+		if (position.x < -30 * 12 * 0.0254)
+			position.x = -30 * 12 * 0.0254;
+		else if (position.x > 30 * 12 * 0.0254)
+			position.x = 30 * 12 * 0.0254;
+		if (position.z * $end < 0.5)
+			position.z = 0.5 * $end;
+		else if (position.z * $end > 60 * 12 * 0.0254)
+			position.z = 60 * 12 * 0.0254 * $end;
+	};
 	$do = @(shot) $state.do[$](shot);
 	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward);
 	$speed = 4.0 / 64.0;
@@ -646,7 +660,11 @@ Player = Class() :: @{
 		if ($forward) d.z = -$speed * $end;
 		if ($backward) d.z = $speed * $end;
 		actions = d.x == 0.0 && d.z == 0.0 ? $actions.ready : $actions.run;
-		if ($ball.hitter === null || $ball.hitter.end == $end) {
+		if ($ball.done) {
+			v = Vector3(0.0, 0.0, -$end);
+			hand = null;
+			action = actions.default;
+		} else if ($ball.hitter === null || $ball.hitter.end == $end) {
 			v = $ball.position - $placement.position;
 			v.y = 0.0;
 			v.normalize();
@@ -663,10 +681,7 @@ Player = Class() :: @{
 				action = hand.smash;
 			} else {
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand;
-				if ($ball.done)
-					action = $placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke : hand.volley;
-				else
-					action = $ball.in || y < 0.0 ? hand.stroke : hand.volley;
+				action = $ball.in || y < 0.0 ? hand.stroke : hand.volley;
 			}
 		}
 		if (d.x == 0.0 && d.z == 0.0) {
@@ -697,7 +712,10 @@ Player = Class() :: @{
 		}
 		t = $ball.in ? 0.0 : $ball.projected_time_for_y(Ball.radius, 1.0);
 		hand = whichhand > 0.0 ? actions.forehand : actions.backhand;
-		$motion = Motion(t < (hand.volley.impact - hand.volley.start) * 50.0 ? hand.stroke.(shot) : hand.volley);
+		if ($ball.done)
+			$motion = Motion($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke.(shot) : hand.volley);
+		else
+			$motion = Motion(t < (hand.volley.impact - hand.volley.start) * 50.0 ? hand.stroke.(shot) : hand.volley);
 		$transit($state_swing);
 	});
 	$state_serve_set = State(@{
@@ -728,6 +746,7 @@ Player = Class() :: @{
 		if ($ball.position.y <= 1.5) {
 			$ball.position.x = $placement.position.x;
 			$ball.position.z = $placement.position.z;
+			$ball.velocity = Vector3(0.0, 0.0, 0.0);
 			$transit($state_serve_set);
 		}
 		if ($left) $placement.toward.x = $placement.toward.x - 1.0 / 64.0 * $end;
@@ -894,10 +913,14 @@ Stage = Class() :: @{
 		$scene.scene.instance_visual_scene._scene.nodes.push($ball.node);
 		$mark = Mark($shader("Material-Shadow"));
 		$scene.scene.instance_visual_scene._scene.nodes.push($mark.node);
-		$player0 = Player($, "male.dae");
+		#$player0 = Player($, "data/male.dae");
+		$player0 = Player($, "extra/miku-lo.dae");
+		#$player0 = Player($, "extra/naruto-lo.dae");
 		$scene.scene.instance_visual_scene._scene.nodes.push($player0.node);
 		$player0.scene.scene.instance_visual_scene._scene._controllers.each($scene.scene.instance_visual_scene._scene._controllers.push);
-		$player1 = Player($, "male.dae");
+		#$player1 = Player($, "data/male.dae");
+		#$player1 = Player($, "extra/miku-lo.dae");
+		$player1 = Player($, "extra/naruto-lo.dae");
 		$scene.scene.instance_visual_scene._scene.nodes.push($player1.node);
 		$player1.scene.scene.instance_visual_scene._scene._controllers.each($scene.scene.instance_visual_scene._scene._controllers.push);
 		$player0.opponent = $player1;
@@ -1289,10 +1312,8 @@ controller0 = @(controller, player) {
 	{
 		xraft.Key.D1: @() player.do('topspin),
 		xraft.Key.D2: @() player.do('flat),
-		#xraft.Key.VOLUMEUP: @() player.do('lob),
-		0x1008FF13: @() player.do('lob),
-		#xraft.Key.VOLUMEDOWN: @() player.do('slice),
-		0x1008FF11: @() player.do('slice),
+		xraft.Key.VOLUMEUP: @() player.do('lob),
+		xraft.Key.VOLUMEDOWN: @() player.do('slice),
 		xraft.Key.LEFT: @() player.left = true,
 		xraft.Key.RIGHT: @() player.right = true,
 		xraft.Key.UP: @() player.forward = true,
@@ -1321,17 +1342,20 @@ controller0 = @(controller, player) {
 
 controller1 = @(controller, player) {
 	{
-		xraft.Key.D0: @() player.do('flat),
-		xraft.Key.J: @() player.left = true,
-		xraft.Key.L: @() player.right = true,
-		xraft.Key.I: @() player.forward = true,
-		xraft.Key.M: @() player.backward = true
+		xraft.Key.D7: @() player.do('topspin),
+		xraft.Key.D9: @() player.do('flat),
+		xraft.Key.COMMA: @() player.do('lob),
+		xraft.Key.PERIOD: @() player.do('slice),
+		xraft.Key.D4: @() player.left = true,
+		xraft.Key.D6: @() player.right = true,
+		xraft.Key.D8: @() player.forward = true,
+		xraft.Key.D5: @() player.backward = true
 	}.each(@(key, value) controller.key_press[key] = value);
 	{
-		xraft.Key.J: @() player.left = false,
-		xraft.Key.L: @() player.right = false,
-		xraft.Key.I: @() player.forward = false,
-		xraft.Key.M: @() player.backward = false
+		xraft.Key.D4: @() player.left = false,
+		xraft.Key.D6: @() player.right = false,
+		xraft.Key.D8: @() player.forward = false,
+		xraft.Key.D5: @() player.backward = false
 	}.each(@(key, value) controller.key_release[key] = value);
 };
 
@@ -1504,7 +1528,7 @@ computer = @(controller, player) {
 				v = shot_direction(point, player.end, left, right, forward, backward);
 				v.normalize();
 				target = point + Vector3(-v.z, 0.0, v.x) * ix - v * iz;
-				epsilon = 1.0 / 8.0;
+				epsilon = 1.0 / 4.0;
 				if (player.placement.position.x * player.end < target.x * player.end - epsilon)
 					player.right = true;
 				else if (player.placement.position.x * player.end > target.x * player.end + epsilon)
