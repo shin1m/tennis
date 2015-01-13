@@ -369,10 +369,10 @@ Ball = Class() :: @{
 		$velocity = Vector3(dx * speed, vy, dz * speed);
 		$spin = Vector3(-dz * spin.x + dx * spin.z, spin.y, dx * spin.x + dz * spin.z);
 	};
-	$bounce = @{
+	$calculate_bounce = @(velocity, spin) {
 		f = 0.0;
-		v0 = $velocity;
-		w0 = $spin;
+		v0 = velocity;
+		w0 = spin;
 		v1x = v0.x + radius * w0.z;
 		v1z = v0.z - radius * w0.x;
 		e = 1.0 + v0.y * 8.0;
@@ -381,14 +381,14 @@ Ball = Class() :: @{
 		b = (e + 2.0 / 3.0) * radius;
 		w1x = (1.0 - e) * v0.z + b * w0.x + f * v1z;
 		w1z = (e - 1.0) * v0.x + b * w0.z - f * v1x;
-		$velocity.x = e * v1x - 3.0 / 5.0 * w1z;
-		$velocity.y = v0.y * -0.75;
-		$velocity.z = e * v1z + 3.0 / 5.0 * w1x;
+		velocity.x = e * v1x - 3.0 / 5.0 * w1z;
+		velocity.y = v0.y * -0.75;
+		velocity.z = e * v1z + 3.0 / 5.0 * w1x;
 		d = 3.0 / 5.0 / radius;
-		$spin.x = w1x * d;
-		$spin.z = w1z * d;
+		spin.x = w1x * d;
+		spin.z = w1z * d;
 	};
-	$bounced_velocity = @(v) Vector3(v.x * 0.75, v.y * -0.75, v.z * 0.75);
+	$bounce = @() $calculate_bounce($velocity, $spin);
 	$projected_time_for_y = @(y, sign) projected_time_for_y($position.y, $velocity.y, y, sign);
 };
 
@@ -668,7 +668,7 @@ Player = Class() :: @{
 			v = $ball.position - $placement.position;
 			v.y = 0.0;
 			v.normalize();
-			hand = null;
+			hand = d.x != 0.0 || d.z * $end <= 0.0 ? null : v.x * $end > 0.0 ? actions.forehand : actions.backhand;
 			action = actions.default;
 		} else {
 			v = $direction();
@@ -1410,7 +1410,7 @@ computer = @(controller, player) {
 							i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]);
 							if (i % 8 < (ball.stage.second ? 1 : 2))
 								player.left = true;
-							else if (i % 8 > (ball.stage.second ? 6 : 3))
+							else if (i % 8 > (ball.stage.second ? 6 : 5))
 								player.right = true;
 						}
 					}
@@ -1432,7 +1432,7 @@ computer = @(controller, player) {
 			side1 = Vector3((13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end);
 			v = (side0 - point).normalized() + (side1 - point).normalized();
 			a = Vector3(-v.z, 0.0, v.x) * (player.placement.position - point);
-			epsilon = 1.0 / 4.0;
+			epsilon = 1.0 / 2.0;
 			if (a < -epsilon)
 				player.left = true;
 			else if (a > epsilon)
@@ -1495,7 +1495,8 @@ computer = @(controller, player) {
 				} else {
 					t0 = math.ceil(ball.projected_time_for_y(Ball.radius, 1.0));
 					position = Vector3(position.x + velocity.x * t0, Ball.radius, position.z + velocity.z * t0);
-					velocity = ball.bounced_velocity(Vector3(velocity.x, velocity.y - G * t0, velocity.z));
+					velocity = Vector3(velocity.x, velocity.y - G * t0, velocity.z);
+					ball.calculate_bounce(velocity, ball.spin * 1.0);
 				}
 				if (net && !ball.in) {
 					point = player.placement.position - Vector3(-v.z, 0.0, v.x) * ix + v * iz;
@@ -1528,11 +1529,12 @@ computer = @(controller, player) {
 				v = shot_direction(point, player.end, left, right, forward, backward);
 				v.normalize();
 				target = point + Vector3(-v.z, 0.0, v.x) * ix - v * iz;
-				epsilon = 1.0 / 4.0;
+				epsilon = 1.0 / 32.0;
 				if (player.placement.position.x * player.end < target.x * player.end - epsilon)
 					player.right = true;
 				else if (player.placement.position.x * player.end > target.x * player.end + epsilon)
 					player.left = true;
+				epsilon = 1.0 / 2.0;
 				if (player.placement.position.z * player.end < target.z * player.end - epsilon)
 					player.backward = true;
 				else if (player.placement.position.z * player.end > target.z * player.end + epsilon)
