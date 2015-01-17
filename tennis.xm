@@ -375,7 +375,7 @@ Ball = Class() :: @{
 		w0 = spin;
 		v1x = v0.x + radius * w0.z;
 		v1z = v0.z - radius * w0.x;
-		e = 1.0 + v0.y * 8.0;
+		e = 1.25 + v0.y * 10.0;
 		if (e < 0.25) e = 0.0;
 		if (e > 1.0) e = 1.0;
 		b = (e + 2.0 / 3.0) * radius;
@@ -466,11 +466,9 @@ Player = Class() :: @{
 			$spot = spot.vertex;
 			iterators.each((@(key, value) value.rewind($end))[$]);
 			root = Object();
-			legl = Object();
-			legr = Object();
-			skeleton.render(null, Matrix4(), [{"Root": root, "Leg0_L": legl, "Leg0_R": legr}]);
+			skeleton.render(null, Matrix4(), [{"Root": root}]);
 			$end_position = Vector3(root.vertex.v[3], 0.0, root.vertex.v[11]);
-			$end_toward = Vector3(legr.vertex.v[11] - legl.vertex.v[11], 0.0, legl.vertex.v[3] - legr.vertex.v[3]);
+			$end_toward = Vector3(root.vertex.v[2], 0.0, root.vertex.v[10]);
 		};
 		$merge = @(player) {
 			placement = player.placement;
@@ -480,25 +478,55 @@ Player = Class() :: @{
 			placement.valid = false;
 		};
 	};
+	Run = Class(Action) :: @{
+		$__initialize = @(scene, skeleton, start, duration, use) {
+			:$^__initialize[$](scene, skeleton, start, duration, use);
+			iterators = scene.iterators(@(x) x._node.id == "Root");
+			iterators.each((@(key, value) value.rewind($start))[$]);
+			root = Object();
+			skeleton.render(null, Matrix4(), [{"Root": root}]);
+			$toward = Vector3(root.vertex.v[2], 0.0, root.vertex.v[10]);
+		};
+	};
 	Motion = Class() :: @{
-		$__initialize = @(swing) {
-			$swing = swing;
-			$end = swing.end;
+		$__initialize = @(action) {
+			$action = action;
+			$end = action.end;
 			$rewind();
 		};
 		$rewind = @() {
-			$time = $swing.start;
-			$swing.rewind();
+			$time = $action.start;
+			$action.rewind();
 		};
 		$__call = @{
-			$swing.forward($time);
+			$action.forward($time);
 			if ($time < $end) $time = $time + 1.0 / 50.0;
 		};
 	};
 	$Motion = Motion;
+	RunMotion = Class(Motion) :: @{
+		duration = 4.0 / 64.0;
+
+		$__initialize = @(run, toward, player) {
+			:$^__initialize[$](run);
+			$toward = toward;
+			$placement = player.placement;
+			$toward0 = player.placement.toward;
+			player.root_transform.copy(0, player.root_transform.size(), player.root.transforms[1].bytes, 0);
+			t0 = toward.normalized();
+			t1 = run.toward;
+			$toward1 = Vector3(t0.x * t1.z + t0.z * t1.x, 0.0, t0.z * t1.z - t0.x * t1.x);
+			$duration = $toward0 * $toward1 < -0.75 ? 0.0 : duration;
+		};
+		$__call = @{
+			:$^__call[$]();
+			if ($duration > 0.0) $duration = $duration - 1.0 / 64.0;
+			t = $duration / duration;
+			$placement.toward = $toward0 * t + $toward1 * (1.0 - t);
+		};
+	};
 
 	lowers = {
-		"Root": true,
 		"Center": true,
 		"Leg0_R": true,
 		"Leg1_R": true,
@@ -509,8 +537,9 @@ Player = Class() :: @{
 		"Foot_L": true,
 		"Toe_L": true
 	};
+	is_not_root = @(x) x._node.id != "Root";
 	is_lower = @(x) lowers.has(x._node.id);
-	is_upper = @(x) !is_lower(x);
+	is_upper = @(x) is_not_root(x) && !is_lower(x);
 
 	$__initialize = @(stage, model) {
 		$stage = stage;
@@ -525,6 +554,7 @@ Player = Class() :: @{
 		zup.toward = Vector3(0.0, 1.0, 0.0);
 		zup.upward = Vector3(0.0, 0.0, -1.0);
 		$root = $scene.ids["Root"];
+		$root_transform = Matrix4($root.transforms[0]).bytes;
 		$root.transforms.unshift(zup.validate());
 		$actions = Object();
 		$actions.serve = Object();
@@ -536,47 +566,47 @@ Player = Class() :: @{
 		$actions.serve.swing.lob = Swing($scene, $root, 16.0 / 50.0, 32.0 / 50.0, 10.0 / 50.0, 20.0 / 64.0, Vector3(-2.0, 2.0, 0.0));
 		$actions.serve.swing.slice = Swing($scene, $root, 16.0 / 50.0, 32.0 / 50.0, 10.0 / 50.0, 28.0 / 64.0, Vector3(0.0, 4.0, 0.0));
 		$actions.ready = Object();
-		$actions.ready.default = Action($scene, $root, 52.0 / 50.0, 0.0);
+		$actions.ready.default = Run($scene, $root, 52.0 / 50.0, 0.0, is_not_root);
 		$actions.ready.forehand = Object();
 		$actions.ready.backhand = Object();
-		$actions.ready.forehand.stroke = Action($scene, $root, 394.0 / 50.0, 0.0);
-		$actions.ready.backhand.stroke = Action($scene, $root, 398.0 / 50.0, 0.0);
-		$actions.ready.forehand.volley = Action($scene, $root, 402.0 / 50.0, 0.0);
-		$actions.ready.backhand.volley = Action($scene, $root, 406.0 / 50.0, 0.0);
-		$actions.ready.forehand.smash = Action($scene, $root, 410.0 / 50.0, 0.0);
-		$actions.ready.backhand.smash = Action($scene, $root, 414.0 / 50.0, 0.0);
+		$actions.ready.forehand.stroke = Run($scene, $root, 394.0 / 50.0, 0.0, is_not_root);
+		$actions.ready.backhand.stroke = Run($scene, $root, 398.0 / 50.0, 0.0, is_not_root);
+		$actions.ready.forehand.volley = Run($scene, $root, 402.0 / 50.0, 0.0, is_not_root);
+		$actions.ready.backhand.volley = Run($scene, $root, 406.0 / 50.0, 0.0, is_not_root);
+		$actions.ready.forehand.smash = Run($scene, $root, 410.0 / 50.0, 0.0, is_not_root);
+		$actions.ready.backhand.smash = Run($scene, $root, 414.0 / 50.0, 0.0, is_not_root);
 		$actions.run = Object();
-		#$actions.run.lower = Action($scene, $root, 310.0 / 50.0, 32.0 / 50.0, is_lower);
-		$actions.run.lower = Action($scene, $root, 346.0 / 50.0, 24.0 / 50.0, is_lower);
-		#$actions.run.lower = Action($scene, $root, 374.0 / 50.0, 16.0 / 50.0, is_lower);
+		#$actions.run.lower = Run($scene, $root, 310.0 / 50.0, 32.0 / 50.0, is_lower);
+		$actions.run.lower = Run($scene, $root, 346.0 / 50.0, 24.0 / 50.0, is_lower);
+		#$actions.run.lower = Run($scene, $root, 374.0 / 50.0, 16.0 / 50.0, is_lower);
 		$actions.run.default = Action($scene, $root, 52.0 / 50.0, 0.0, is_upper);
 		$actions.run.forehand = Object();
 		$actions.run.backhand = Object();
 		$actions.run.forehand.lowers = [
 			null,
-			Action($scene, $root, 502.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 418.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 502.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 418.0 / 50.0, 24.0 / 50.0, is_lower),
 			null,
-			Action($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 530.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 530.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
 			null,
-			Action($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 558.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower)
+			Run($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 558.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower)
 		];
 		$actions.run.backhand.lowers = [
 			null,
-			Action($scene, $root, 418.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 502.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 418.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 502.0 / 50.0, 24.0 / 50.0, is_lower),
 			null,
-			Action($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 558.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 474.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 558.0 / 50.0, 24.0 / 50.0, is_lower),
 			null,
-			Action($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
-			Action($scene, $root, 530.0 / 50.0, 24.0 / 50.0, is_lower)
+			Run($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 446.0 / 50.0, 24.0 / 50.0, is_lower),
+			Run($scene, $root, 530.0 / 50.0, 24.0 / 50.0, is_lower)
 		];
 		$actions.run.forehand.stroke = Action($scene, $root, 394.0 / 50.0, 0.0, is_upper);
 		$actions.run.backhand.stroke = Action($scene, $root, 398.0 / 50.0, 0.0, is_upper);
@@ -615,9 +645,7 @@ Player = Class() :: @{
 		$end = end;
 		$transit(state);
 	};
-	$setup = @{
-		$placement.validate();
-	};
+	$setup = @() $placement.validate();
 	$direction = @{
 		v = $ball.velocity;
 		e = (v.z < 0.0 ? 1.0 : -1.0) * $end;
@@ -641,8 +669,8 @@ Player = Class() :: @{
 			position.x = -30 * 12 * 0.0254;
 		else if (position.x > 30 * 12 * 0.0254)
 			position.x = 30 * 12 * 0.0254;
-		if (position.z * $end < 0.5)
-			position.z = 0.5 * $end;
+		if (position.z * $end < 1.0)
+			position.z = 1.0 * $end;
 		else if (position.z * $end > 60 * 12 * 0.0254)
 			position.z = 60 * 12 * 0.0254 * $end;
 	};
@@ -652,7 +680,11 @@ Player = Class() :: @{
 	$smash_height = 2.25;
 	$smash_hand = -0.25;
 	$state_default = State(@{
-		$motion = Motion($actions.ready.default);
+		v = $ball.position - $placement.position;
+		v.y = 0.0;
+		v.normalize();
+		$placement.toward = v;
+		$motion = RunMotion($actions.ready.default, v, $);
 	}, @{
 		d = Vector3(0.0, 0.0, 0.0);
 		if ($left) d.x = -$speed * $end;
@@ -662,14 +694,25 @@ Player = Class() :: @{
 		actions = d.x == 0.0 && d.z == 0.0 ? $actions.ready : $actions.run;
 		if ($ball.done) {
 			v = Vector3(0.0, 0.0, -$end);
-			hand = null;
 			action = actions.default;
+			if (actions === $actions.run) run = $actions.run.lower;
 		} else if ($ball.hitter === null || $ball.hitter.end == $end) {
 			v = $ball.position - $placement.position;
 			v.y = 0.0;
 			v.normalize();
-			hand = d.x != 0.0 || d.z * $end <= 0.0 ? null : v.x * $end > 0.0 ? actions.forehand : actions.backhand;
 			action = actions.default;
+			if (actions === $actions.run) {
+				if ($forward)
+					run = $actions.run.lower;
+				else if ($left)
+					run = actions.backhand.lowers[9];
+				else if ($right)
+					run = actions.forehand.lowers[10];
+				else if ($backward)
+					run = v.x * $end > 0.0 ? actions.forehand.lowers[9] : actions.backhand.lowers[10];
+				else
+					run = $actions.run.lower;
+			}
 		} else {
 			v = $direction();
 			v.normalize();
@@ -683,20 +726,18 @@ Player = Class() :: @{
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand;
 				action = $ball.in || y < 0.0 ? hand.stroke : hand.volley;
 			}
+			if (actions === $actions.run) run = hand.lowers[($left ? 1 : $right ? 2 : 0) + ($forward ? 4 : $backward ? 8 : 0)];
 		}
-		if (d.x == 0.0 && d.z == 0.0) {
-			$motion = Motion(action);
-			d = v;
+		if (actions === $actions.ready) {
+			$motion = RunMotion(action, v, $);
 		} else {
-			run = hand === null ? $actions.run.lower : hand.lowers[($left ? 1 : $right ? 2 : 0) + ($forward ? 4 : $backward ? 8 : 0)];
-			if ($motion.swing !== run) $motion = Motion(run);
+			if ($motion.action !== run || d != $motion.toward) $motion = RunMotion(run, d, $);
 			if ($motion.time >= run.end) $motion.rewind();
 			action.rewind();
 			$placement.position = $placement.position + d;
 		}
-		$placement.toward = d;
-		$placement.valid = false;
 		$motion();
+		$placement.valid = false;
 	}, @(shot) {
 		$placement.toward = $shot_direction();
 		$placement.valid = false;
@@ -760,19 +801,19 @@ Player = Class() :: @{
 	$state_serve_swing = State(@{
 		$stage.sound_swing.play();
 	}, @{
-		if (math.fabs($motion.time - $motion.swing.impact) < 0.5 / 50.0) {
-			ball = $relative_ball($motion.swing);
+		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
+			ball = $relative_ball($motion.action);
 			if (math.fabs(ball.y) < 0.3) {
 				d = 58 * 12 * 0.0254 + ball.y * 12.0;
-				speed = $motion.swing.speed + ball.y * 0.125;
-				$ball.impact($placement.toward.x, $placement.toward.z, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, $motion.swing.spin);
+				speed = $motion.action.speed + ball.y * 0.125;
+				$ball.impact($placement.toward.x, $placement.toward.z, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, $motion.action.spin);
 				$ball.hitter = $;
 				$stage.sound_hit.play();
 			}
 		}
 		$motion();
 		if ($motion.time < $motion.end) return;
-		$motion.swing.merge($);
+		$motion.action.merge($);
 		$transit($state_default);
 	}, @(shot) {
 	});
@@ -780,20 +821,20 @@ Player = Class() :: @{
 		$stage.sound_swing.play();
 	}, @{
 		v = $shot_direction();
-		if ($motion.time <= $motion.swing.impact) {
+		if ($motion.time <= $motion.action.impact) {
 			$placement.toward = v * 1.0;
 			$placement.valid = false;
 		}
-		if (math.fabs($motion.time - $motion.swing.impact) < 0.5 / 50.0) {
-			ball = $relative_ball($motion.swing);
-			print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
+		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
+			ball = $relative_ball($motion.action);
+			#print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
 			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.z) < 1.0) {
 				d = v.length();
 				n = -d * $ball.position.z / v.z;
 				b = $ball.position.y * (d - n) / d;
 				a = d / (60 * 12 * 0.0254);
-				speed = $motion.swing.speed * (a > 1.25 ? 1.25 : a < 0.85 ? 0.85 : a);
-				spin = $motion.swing.spin;
+				speed = $motion.action.speed * (a > 1.25 ? 1.25 : a < 0.85 ? 0.85 : a);
+				spin = $motion.action.spin;
 				d = d * (1.0 - spin.x * (2.0 / 64.0));
 				if (b < 42 * 0.0254) {
 					vm = math.sqrt(G * (d - n) * n * 0.5 / (42 * 0.0254 - b));
@@ -810,7 +851,7 @@ Player = Class() :: @{
 		}
 		$motion();
 		if ($motion.time < $motion.end) return;
-		$motion.swing.merge($);
+		$motion.action.merge($);
 		$transit($state_default);
 	}, @(shot) {
 	});
@@ -818,26 +859,26 @@ Player = Class() :: @{
 		$stage.sound_swing.play();
 	}, @{
 		v = $shot_direction();
-		if ($motion.time <= $motion.swing.impact) {
+		if ($motion.time <= $motion.action.impact) {
 			$placement.toward = v * 1.0;
 			$placement.valid = false;
 		}
-		if (math.fabs($motion.time - $motion.swing.impact) < 0.5 / 50.0) {
-			ball = $relative_ball($motion.swing);
-			print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
+		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
+			ball = $relative_ball($motion.action);
+			#print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
 			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.y) < 0.5 && math.fabs(ball.z) < 1.0) {
 				d = v.length() + (ball.y - ball.z) * 2.0;
-				speed = $motion.swing.speed + ball.y * 0.125;
+				speed = $motion.action.speed + ball.y * 0.125;
 				dx = v.x + v.z * ball.x * 0.0625;
 				dz = v.z - v.x * ball.x * 0.0625;
-				$ball.impact(dx, dz, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, $motion.swing.spin);
+				$ball.impact(dx, dz, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, $motion.action.spin);
 				$ball.hit($);
 				$stage.sound_hit.play();
 			}
 		}
 		$motion();
 		if ($motion.time < $motion.end) return;
-		$motion.swing.merge($);
+		$motion.action.merge($);
 		$transit($state_default);
 	}, @(shot) {
 	});
@@ -913,14 +954,14 @@ Stage = Class() :: @{
 		$scene.scene.instance_visual_scene._scene.nodes.push($ball.node);
 		$mark = Mark($shader("Material-Shadow"));
 		$scene.scene.instance_visual_scene._scene.nodes.push($mark.node);
-		#$player0 = Player($, "data/male.dae");
-		$player0 = Player($, "extra/miku-lo.dae");
+		$player0 = Player($, "data/male.dae");
+		#$player0 = Player($, "extra/miku-lo.dae");
 		#$player0 = Player($, "extra/naruto-lo.dae");
 		$scene.scene.instance_visual_scene._scene.nodes.push($player0.node);
 		$player0.scene.scene.instance_visual_scene._scene._controllers.each($scene.scene.instance_visual_scene._scene._controllers.push);
-		#$player1 = Player($, "data/male.dae");
+		$player1 = Player($, "data/male.dae");
 		#$player1 = Player($, "extra/miku-lo.dae");
-		$player1 = Player($, "extra/naruto-lo.dae");
+		#$player1 = Player($, "extra/naruto-lo.dae");
 		$scene.scene.instance_visual_scene._scene.nodes.push($player1.node);
 		$player1.scene.scene.instance_visual_scene._scene._controllers.each($scene.scene.instance_visual_scene._scene._controllers.push);
 		$player0.opponent = $player1;
@@ -1194,9 +1235,9 @@ ServeTraining = Class(Training) :: @{
 		$ball.reset($side, 2 * 12 * 0.0254 * $side, 0.875, 39 * 12 * 0.0254);
 		$mark.duration = 0.0;
 		$player0.reset(1.0, Player.state_serve_set);
-		$player1.reset(-1.0, Player.state_default);
 		$player1.placement.position = Vector3(-9 * 12 * 0.0254 * $side, 0.0, -39 * 12 * 0.0254);
 		$player1.placement.valid = false;
+		$player1.reset(-1.0, Player.state_default);
 		$camera0.position = Vector3(0.0, 14.0, 0.0);
 		$camera0.toward = Vector3(0.0, -12.0, -40.0 * $player0.end);
 		$state = $state_ready;
@@ -1219,13 +1260,13 @@ StrokeTraining = Class(Training) :: @{
 	$transit_ready = @{
 		$ball.reset($side, 3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254);
 		$mark.duration = 0.0;
-		$player0.reset(1.0, Player.state_default);
 		$player0.placement.position = Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254);
 		$player0.placement.valid = false;
-		$player1.reset(-1.0, Player.state_default);
+		$player0.reset(1.0, Player.state_default);
 		$player1.placement.position = $ball.position - Posture().validate() * $player1.actions.swing.toss.spot * Vector3(0.0, 0.0, 0.0);
 		$player1.placement.position.y = 0.0;
 		$player1.placement.valid = false;
+		$player1.reset(-1.0, Player.state_default);
 		$camera0.position = Vector3(0.0, 14.0, 0.0);
 		$camera0.toward = Vector3(0.0, -12.0, -40.0 * $player0.end);
 		$state = $state_ready;
@@ -1250,13 +1291,13 @@ VolleyTraining = Class(Training) :: @{
 	$transit_ready = @{
 		$ball.reset($side, 3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254);
 		$mark.duration = 0.0;
-		$player0.reset(1.0, Player.state_default);
 		$player0.placement.position = Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
 		$player0.placement.valid = false;
-		$player1.reset(-1.0, Player.state_default);
+		$player0.reset(1.0, Player.state_default);
 		$player1.placement.position = $ball.position - Posture().validate() * $player1.actions.swing.toss.spot * Vector3(0.0, 0.0, 0.0);
 		$player1.placement.position.y = 0.0;
 		$player1.placement.valid = false;
+		$player1.reset(-1.0, Player.state_default);
 		$camera0.position = Vector3(0.0, 14.0, 0.0);
 		$camera0.toward = Vector3(0.0, -12.0, -40.0 * $player0.end);
 		$state = $state_ready;
@@ -1281,13 +1322,13 @@ SmashTraining = Class(Training) :: @{
 	$transit_ready = @{
 		$ball.reset($side, 3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254);
 		$mark.duration = 0.0;
-		$player0.reset(1.0, Player.state_default);
 		$player0.placement.position = Vector3((0.8 - 0.8 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
 		$player0.placement.valid = false;
-		$player1.reset(-1.0, Player.state_default);
+		$player0.reset(1.0, Player.state_default);
 		$player1.placement.position = $ball.position - Posture().validate() * $player1.actions.swing.toss_lob.spot * Vector3(0.0, 0.0, 0.0);
 		$player1.placement.position.y = 0.0;
 		$player1.placement.valid = false;
+		$player1.reset(-1.0, Player.state_default);
 		$camera0.position = Vector3(0.0, 14.0, 0.0);
 		$camera0.toward = Vector3(0.0, -12.0, -40.0 * $player0.end);
 		$state = $state_ready;
@@ -1432,13 +1473,14 @@ computer = @(controller, player) {
 			side1 = Vector3((13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end);
 			v = (side0 - point).normalized() + (side1 - point).normalized();
 			a = Vector3(-v.z, 0.0, v.x) * (player.placement.position - point);
-			epsilon = 1.0 / 2.0;
+			epsilon = 1.0 / 1.0;
 			if (a < -epsilon)
 				player.left = true;
 			else if (a > epsilon)
 				player.right = true;
 			z = player.placement.position.z * player.end;
 			zt = net ? 21 * 12 * 0.0254 : 39 * 12 * 0.0254;
+			epsilon = 1.0 / 2.0;
 			if (z < zt - epsilon)
 				player.backward = true;
 			else if (z > zt + epsilon)
@@ -1529,12 +1571,12 @@ computer = @(controller, player) {
 				v = shot_direction(point, player.end, left, right, forward, backward);
 				v.normalize();
 				target = point + Vector3(-v.z, 0.0, v.x) * ix - v * iz;
-				epsilon = 1.0 / 32.0;
+				epsilon = tt > 32.0 ? 1.0 / 8.0 : 1.0 / 32.0;
 				if (player.placement.position.x * player.end < target.x * player.end - epsilon)
 					player.right = true;
 				else if (player.placement.position.x * player.end > target.x * player.end + epsilon)
 					player.left = true;
-				epsilon = 1.0 / 2.0;
+				epsilon = tt > 32.0 ? 1.0 : 1.0 / 4.0;
 				if (player.placement.position.z * player.end < target.z * player.end - epsilon)
 					player.backward = true;
 				else if (player.placement.position.z * player.end > target.z * player.end + epsilon)
