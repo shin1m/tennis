@@ -295,9 +295,8 @@ Vector3 = Class() :: @{
 			$z = $z * value.z;
 		}
 	};
-	$__equals = @(value) {
-		$x == value.x && $y == value.y && $z == value.z;
-	};
+	$__equals = @(value) $x == value.x && $y == value.y && $z == value.z;
+	$__not_equals = @(value) !$__equals(value);
 	$equals = @(value, epsilon) {
 		if (math.fabs($x - value.x) > epsilon) return false;
 		if (math.fabs($y - value.y) > epsilon) return false;
@@ -361,9 +360,8 @@ Vector4 = Class() :: @{
 		$z = $z * value.z;
 		$w = $w * value.w;
 	};
-	$__equals = @(value) {
-		$x == value.x && $y == value.y && $z == value.z && $w == value.w;
-	};
+	$__equals = @(value) $x == value.x && $y == value.y && $z == value.z && $w == value.w;
+	$__not_equals = @(value) !$__equals(value);
 	$equals = @(value, epsilon) {
 		if (math.fabs($x - value.x) > epsilon) return false;
 		if (math.fabs($y - value.y) > epsilon) return false;
