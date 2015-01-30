@@ -92,7 +92,23 @@ Reader = Class(libxml.TextReader) :: @{
 		$check_start_element(name);
 		$read_element_text();
 	};
+	$parse_elements = @(elements, x) {
+		$read_next();
+		while (true) {
+			$move_to_tag();
+			if ($type() != libxml.ReaderTypes.ELEMENT) break;
+			try {
+				element = elements[$local_name()];
+			} catch (Throwable e) {
+				$read_element_text();
+				continue;
+			}
+			element(x);
+		}
+		$read_next();
+	};
 };
+$Reader = Reader;
 
 WithTree = @{
 	$share = @() $tree('share);
@@ -1198,21 +1214,6 @@ Document = Class() :: WithTree :: @{
 $load = @(source) {
 	reader = Reader(source);
 	ids = {};
-	parse_elements = @(elements, x) {
-		reader.read_next();
-		while (true) {
-			reader.move_to_tag();
-			if (reader.type() != libxml.ReaderTypes.ELEMENT) break;
-			try {
-				element = elements[reader.local_name()];
-			} catch (Throwable e) {
-				reader.read_element_text();
-				continue;
-			}
-			element(x);
-		}
-		reader.read_next();
-	};
 	read_asset_x_extra = @(callback) {
 		reader.read_next();
 		if (reader.is_start_element("asset")) reader.read_element_text();
@@ -1298,7 +1299,7 @@ $load = @(source) {
 	read_source = @{
 		source = Source();
 		source.id = reader.get_attribute("id");
-		parse_elements(source_elements, source);
+		reader.parse_elements(source_elements, source);
 		ids[source.id] = source;
 		source;
 	};
@@ -1334,7 +1335,7 @@ $load = @(source) {
 	read_animation = @{
 		animation = Animation();
 		animation.id = reader.get_attribute("id");
-		parse_elements(animation_elements, animation);
+		reader.parse_elements(animation_elements, animation);
 		if (animation.id != "") ids[animation.id] = animation;
 		animation;
 	};
@@ -1389,11 +1390,11 @@ $load = @(source) {
 		"surface": @(x) {
 			x.x = Surface();
 			x.x.type = reader.get_attribute("type");
-			parse_elements(profile_COMMON_newparam_surface_elements, x.x);
+			reader.parse_elements(profile_COMMON_newparam_surface_elements, x.x);
 		},
 		"sampler2D": @(x) {
 			x.x = Sampler2D();
-			parse_elements(profile_COMMON_newparam_sampler2D_elements, x.x);
+			reader.parse_elements(profile_COMMON_newparam_sampler2D_elements, x.x);
 		}
 	};
 	read_common_color_or_texture = @{
@@ -1441,19 +1442,19 @@ $load = @(source) {
 	profile_COMMON_technique_elements = {
 		"blinn": @(x) {
 			x.model = Blinn();
-			parse_elements(shader_elements, x.model);
+			reader.parse_elements(shader_elements, x.model);
 		},
 		"constant": @(x) {
 			x.model = Constant();
-			parse_elements(shader_elements, x.model);
+			reader.parse_elements(shader_elements, x.model);
 		},
 		"lambert": @(x) {
 			x.model = Lambert();
-			parse_elements(shader_elements, x.model);
+			reader.parse_elements(shader_elements, x.model);
 		},
 		"phong": @(x) {
 			x.model = Phong();
-			parse_elements(shader_elements, x.model);
+			reader.parse_elements(shader_elements, x.model);
 		}
 	};
 	effect_elements = {
@@ -1465,7 +1466,7 @@ $load = @(source) {
 				while (reader.is_start_element("newparam")) {
 					newparam = Object();
 					sid = reader.get_attribute("sid");
-					parse_elements(profile_COMMON_newparam_elements, newparam);
+					reader.parse_elements(profile_COMMON_newparam_elements, newparam);
 					newparam.x.sid = sid;
 					profile.sids[sid] = newparam.x;
 					profile.newparams.push(newparam.x);
@@ -1474,7 +1475,7 @@ $load = @(source) {
 				technique = TechniqueFX();
 				technique.id = reader.get_attribute("id");
 				technique.sid = reader.get_attribute("sid");
-				parse_elements(profile_COMMON_technique_elements, technique);
+				reader.parse_elements(profile_COMMON_technique_elements, technique);
 				profile.sids[technique.sid] = technique;
 				profile.technique = technique;
 				if (technique.id != "") ids[technique.id] = technique;
@@ -1561,7 +1562,7 @@ $load = @(source) {
 	geometry_elements = {
 		"mesh": @(x) {
 			x.x = Mesh();
-			parse_elements(mesh_elements, x.x);
+			reader.parse_elements(mesh_elements, x.x);
 		}
 	};
 	read_instance_material = @(x) {
@@ -1671,7 +1672,7 @@ $load = @(source) {
 		node.sid = reader.get_attribute("sid");
 		node.joint = reader.get_attribute("type") == "JOINT";
 		node.layer = reader.get_attribute("layer");
-		parse_elements(node_elements, node);
+		reader.parse_elements(node_elements, node);
 		if (node.id != "") ids[node.id] = node;
 		node;
 	};
@@ -1681,7 +1682,7 @@ $load = @(source) {
 			x.asset.unit = Object();
 			x.asset.unit.meter = 1.0;
 			x.asset.unit.name = "meter";
-			parse_elements(asset_elements, x.asset);
+			reader.parse_elements(asset_elements, x.asset);
 		},
 		"library_animations": @(x) {
 			read_asset_1x_extra("animation", @{
@@ -1708,7 +1709,7 @@ $load = @(source) {
 			read_asset_1x_extra("effect", @{
 				effect = Effect();
 				effect.id = reader.get_attribute("id");
-				parse_elements(effect_elements, effect);
+				reader.parse_elements(effect_elements, effect);
 				ids[effect.id] = effect;
 				x.library_effects[effect.id] = effect;
 			});
@@ -1717,7 +1718,7 @@ $load = @(source) {
 			read_asset_1x_extra("geometry", @{
 				geometry = Object();
 				id = reader.get_attribute("id");
-				parse_elements(geometry_elements, geometry);
+				reader.parse_elements(geometry_elements, geometry);
 				geometry.x.id = id;
 				if (id == "") return;
 				ids[id] = geometry.x;
@@ -1802,7 +1803,7 @@ $load = @(source) {
 		x.instance_material_fallback = instance_material_fallback;
 		x.ids = ids;
 		x.version = reader.get_attribute("version");
-		parse_elements(root_elements, x);
+		reader.parse_elements(root_elements, x);
 		x;
 	} finally {
 		reader.free();

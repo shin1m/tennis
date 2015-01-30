@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<players>
+	<player name="Male1" path="male" />
+	<player name="Male2" path="male" />
+</players>
