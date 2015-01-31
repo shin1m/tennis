@@ -12,6 +12,8 @@ reach_range = player.reach_range;
 shot_direction = player.shot_direction;
 Player = player.Player;
 
+random = @() Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]);
+
 $__get_at = @(stage) @(controller, player) {
 	ball = stage.ball;
 	duration = 1.0 * 64.0;
@@ -44,7 +46,7 @@ $__get_at = @(stage) @(controller, player) {
 					if (stage.second) {
 						:shot = 'lob;
 					} else {
-						i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]) % 10;
+						i = random() % 10;
 						if (i > 6)
 							:shot = 'topspin;
 						else if (i > 4)
@@ -54,13 +56,14 @@ $__get_at = @(stage) @(controller, player) {
 					}
 					swing = player.actions.serve.swing.(shot);
 					t = ball.projected_time_for_y(swing.spot[7], 1.0);
-					if (t < (swing.impact - swing.start) * 50.0 + (stage.second ? 0.0 : 1.0)) {
-						i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]);
-						:net = i % 10 > (stage.second ? 7 : 3);
+					dt = stage.second ? 0.0 : 1.0;
+					if (random() % 2 == 0) dt = dt + 1.0;
+					if (t < (swing.impact - swing.start) * 50.0 + dt) {
+						:net = random() % 10 > (stage.second ? 7 : 3);
 						player.do(shot);
 					} else if (t < (swing.impact - swing.start) * 50.0 + 8.0) {
 						if (!player.left && !player.right) {
-							i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]);
+							i = random();
 							if (i % 8 < (stage.second ? 1 : 2))
 								player.left = true;
 							else if (i % 8 > (stage.second ? 6 : 5))
@@ -74,10 +77,7 @@ $__get_at = @(stage) @(controller, player) {
 		} else if (ball.hitter.end == player.end) {
 			if (!decided0) {
 				:decided0 = true;
-				if (!net) {
-					i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]);
-					:net = i % 10 > 6;
-				}
+				if (!net) :net = random() % 10 > 6;
 			}
 			reset_move();
 			point = Vector3(ball.position.x, 0.0, ball.position.z);
@@ -100,7 +100,7 @@ $__get_at = @(stage) @(controller, player) {
 		} else {
 			if (!decided1) {
 				:decided1 = true;
-				i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]);
+				i = random();
 				if (i % 3 == 1)
 					:left = true;
 				else if (i % 3 == 2)
@@ -109,7 +109,7 @@ $__get_at = @(stage) @(controller, player) {
 					:forward = true;
 				else if (i % 10 == 0)
 					:backward = true;
-				i = Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]) % 10;
+				i = random() % 10;
 				if (i > 6)
 					:shot = 'topspin;
 				else if (i > 4)
