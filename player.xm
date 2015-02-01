@@ -474,7 +474,7 @@ $Player = Class() :: @{
 		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
 			ball = $relative_ball($motion.action);
 			if (math.fabs(ball.y) < 0.3) {
-				d = 58 * 12 * 0.0254 + ball.y * 12.0;
+				d = 58 * 12 * 0.0254 + ball.y * 10.0;
 				speed = $motion.action.speed + ball.y * 0.125;
 				$ball.impact($placement.toward.x, $placement.toward.z, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, $motion.action.spin);
 				$ball.hitter = $;
