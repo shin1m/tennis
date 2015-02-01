@@ -154,10 +154,6 @@ t0 = time.now();
 		}[$]);
 if (print_time) print("\ttext: " + (time.now() - t0));
 	};
-	$key_press = @(modifier, key, ascii) {
-		if ($state.key_press.has(key)) $state.key_press[key][$]();
-	};
-	$key_release = @(modifier, key, ascii) {
-		if ($state.key_release.has(key)) $state.key_release[key][$]();
-	};
+	$key_press = @(modifier, key, ascii) $state.key_press.has(key) && $state.key_press[key][$]();
+	$key_release = @(modifier, key, ascii) $state.key_release.has(key) && $state.key_release[key][$]();
 };
