@@ -259,9 +259,9 @@ Training = Class(stage.Stage) :: @{
 			$message = [
 				"CHANGE SIDES: START",
 				"    POSITION: < + >",
-				"        TOSS:   *",
+				"        TOSS:   *  ",
 				"      COURCE: < + >",
-				"       SWING:   *"
+				"       SWING:   *  "
 			];
 			$duration = 0.0 * 64.0;
 		}, @{}, @() $transit_select()),
