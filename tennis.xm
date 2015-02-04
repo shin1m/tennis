@@ -32,7 +32,7 @@ Match = Class(stage.Stage) :: @{
 		$player0.point = $player1.point = 0;
 		$second = false;
 		games = $player0.game + $player1.game;
-		$end = games % 4 > 2 ? -1.0 : 1.0;
+		$end = games % 4 < 2 ? 1.0 : -1.0;
 		$server = games % 2 == 0 ? $player0 : $player1;
 		$receiver = games % 2 == 0 ? $player1 : $player0;
 	};
@@ -98,14 +98,16 @@ Match = Class(stage.Stage) :: @{
 	state_close = $State(@{
 		$step_things();
 	}, {
-		xraft.Key.RETURN: @() $transit_back(),
+		xraft.Key.RETURN: @() $new_set(),
 		xraft.Key.ESCAPE: @() $transit_back()
 	}, {});
 	$transit_close = @{
 		$state = state_close;
 		$message = [
 			($player0.game > $player1.game ? "P1" : "P2") + " WON!",
-			"P1 " + $player0.game + " - " + $player1.game + " P2"
+			"P1 " + $player0.game + " - " + $player1.game + " P2",
+			"PRESS START",
+			"TO PLAY AGAIN"
 		];
 		$sound_ace.play();
 	};
@@ -123,13 +125,16 @@ Match = Class(stage.Stage) :: @{
 		$receiver.placement.valid = false;
 		$receiver.reset(-$end, Player.state_default);
 		$camera0.position = Vector3(0.0, 14.0, 0.0);
-		$camera0.toward = Vector3(0.0, -12.0, -40.0 * $player0.end);
+		$camera0.toward = Vector3(0.0, -12.0, -40.0 * ($fixed ? 1.0 : $player0.end));
 		$camera1.position = Vector3(0.0, 14.0, 0.0);
-		$camera1.toward = Vector3(0.0, -12.0, -40.0 * $player1.end);
+		$camera1.toward = Vector3(0.0, -12.0, -40.0 * ($fixed ? -1.0 : $player1.end));
 	};
 
-	$__initialize = @(main, dual, controller0, player0, controller1, player1) {
-		:$^__initialize[$](main, dual, controller0, player0, controller1, player1);
+	$__initialize = @(main, dual, fixed, controller0, player0, controller1, player1) {
+		:$^__initialize[$](main, dual, fixed, controller0, player0, controller1, player1);
+		$new_set();
+	};
+	$new_set = @{
 		$closed = false;
 		$player0.game = $player1.game = 0;
 		$new_game();
@@ -182,12 +187,12 @@ Training = Class(stage.Stage) :: @{
 	};
 	$step_things = @{
 		:$^step_things[$]();
-		$camera1.position = Vector3(($ball.position.x + $player0.placement.position.x) * 0.5, 4.0, ($ball.position.z + 40.0 * $player1.end) * 0.5);
+		$camera1.position = Vector3(($ball.position.x + $player0.root_position().x) * 0.5, 4.0, ($ball.position.z + 40.0 * $player1.end) * 0.5);
 		$camera1.toward = Vector3(0.0, -6.0, -40.0 * $player1.end);
 	};
 
 	$__initialize = @(main, controller0, player0, player1) {
-		:$^__initialize[$](main, true, controller0, player0, @(controller, player) {
+		:$^__initialize[$](main, true, false, controller0, player0, @(controller, player) {
 			super__step = controller.step[$];
 			controller.step = @{
 				if (player.state !== Player.state_swing) player.left = player.right = player.forward = player.backward = false;
@@ -227,6 +232,7 @@ Training = Class(stage.Stage) :: @{
 		$player1.transit(Player.state_swing);
 	};
 	toss_message = [
+		"  CHANGE SIDES: START",
 		"      POSITION: +    ",
 		"COURCE & SWING: + & *"
 	];
@@ -249,33 +255,34 @@ Training = Class(stage.Stage) :: @{
 			$player1.placement.valid = false;
 			$player1.reset(-1.0, Player.state_default);
 		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+			$text_viewing = Matrix4().translate(0.0, -0.625, 0.0).scale(0.125, 0.125, 1.0);
 			$message = [
-				"POSITION: < + >",
-				"    TOSS:   *",
-				"  COURCE: < + >",
-				"   SWING:   *"
+				"CHANGE SIDES: START",
+				"    POSITION: < + >",
+				"        TOSS:   *",
+				"      COURCE: < + >",
+				"       SWING:   *"
 			];
 			$duration = 0.0 * 64.0;
 		}, @{}, @() $transit_select()),
 		Item(" STROKE  ", @{
 			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss);
 		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.875, 0.0).scale(0.125, 0.125, 1.0);
+			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss), @() $transit_select()),
 		Item(" VOLLEY  ", @{
 			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss);
 		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.875, 0.0).scale(0.125, 0.125, 1.0);
+			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss), @() $transit_select()),
 		Item(" SMASH   ", @{
 			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.8 - 0.8 * $side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob);
 		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.875, 0.0).scale(0.125, 0.125, 1.0);
+			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss_lob), @() $transit_select()),
@@ -650,17 +657,17 @@ MainMenu = Class(Menu) :: @{
 	$items = '(
 		$Item("  1P vs COM  ", @() $transit(@{
 			$main.screen__(PlayersSelector($main, "1P vs COM", "data/main-background.jpg", "data/main-background.wav", @(player0, player1) {
-				$main.screen__(Match($main, false, controller0, player0.path, computer, player1.path));
+				$main.screen__(Match($main, false, false, controller0, player0.path, computer, player1.path));
 			}[$]));
 		}, 0.0 * 64.0)),
 		$Item("  1P vs 2P   ", @() $transit(@{
 			$main.screen__(PlayersSelector($main, "1P vs 2P", "data/main-background.jpg", "data/main-background.wav", @(player0, player1) {
-				$main.screen__(Match($main, true, controller0, player0.path, controller1, player1.path));
+				$main.screen__(Match($main, true, false, controller0, player0.path, controller1, player1.path));
 			}[$]));
 		}, 0.0 * 64.0)),
 		$Item(" COM vs COM  ", @() $transit(@{
 			$main.screen__(PlayersSelector($main, "COM vs COM", "data/main-background.jpg", "data/main-background.wav", @(player0, player1) {
-				$main.screen__(Match($main, false, computer, player0.path, computer, player1.path));
+				$main.screen__(Match($main, false, true, computer, player0.path, computer, player1.path));
 			}[$]));
 		}, 0.0 * 64.0)),
 		$Item("  TRAINING   ", @() $transit(@{

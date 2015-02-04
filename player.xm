@@ -317,6 +317,10 @@ $Player = Class() :: @{
 		$transit(state);
 	};
 	$setup = @() $placement.validate();
+	$root_position = @{
+		v = $root.transforms[1].v;
+		$placement.validate() * ($root.transforms[0] * Vector3(v[3], v[7], v[11]));
+	};
 	$direction = @{
 		v = $ball.velocity;
 		e = (v.z < 0.0 ? 1.0 : -1.0) * $end;
@@ -447,6 +451,7 @@ $Player = Class() :: @{
 	});
 	$state_serve_toss = State(@{
 		$ball.position.y = 1.5;
+		$placement.validate();
 		toward = $placement.toward;
 		left = Vector3(toward.z, 0.0, -toward.x);
 		$ball.velocity = left * 0.0075 + toward * 0.01;
@@ -485,8 +490,7 @@ $Player = Class() :: @{
 		if ($motion.time < $motion.end) return;
 		$motion.action.merge($);
 		$transit($state_default);
-	}, @(shot) {
-	});
+	}, @(shot) {});
 	$state_swing = State(@{
 		$stage.sound_swing.play();
 	}, @{
@@ -523,8 +527,7 @@ $Player = Class() :: @{
 		if ($motion.time < $motion.end) return;
 		$motion.action.merge($);
 		$transit($state_default);
-	}, @(shot) {
-	});
+	}, @(shot) {});
 	$state_smash_swing = State(@{
 		$stage.sound_swing.play();
 	}, @{
@@ -550,6 +553,5 @@ $Player = Class() :: @{
 		if ($motion.time < $motion.end) return;
 		$motion.action.merge($);
 		$transit($state_default);
-	}, @(shot) {
-	});
+	}, @(shot) {});
 };

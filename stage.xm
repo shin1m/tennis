@@ -52,19 +52,23 @@ $Stage = Class() :: @{
 		$player0.step();
 		$player1.step();
 		target = $ball.position * 0.25;
-		v = $player0.root.transforms[1].v;
-		position = $player0.placement.validate() * ($player0.root.transforms[0] * Vector3(v[3], v[7], v[11]));
-		$camera0.position.x = target.x + position.x * 0.5;
-		$camera0.position.z = 48.0 * $player0.end + target.z;
-		v = $player1.root.transforms[1].v;
-		position = $player1.placement.validate() * ($player1.root.transforms[0] * Vector3(v[3], v[7], v[11]));
-		$camera1.position.x = target.x + position.x * 0.5;
-		$camera1.position.z = 48.0 * $player1.end + target.z;
+		if ($fixed) {
+			$camera0.position.x = target.x;
+			$camera0.position.z = 48.0 + target.z;
+			$camera1.position.x = target.x;
+			$camera1.position.z = -48.0 + target.z;
+		} else {
+			$camera0.position.x = target.x + $player0.root_position().x * 0.5;
+			$camera0.position.z = 48.0 * $player0.end + target.z;
+			$camera1.position.x = target.x + $player1.root_position().x * 0.5;
+			$camera1.position.z = 48.0 * $player1.end + target.z;
+		}
 	};
 
-	$__initialize = @(main, dual, controller0, player0, controller1, player1) {
+	$__initialize = @(main, dual, fixed, controller0, player0, controller1, player1) {
 		$main = main;
 		$dual = dual;
+		$fixed = fixed;
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0);
 		$scene = collada.load((io.Path(system.script) / "../data/court.dae").__string());
 		$scene.build(main.shaders);
