@@ -44,7 +44,7 @@ $Player = Class() :: @{
 		o;
 	};
 	Action = Class() :: @{
-		$__initialize = @(scene, skeleton, start, duration, use = @(x) true) {
+		$__initialize = @(scene, start, duration, use = @(x) true) {
 			$start = start;
 			$end = start + duration;
 			$iterators = scene.iterators(use);
@@ -64,7 +64,7 @@ $Player = Class() :: @{
 	};
 	Swing = Class(Action) :: @{
 		$__initialize = @(scene, skeleton, start, duration, impact, speed, spin = Vector3(0.0, 0.0, 0.0)) {
-			:$^__initialize[$](scene, skeleton, start, duration);
+			:$^__initialize[$](scene, start, duration);
 			$impact = start + impact;
 			$speed = speed;
 			$spin = spin;
@@ -89,7 +89,7 @@ $Player = Class() :: @{
 	};
 	Run = Class(Action) :: @{
 		$__initialize = @(scene, skeleton, start, duration, use) {
-			:$^__initialize[$](scene, skeleton, start, duration, use);
+			:$^__initialize[$](scene, start, duration, use);
 			iterators = scene.iterators(@(x) x._node.id == "Root");
 			iterators.each((@(key, value) value.rewind($start))[$]);
 			root = Object();
@@ -157,7 +157,7 @@ $Player = Class() :: @{
 			start = Float(reader.get_attribute("start")) / source_fps;
 			duration = Float(reader.get_attribute("duration")) / source_fps;
 			reader.read_element_text();
-			Action(scene, skeleton, start, duration, use);
+			Action(scene, start, duration, use);
 		};
 		read_swing = @{
 			start = Float(reader.get_attribute("start")) / source_fps;
@@ -437,8 +437,8 @@ $Player = Class() :: @{
 		$motion = Motion($actions.serve.set);
 	}, @{
 		speed = 2.0 / 64.0;
-		if ($left) $ball.position.x = $ball.position.x - speed;
-		if ($right) $ball.position.x = $ball.position.x + speed;
+		if ($left) $ball.position.x = $ball.position.x - speed * $end;
+		if ($right) $ball.position.x = $ball.position.x + speed * $end;
 		$ball.position.y = 0.875;
 		$ball.velocity = Vector3(0.0, 0.0, 0.0);
 		$ball.spin = Vector3(0.0, 0.0, 0.0);

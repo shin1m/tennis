@@ -161,15 +161,10 @@ $Ball = Class() :: @{
 		$done = true;
 		$stage.ball_out();
 	};
-	$emit_bounce = @{
-		$stage.ball_bounce();
-	};
+	$emit_bounce = @() $stage.ball_bounce();
 	$wall = @{
 		if ($done) return;
-		if ($in)
-			$emit_ace();
-		else
-			$emit_out();
+		$in ? $emit_ace() : $emit_out();
 	};
 	$step = @{
 		last = $position;
@@ -250,9 +245,7 @@ $Ball = Class() :: @{
 		x1 = -(13 * 12 + 6) * 0.0254 * side;
 		$set(null, '(x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254));
 	};
-	$hit = @(hitter) {
-		if (!$done) $set(hitter, rally);
-	};
+	$hit = @(hitter) $done || $set(hitter, rally);
 	$serving = @() $target !== rally;
 	$impact = @(dx, dz, speed, vy, spin) {
 		dl = 1.0 / math.sqrt(dx * dx + dz * dz);
@@ -305,9 +298,7 @@ $Mark = Class() :: @{
 		$placement.validate();
 		$scale.z = radius * $stretch;
 	};
-	$step = @{
-		if ($duration > 0.0) $duration = $duration - 1.0;
-	};
+	$step = @() $duration > 0.0 && ($duration = $duration - 1.0);
 	$mark = @(ball) {
 		$duration = 2.0 * 64.0;
 		$placement.position.x = ball.position.x;
