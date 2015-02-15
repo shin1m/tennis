@@ -97,7 +97,7 @@ $__get_at = @(stage) @(controller, player) {
 				player.backward = true;
 			else if (z > zt + epsilon)
 				player.forward = true;
-		} else {
+		} else if (player.state === Player.state_default) {
 			if (!decided1) {
 				:decided1 = true;
 				i = random();
@@ -136,7 +136,7 @@ $__get_at = @(stage) @(controller, player) {
 					t0 = 0.0;
 					t = projected_time_for_y(position.y, velocity.y, swing.spot[7], 1.0);
 					if (t === null) t = velocity.y / G;
-					t = t - 4.0;
+					t = t - 2.0;
 				}
 			}
 			if (swing === null) {
@@ -175,8 +175,7 @@ $__get_at = @(stage) @(controller, player) {
 				player.backward = backward;
 				player.do(shot);
 				reset_decision();
-				:net = player.placement.position.z * player.end < 21 * 12 * 0.0254;
-			} else if (player.state !== Player.state_default) {
+				:net = player.placement.position.z * player.end < 22 * 12 * 0.0254;
 			} else {
 				reset_move();
 				point = Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t);
