@@ -109,7 +109,7 @@ $Player = Class() :: @{
 		};
 		$__call = @{
 			$action.forward($time);
-			if ($time < $end) $time = $time + 1.0 / 50.0;
+			if ($time < $end) $time = $time + 1.0 / 60.0;
 		};
 	};
 	$Motion = Motion;
@@ -420,7 +420,7 @@ $Player = Class() :: @{
 		t = $ball.projected_time_for_y($smash_height, 1.0);
 		if (t !== null) {
 			swing = whichhand > $smash_hand ? actions.forehand.smash : actions.backhand.smash;
-			if (t > (swing.impact - swing.start) * 50.0) {
+			if (t > (swing.impact - swing.start) * 60.0) {
 				$motion = Motion(swing);
 				return $transit($state_smash_swing);
 			}
@@ -430,7 +430,7 @@ $Player = Class() :: @{
 		if ($ball.done)
 			$motion = Motion($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke.(shot) : hand.volley);
 		else
-			$motion = Motion(t < (hand.volley.impact - hand.volley.start) * 50.0 ? hand.stroke.(shot) : hand.volley);
+			$motion = Motion(t < (hand.volley.impact - hand.volley.start) * 60.0 ? hand.stroke.(shot) : hand.volley);
 		$transit($state_swing);
 	});
 	$state_serve_set = State(@{
@@ -476,7 +476,7 @@ $Player = Class() :: @{
 	$state_serve_swing = State(@{
 		$stage.sound_swing.play();
 	}, @{
-		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
+		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 60.0) {
 			ball = $relative_ball($motion.action);
 			if (math.fabs(ball.y) < 0.3) {
 				d = 58 * 12 * 0.0254 + ball.y * 10.0;
@@ -499,7 +499,7 @@ $Player = Class() :: @{
 			$placement.toward = v * 1.0;
 			$placement.valid = false;
 		}
-		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
+		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 60.0) {
 			ball = $relative_ball($motion.action);
 			#print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
 			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.z) < 1.0) {
@@ -536,7 +536,7 @@ $Player = Class() :: @{
 			$placement.toward = v * 1.0;
 			$placement.valid = false;
 		}
-		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 50.0) {
+		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 60.0) {
 			ball = $relative_ball($motion.action);
 			#print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
 			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.y) < 0.5 && math.fabs(ball.z) < 1.0) {

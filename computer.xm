@@ -58,10 +58,10 @@ $__get_at = @(stage) @(controller, player) {
 					t = ball.projected_time_for_y(swing.spot[7], 1.0);
 					dt = stage.second ? 0.0 : 1.0;
 					if (random() % 2 == 0) dt = dt + 1.0;
-					if (t < (swing.impact - swing.start) * 50.0 + dt) {
+					if (t < (swing.impact - swing.start) * 60.0 + dt) {
 						:net = random() % 10 > (stage.second ? 7 : 3);
 						player.do(shot);
-					} else if (t < (swing.impact - swing.start) * 50.0 + 8.0) {
+					} else if (t < (swing.impact - swing.start) * 60.0 + 8.0) {
 						if (!player.left && !player.right) {
 							i = random();
 							if (i % 8 < (stage.second ? 1 : 2))
@@ -167,7 +167,7 @@ $__get_at = @(stage) @(controller, player) {
 			tt = t0 + t;
 			t1 = t0 + reach_range(position, velocity, point, player.speed, t0, 1.0);
 			if (t1 >= 0.0 && t1 < tt) tt = t1;
-			if (tt < (swing.impact - swing.start) * 50.0 + 1.0) {
+			if (tt < (swing.impact - swing.start) * 60.0 + 1.0) {
 				reset_move();
 				player.left = left;
 				player.right = right;

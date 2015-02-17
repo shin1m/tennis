@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<player fps="50">
+<player fps="60">
 	<serve>
 		<set start="4" duration="0" />
 		<toss start="4" duration="8" />

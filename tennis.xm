@@ -690,7 +690,7 @@ Game = Class(xraft.GLWidget) :: @{
 		gl.enable(gl.CULL_FACE);
 		$on_move();
 		$screen = MainMenu($);
-		$timer.start(20);
+		$timer.start(1000 / 60);
 	};
 	$on_move = @{
 		extent = $geometry();
