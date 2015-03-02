@@ -1,0 +1,14 @@
+{
+    "name": "tennis-web"
+  , "version": "0.0.0"
+  , "private": true
+  , "scripts": {
+      "start": "coffee app.coffee"
+  }
+  , "dependencies": {
+      "coffee-script": "*"
+    , "express": "*"
+    , "morgan": "*"
+    , "errorhandler": "*"
+  }
+}

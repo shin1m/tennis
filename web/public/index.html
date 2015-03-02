@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+  <style>
+    html {
+      width: 100%;
+      height: 100%;
+    }
+    body {
+      margin: 0em;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-size: 2vh;
+    }
+    fieldset {
+      padding: 0em;
+      border-style: none;
+    }
+    button {
+      margin: 0.5em;
+      border-style: solid;
+      border-width: 0.125em;
+      border-radius: 0.5em;
+      border-color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 0.25em;
+      font-size: inherit;
+      text-shadow: inherit;
+      color: inherit;
+    }
+    button:focus {
+      border-color: orange;
+      color: orange;
+    }
+    button:active {
+      border-color: orange;
+      color: orange;
+    }
+    .background {
+      width: 100%;
+      height: 100%;
+      background-image: url(data/main-background.jpg);
+      background-size: cover;
+    }
+    .screen {
+      display: none;
+      position: absolute;
+      top: 0em;
+      width: 100%;
+      height: 100%;
+      font-size: 4em;
+      text-shadow: -0.03125em 0em 0.03125em black, 0.03125em 0em 0.03125em black, 0em -0.03125em 0.03125em black, 0em 0.03125em 0.03125em black;
+      color: white;
+    }
+    .table {
+      display: table;
+      width: 100%;
+      height: 100%;
+    }
+    .content {
+      display: table-cell;
+      width: 100%;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .back {
+      position: absolute;
+      top: 0.125em;
+      left: 0.125em;
+    }
+    .slide-left {
+      transition-property: left;
+      transition-duration: 0.5s;
+      left: -100%;
+    }
+    .slide-center {
+      transition-property: left;
+      transition-duration: 0.5s;
+      left: 00%;
+    }
+    .slide-right {
+      transition-property: left;
+      transition-duration: 0.5s;
+      left: 100%;
+    }
+    #menu-screen .title {
+      font-size: 3em;
+    }
+    #players-screen .title {
+      font-size: 2em;
+    }
+    #players-screen .slider-container {
+      width: 100%;
+      height: 40%;
+    }
+    #players-screen .slider {
+      position: absolute;
+      width: 100%;
+    }
+    #loading-screen .content {
+      font-size: 2em;
+    }
+    #match-screen .table {
+      position: absolute;
+      top: 0px;
+    }
+    #match-screen .content.message {
+      font-size: 2em;
+      white-space: pre;
+    }
+    #training-screen .table {
+      position: absolute;
+      top: 0px;
+    }
+    #training-screen .content.message {
+      white-space: pre;
+    }
+    #training-screen .slider-container {
+      width: 100%;
+      height: 40%;
+    }
+    #training-screen .slider {
+      position: absolute;
+      width: 100%;
+    }
+  </style>
+  <title>TENNIS</title>
+</head>
+<body>
+  <div id="background" class="background">
+    <fieldset id="menu-screen" class="screen slider">
+      <div class="table">
+        <div class="content">
+          <div class="title">TENNIS</div>
+          <button value="1pvscom">1P vs COM</button>
+          <button value="comvscom">COM vs COM</button>
+          <button value="training">TRAINING</button>
+        </div>
+      </div>
+    </fieldset>
+    <fieldset id="players-screen" class="screen slider">
+      <div class="table">
+        <button class="back">BACK</button>
+        <div class="content">
+          <div class="title"></div>
+          <div class="slider-container">
+            <fieldset id="players0" class="slider">
+              <button value="data/male">Male</button>
+              <button value="data/maled">MaleD</button>
+              <button value="extra/miku">Miku</button>
+              <button value="extra/rin">Rin</button>
+              <button value="extra/ren">Ren</button>
+              <button value="extra/haku">Haku</button>
+              <button value="extra/naruto">Naruto</button>
+            </fieldset>
+            <fieldset id="players1" class="slider">
+              <button value="data/male">Male</button>
+              <button value="data/maled">MaleD</button>
+              <button value="extra/miku">Miku</button>
+              <button value="extra/rin">Rin</button>
+              <button value="extra/ren">Ren</button>
+              <button value="extra/haku">Haku</button>
+              <button value="extra/naruto">Naruto</button>
+            </fieldset>
+            <fieldset id="ready" class="slider">
+              <button value="start">START</button>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+    <div id="loading-screen" class="screen">
+      <div class="content">
+        LOADING...
+      </div>
+    </div>
+  </div>
+  <div id="match-screen" class="screen">
+    <div class="table">
+      <div class="content message"></div>
+    </div>
+    <button class="back">BACK</button>
+  </div>
+  <div id="training-screen" class="screen">
+    <div class="table">
+      <div class="content message"></div>
+    </div>
+    <div class="table">
+      <button class="back">BACK</button>
+      <div class="content slider-container">
+        <fieldset id="trainings" class="slider">
+          <button value="serve">SERVE</button>
+          <button value="stroke">STROKE</button>
+          <button value="volley">VOLLEY</button>
+          <button value="smash">SMASH</button>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+  <!-- <script src="three.js/build/three.min.js"></script> -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.min.js"></script>
+  <script src="three.js/examples/js/Detector.js"></script>
+  <script src="three.js/examples/js/libs/stats.min.js"></script>
+  <script src="ColladaLoader.js"></script>
+  <script src="ball.js"></script>
+  <script src="player.js"></script>
+  <script src="stage.js"></script>
+  <script src="computer.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
