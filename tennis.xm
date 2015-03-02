@@ -156,8 +156,6 @@ Match = Class(stage.Stage) :: @{
 	};
 };
 
-TrainingMenu = null;
-
 Training = Class(stage.Stage) :: @{
 	$ball_in = @{
 		$mark.mark($ball);
@@ -324,7 +322,7 @@ Training = Class(stage.Stage) :: @{
 		$main.sound_select.play();
 		items[$selected].do[$]();
 	};
-	$state_select = $State(@{}, {
+	state_select = $State(@{}, {
 		xraft.Key.ESCAPE: $back,
 		xraft.Key.SPACE: $select,
 		xraft.Key.D2: $select,
@@ -335,7 +333,7 @@ Training = Class(stage.Stage) :: @{
 	}, {});
 	$transit_back = @() items[$selected].back[$]();
 	$transit_select = @{
-		$state = $state_select;
+		$state = state_select;
 		$side = 1.0;
 		items[$selected].reset[$]();
 		$duration = 0.0 * 64.0;
