@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<player fps="60">
+	<serve>
+		<set start="4" duration="0" />
+		<toss start="4" duration="8" />
+		<swing>
+			<flat start="16" duration="32" impact="10" speed="32.0" spin="0.0 0.0 0.0" />
+			<topspin start="16" duration="32" impact="10" speed="24.0" spin="-4.0 0.0 0.0" />
+			<lob start="16" duration="32" impact="10" speed="20.0" spin="-2.0 2.0 0.0" />
+			<slice start="16" duration="32" impact="10" speed="28.0" spin="0.0 4.0 0.0" />
+		</swing>
+	</serve>
+	<ready>
+		<default start="52" duration="0" />
+		<forehand>
+			<stroke start="394" duration="0" />
+			<volley start="402" duration="0" />
+			<smash start="410" duration="0" />
+		</forehand>
+		<backhand>
+			<stroke start="802" duration="0" />
+			<volley start="406" duration="0" />
+			<smash start="414" duration="0" />
+		</backhand>
+	</ready>
+	<run speed="4.0">
+		<!-- <lower start="310" duration="32" /> -->
+		<lower start="346" duration="24" />
+		<!-- <lower start="374" duration="16" /> -->
+		<default start="52" duration="0" />
+		<forehand>
+			<lowers>
+				<left start="502" duration="24" />
+				<right start="418" duration="24" />
+				<forward start="446" duration="24" />
+				<forward_left start="530" duration="24" />
+				<forward_right start="446" duration="24" />
+				<backward start="474" duration="24" />
+				<backward_left start="558" duration="24" />
+				<backward_right start="474" duration="24" />
+			</lowers>
+			<stroke start="394" duration="0" />
+			<volley start="402" duration="0" />
+			<smash start="410" duration="0" />
+		</forehand>
+		<backhand>
+			<lowers>
+				<left start="418" duration="24" />
+				<right start="502" duration="24" />
+				<forward start="474" duration="24" />
+				<forward_left start="474" duration="24" />
+				<forward_right start="558" duration="24" />
+				<backward start="446" duration="24" />
+				<backward_left start="446" duration="24" />
+				<backward_right start="530" duration="24" />
+			</lowers>
+			<stroke start="802" duration="0" />
+			<volley start="406" duration="0" />
+			<smash start="414" duration="0" />
+		</backhand>
+	</run>
+	<swing>
+		<forehand>
+			<stroke>
+				<flat start="58" duration="32" impact="8" speed="20.0" spin="0.0 0.0 0.0" />
+				<topspin start="586" duration="32" impact="8" speed="18.0" spin="-4.0 0.0 0.0" />
+				<lob start="730" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+				<slice start="658" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
+			</stroke>
+			<volley start="130" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+			<smash start="202" duration="32" impact="10" speed="24.0" spin="0.0 0.0 0.0" />
+		</forehand>
+		<backhand>
+			<stroke>
+				<flat start="802" duration="32" impact="8" speed="20.0" spin="0.0 0.0 0.0" />
+				<topspin start="838" duration="32" impact="8" speed="18.0" spin="-4.0 0.0 0.0" />
+				<lob start="874" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+				<slice start="694" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
+			</stroke>
+			<volley start="166" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+			<smash start="238" duration="32" impact="10" speed="18.0" spin="0.0 0.0 0.0" />
+		</backhand>
+		<toss start="274" duration="32" impact="8" speed="18.0" spin="0.0 0.0 0.0" />
+		<toss_lob start="274" duration="32" impact="8" speed="11.0" spin="0.0 0.0 0.0" />
+	</swing>
+</player>
