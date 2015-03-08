@@ -278,7 +278,7 @@ Training = Class(stage.Stage) :: @{
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss), @() $transit_select()),
 		Item(" SMASH   ", @{
-			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.8 - 0.8 * $side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob);
+			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob);
 		}, @() $transit_ready(), @{
 			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;

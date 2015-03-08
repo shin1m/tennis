@@ -304,6 +304,9 @@ $Player = Class() :: @{
 		$root.transforms.unshift(zup.validate());
 		$actions = load($scene, $root, model + ".player");
 		$speed = $actions.run.speed;
+		$actions.serve.set.rewind();
+		$lefty = $root.transforms[1].v[3] < 0.0;
+		$smash_hand = $lefty ? 0.25 : -0.25;
 		$motion = null;
 		$reset(1.0, $state_default);
 	};
@@ -352,7 +355,6 @@ $Player = Class() :: @{
 	$do = @(shot) $state.do[$](shot);
 	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward);
 	$smash_height = 2.25;
-	$smash_hand = -0.25;
 	$state_default = State(@{
 		v = $ball.position - $placement.position;
 		v.y = 0.0;
@@ -443,7 +445,7 @@ $Player = Class() :: @{
 		$ball.velocity = Vector3(0.0, 0.0, 0.0);
 		$ball.spin = Vector3(0.0, 0.0, 0.0);
 		$placement.position = Vector3($ball.position.x, 0.0, $ball.position.z);
-		$placement.toward = Vector3((6 * 12 + 9) * -0.0254 * $end * $stage.side + 2 * 12 * 0.0254 * $end, 0.0, 21 * 12 * -0.0254 * $end) - $placement.position;
+		$placement.toward = Vector3((6 * 12 + 9) * -0.0254 * $end * $stage.side + ($lefty ? -1 : 1) * 12 * 0.0254 * $end, 0.0, 21 * 12 * -0.0254 * $end) - $placement.position;
 		$placement.valid = false;
 		$motion();
 	}, @(shot) {
@@ -454,7 +456,7 @@ $Player = Class() :: @{
 		$placement.validate();
 		toward = $placement.toward;
 		left = Vector3(toward.z, 0.0, -toward.x);
-		$ball.velocity = left * 0.0075 + toward * 0.01;
+		$ball.velocity = left * ($lefty ? -0.0075 : 0.0075) + toward * 0.01;
 		$ball.velocity.y = 0.085;
 		$ball.spin = Vector3(0.0, 0.0, 0.0);
 		$motion = Motion($actions.serve.toss);

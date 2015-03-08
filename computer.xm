@@ -129,7 +129,7 @@ $__get_at = @(stage) @(controller, player) {
 			if (t !== null) {
 				d = (Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t) - player.placement.position).length();
 				if (d < 0.5 || d / player.speed <= t) {
-					hand = whichhand > Player.smash_hand ? actions.forehand : actions.backhand;
+					hand = whichhand > player.smash_hand ? actions.forehand : actions.backhand;
 					swing = hand.smash;
 					ix = swing.spot[3];
 					iz = swing.spot[11];
