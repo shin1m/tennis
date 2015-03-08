@@ -223,6 +223,10 @@ class Player
       load collada.skins[0], model + '.player', (actions) =>
         @actions = actions
         @speed = @actions.run.speed
+        @actions.serve.set.play()
+        console.log @root.position
+        @lefty = @root.position.x < 0.0
+        @smash_hand = if @lefty then 0.25 else -0.25
         @motion = null
         @blend_last = null
         @blend_duration = 0.0
@@ -285,7 +289,6 @@ class Player
     else
       shot_direction @ball.position, @end, @left, @right, @forward, @backward
   smash_height: 2.25
-  smash_hand: -0.25
   state_default: State ->
     v = @ball.position.clone().setY(0.0)
     @node.lookAt v
@@ -364,12 +367,12 @@ class Player
     @ball.velocity.set 0.0, 0.0, 0.0
     @ball.spin.set 0.0, 0.0, 0.0
     @node.position.set @ball.position.x, 0.0, @ball.position.z
-    @node.lookAt new THREE.Vector3((6 * 12 + 9) * -0.0254 * @end * @stage.side + 2 * 12 * 0.0254 * @end, 0.0, 21 * 12 * -0.0254 * @end)
+    @node.lookAt new THREE.Vector3((6 * 12 + 9) * -0.0254 * @end * @stage.side + (if @lefty then -1 else 1) * 12 * 0.0254 * @end, 0.0, 21 * 12 * -0.0254 * @end)
   , (shot) ->
     @transit @state_serve_toss
   state_serve_toss: State ->
     @ball.position.y = 1.5
-    @ball.velocity.set(0.0075, 0.085, 0.01).applyQuaternion(@node.getWorldQuaternion())
+    @ball.velocity.set((if @lefty then -0.0075 else 0.0075), 0.085, 0.01).applyQuaternion(@node.getWorldQuaternion())
     @ball.spin.set 0.0, 0.0, 0.0
     @set_motion new Motion @actions.serve.toss
   , ->
