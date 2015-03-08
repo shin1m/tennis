@@ -247,24 +247,6 @@ Primitive = Class() :: WithTree :: @{
 		gl.bind_buffer(gl.ARRAY_BUFFER, null);
 		$;
 	};
-	$render = @(shaders, projection, viewing) {
-		shader = shaders[$material];
-		others = {};
-		others0 = $_others;
-		n = others0.size();
-		for (i = 0; i < n; i = i + 1) {
-			x = others0[i];
-			key = x[0];
-			if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
-			others[key] = x[1];
-		}
-		uniforms = Object();
-		uniforms.projection = projection;
-		uniforms.vertex = viewing.bytes;
-		uniforms.normal = invert4to3(viewing);
-		shader.model.setup(uniforms, $_attributes, others);
-		shader.shader(uniforms, $_attributes, $mode, 0, $count * $unit);
-	};
 };
 
 Lines = Class(Primitive) :: @{
@@ -303,11 +285,6 @@ Mesh = Class() :: WithTree :: @{
 		if ($built) return;
 		$primitives.each(@(x) x.build(resolve));
 		$built = true;
-	};
-	$render = @(shaders, projection, viewing) {
-		primitives = $primitives;
-		n = primitives.size();
-		for (i = 0; i < n; i = i + 1) primitives[i].render(shaders, projection, viewing);
 	};
 };
 $Mesh = Mesh;
@@ -651,6 +628,30 @@ InstanceGeometry = Class() :: WithTree :: @{
 			if (key != "") value.(symbol)();
 		});
 	};
+	$build_render = @{
+		$_primitives = [];
+		$_geometry.primitives.each(@(x) {
+			shader = $_shaders[x.material];
+			others = {};
+			x._others.each(@(x) {
+				key = x[0];
+				if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
+				others[key] = x[1];
+			});
+			uniforms = Object();
+			uniforms.projection = null;
+			uniforms.vertex = null;
+			uniforms.normal = null;
+			shader.model.setup(uniforms, x._attributes, others);
+			$_primitives.push(@(projection, viewing) {
+				uniforms.projection = projection;
+				uniforms.vertex = viewing.bytes;
+				uniforms.normal = invert4to3(viewing);
+				shader.model.setup(uniforms, $_attributes, others);
+				shader.shader(uniforms, $_attributes, $mode, 0, $count * $unit);
+			}[x]);
+		}[$]);
+	};
 	$build = @(resolve, shaders) {
 		$_geometry = resolve($url);
 		$_geometry.build(resolve);
@@ -663,13 +664,19 @@ InstanceGeometry = Class() :: WithTree :: @{
 			shader.bind_vertex_inputs = value.bind_vertex_inputs;
 			$_shaders[key] = shader;
 		}[$]);
+		$build_render();
 	};
 	$create = @(geometry, shaders) {
 		$_geometry = geometry;
 		$_shaders = shaders;
+		$build_render();
 		$;
 	};
-	$render = @(projection, viewing) $_geometry.render($_shaders, projection, viewing);
+	$render = @(projection, viewing) {
+		primitives = $_primitives;
+		n = primitives.size();
+		for (i = 0; i < n; i = i + 1) primitives[i](projection, viewing);
+	};
 };
 $InstanceGeometry = InstanceGeometry;
 
@@ -849,23 +856,6 @@ SkinPrimitive = Class() :: WithTree :: @{
 		$vertex_buffer($inputs["VERTEX"], vertices, weights);
 		normal_and_others[$](resolve);
 	};
-	$render = @(shaders, projection, vertices) {
-		shader = shaders[$material];
-		others = {};
-		others0 = $_others;
-		n = others0.size();
-		for (i = 0; i < n; i = i + 1) {
-			x = others0[i];
-			key = x[0];
-			if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
-			others[key] = x[1];
-		}
-		uniforms = Object();
-		uniforms.projection = projection;
-		uniforms.vertices = vertices;
-		shader.model.setup(uniforms, $_attributes, others);
-		shader.shader(uniforms, $_attributes, $mode, 0, $count * $unit);
-	};
 };
 
 Skin = Class() :: WithTree :: @{
@@ -923,11 +913,6 @@ Skin = Class() :: WithTree :: @{
 		}[$]);
 		$built = true;
 	};
-	$render = @(shaders, projection, vertices) {
-		primitives = $_primitives;
-		n = primitives.size();
-		for (i = 0; i < n; i = i + 1) primitives[i].render(shaders, projection, vertices);
-	};
 };
 
 InstanceController = Class() :: WithTree :: @{
@@ -976,16 +961,33 @@ InstanceController = Class() :: WithTree :: @{
 			shader.bind_vertex_inputs = value.bind_vertex_inputs;
 			$_shaders[key] = shader;
 		}[$]);
+		$_primitives = [];
+		$_controller._primitives.each(@(x) {
+			shader = $_shaders[x.material];
+			others = {};
+			x._others.each(@(x) {
+				key = x[0];
+				if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
+				others[key] = x[1];
+			});
+			uniforms = Object();
+			uniforms.projection = null;
+			uniforms.vertices = $_vertices;
+			shader.model.setup(uniforms, x._attributes, others);
+			$_primitives.push(@(projection) {
+				uniforms.projection = projection;
+				shader.model.setup(uniforms, $_attributes, others);
+				shader.shader(uniforms, $_attributes, $mode, 0, $count * $unit);
+			}[x]);
+		}[$]);
 	};
 	$render = @(projection) {
-		#t = time.now();
 		n = $_ibms.size();
 		stride = 16 * gl.Float32Array.BYTES_PER_ELEMENT;
 		for (i = 0; i < n; i = i + 1) ($_joints[i].vertex * $_ibms[i]).bytes.copy(0, stride, $_vertices, i * stride);
-		#print("\t\t\tbytes: " + (time.now() - t));
-		#t = time.now();
-		$_controller.render($_shaders, projection, $_vertices);
-		#print("\t\t\trender: " + (time.now() - t));
+		primitives = $_primitives;
+		n = primitives.size();
+		for (i = 0; i < n; i = i + 1) primitives[i](projection);
 	};
 };
 
