@@ -727,8 +727,10 @@ if (print_time) print("flush: " + (time.now() - t0));
 		:$^__initialize[$](format);
 		$glcontext = xraft.GLContext(format);
 		$alcontext = alcontext;
+$last = time.now();
 		$timer = xraft.Timer(@{
-t0 = time.now();
+if (print_time) print("since last: " + (time.now() - $last));
+$last = t0 = time.now();
 			$screen.step();
 			extent = $geometry();
 			$invalidate(0, 0, extent.width(), extent.height());

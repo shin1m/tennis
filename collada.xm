@@ -8,6 +8,8 @@ gl = Module("gl");
 glmatrix = Module("glmatrix");
 glimage = Module("glimage");
 
+print_time = false;
+
 Matrix3 = glmatrix.Matrix3;
 Matrix4 = glmatrix.Matrix4;
 Vector3 = glmatrix.Vector3;
@@ -1129,17 +1131,17 @@ VisualScene = Class() :: WithTree :: @{
 		$built = true;
 	};
 	$render = @(projection, viewing) {
-#t0 = time.now();
+t0 = time.now();
 		joints = [];
 		nodes = $nodes;
 		n = nodes.size();
 		for (i = 0; i < n; i = i + 1) nodes[i].render(projection, viewing, joints);
-#print("\tnodes: " + (time.now() - t0));
-#t0 = time.now();
+if (print_time) print("\tnodes: " + (time.now() - t0));
+t0 = time.now();
 		controllers = $_controllers;
 		n = controllers.size();
 		for (i = 0; i < n; i = i + 1) controllers[i].render(projection);
-#print("\tcontrollers: " + (time.now() - t0));
+if (print_time) print("\tcontrollers: " + (time.now() - t0));
 	};
 };
 
