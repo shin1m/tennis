@@ -391,7 +391,7 @@ ShadingModel = Class() :: WithTree :: @{
 		$transparency.(symbol)();
 		$index_of_refraction.(symbol)();
 	};
-	$build = @(resolve, shaders, sids) {
+	$build = @(resolve, sids) {
 		$emission.build(resolve, sids);
 		$ambient.build(resolve, sids);
 		$diffuse.build(resolve, sids);
@@ -466,7 +466,7 @@ TechniqueFX = Class() :: WithTree :: @{
 		:$^.(symbol)[$]();
 		$model.(symbol)();
 	};
-	$build = @(resolve, shaders, sids) $model.build(resolve, shaders, sids);
+	$build = @(resolve, sids) $model.build(resolve, sids);
 };
 
 ProfileCOMMON = Class() :: WithTree :: @{
@@ -483,9 +483,9 @@ ProfileCOMMON = Class() :: WithTree :: @{
 		$technique.(symbol)();
 	};
 	$destroy = @() $newparams.each(@(x) x.destroy());
-	$build = @(resolve, shaders) {
+	$build = @(resolve) {
 		$newparams.each((@(x) x.build(resolve, $sids))[$]);
-		$technique.build(resolve, shaders, $sids);
+		$technique.build(resolve, $sids);
 	};
 };
 
@@ -503,9 +503,9 @@ Effect = Class() :: WithTree :: @{
 	$destroy = @{
 		if ($built) $profiles.each(@(x) x.destroy());
 	};
-	$build = @(resolve, shaders) {
+	$build = @(resolve) {
 		if ($built) return;
-		$profiles.each(@(x) x.build(resolve, shaders));
+		$profiles.each(@(x) x.build(resolve));
 		$built = true;
 	};
 };
@@ -530,10 +530,10 @@ Image = Class() :: @{
 Material = Class() :: @{
 	$__initialize = @() $built = false;
 	$__string = @() "Material {instance_effect: " + $instance_effect + "}";
-	$build = @(resolve, shaders) {
+	$build = @(resolve) {
 		if ($built) return;
 		$_instance_effect = resolve($instance_effect);
-		$_instance_effect.build(resolve, shaders);
+		$_instance_effect.build(resolve);
 		$built = true;
 	};
 	$model = @() $_instance_effect.profiles[0].technique.model;
@@ -597,9 +597,9 @@ InstanceMaterial = Class() :: WithTree :: @{
 		:$^.(symbol)[$]();
 		$bind_vertex_inputs.(symbol)();
 	};
-	$build = @(resolve, shaders) {
+	$build = @(resolve) {
 		$_target = resolve($target);
-		$_target.build(resolve, shaders);
+		$_target.build(resolve);
 	};
 	$model = @() $_target.model();
 };
@@ -612,7 +612,7 @@ InstanceMaterialFallback = Class() :: WithTree :: @{
 		:$^.(symbol)[$]();
 		$bind_vertex_inputs.(symbol)();
 	};
-	$build = @(resolve, shaders) {};
+	$build = @(resolve) {};
 	$model = @() $;
 	$mesh_shader = @(shaders) shaders.constant_color();
 	$skin_shader = @(shaders, joints, weights) shaders.skin_color(joints, weights, 'constant);
@@ -656,7 +656,7 @@ InstanceGeometry = Class() :: WithTree :: @{
 		$_geometry.build(resolve);
 		$_shaders = {};
 		$materials.each(@(key, value) {
-			value.build(resolve, shaders);
+			value.build(resolve);
 			shader = Object();
 			shader.model = value.model();
 			shader.shader = shader.model.mesh_shader(shaders);
@@ -878,7 +878,7 @@ Skin = Class() :: WithTree :: @{
 	$destroy = @{
 		if ($built) $_primitives.each(@(x) x.destroy());
 	};
-	$build = @(resolve, shaders) {
+	$build = @(resolve) {
 		if ($built) return;
 		$_source = resolve($source);
 		position = resolve($_source.vertices.inputs["POSITION"]);
@@ -930,7 +930,7 @@ InstanceController = Class() :: WithTree :: @{
 	};
 	$build = @(resolve, shaders) {
 		$_controller = resolve($url);
-		$_controller.build(resolve, shaders);
+		$_controller.build(resolve);
 		joints = resolve($_controller.joints["JOINT"]);
 		joints.build(resolve);
 		matrices = resolve($_controller.joints["INV_BIND_MATRIX"]);
@@ -953,7 +953,7 @@ InstanceController = Class() :: WithTree :: @{
 		}[$]);
 		$_shaders = {};
 		$materials.each(@(key, value) {
-			value.build(resolve, shaders);
+			value.build(resolve);
 			shader = Object();
 			shader.model = value.model();
 			shader.shader = shader.model.skin_shader(shaders, joints.count + 1, $_controller._weights_per_vertex);

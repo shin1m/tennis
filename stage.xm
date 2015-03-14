@@ -30,7 +30,7 @@ $Stage = Class() :: @{
 
 	$shader = @(name) {
 		material = $scene.ids[name];
-		material.build($scene.resolve, $main.shaders);
+		material.build($scene.resolve);
 		shader = Object();
 		shader.model = material.model();
 		shader.shader = shader.model.mesh_shader($main.shaders);
