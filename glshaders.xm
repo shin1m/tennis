@@ -1,42 +1,50 @@
 gl = Module("gl");
 
-Shader = Class() :: @{
-	$__initialize = @(program) {
-		$program = program;
-	};
-	$setup = @(uniforms, attributes) {};
-	$teardown = @{};
-	$__call = @(uniforms, attributes, mode, offset, count) {
-		gl.use_program($program);
-		$setup(uniforms, attributes);
-		gl.draw_arrays(mode, offset, count);
-		$teardown();
-		gl.use_program(null);
-		gl.bind_buffer(gl.ARRAY_BUFFER, null);
+$Uniforms = Class() :: @{
+	$__initialize = @{
+		$projection = null;
+		$vertex = null;
+		$vertices = null;
+		$normal = null;
+		$color = null;
+		$diffuse = null;
+		$specular = null;
+		$shininess = null;
+		$refraction = null;
 	};
 };
 
-WithVertex = @{
-	super__initialize = $__initialize;
+$Attributes = Class() :: @{
+	$__initialize = @{
+		$vertices = null;
+		$joints = null;
+		$weights = null;
+		$normals = null;
+		$texcoords = null;
+	};
+};
+
+VertexShader = Class() :: @{
 	$__initialize = @(program) {
-		super__initialize[$](program);
+		$program = program;
 		$projection = $program.get_uniform_location("projection");
 		$vertex_matrix = $program.get_uniform_location("vertexMatrix");
 		$vertex = $program.get_attrib_location("vertex");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	$call = @(uniforms, attributes, mode, offset, count) {
 		$projection.matrix4fv(true, uniforms.projection);
 		$vertex_matrix.matrix4fv(true, uniforms.vertex);
 		gl.enable_vertex_attrib_array($vertex);
 		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.vertices);
 		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, 0, 0);
-	};
-	super__teardown = $teardown;
-	$teardown = @{
-		super__teardown[$]();
+		gl.draw_arrays(mode, offset, count);
 		gl.disable_vertex_attrib_array($vertex);
+	};
+	$__call = @(uniforms, attributes, mode, offset, count) {
+		gl.use_program($program);
+		$call(uniforms, attributes, mode, offset, count);
+		gl.use_program(null);
+		gl.bind_buffer(gl.ARRAY_BUFFER, null);
 	};
 };
 
@@ -47,19 +55,15 @@ WithNormal = @{
 		$normal = $program.get_attrib_location("normal");
 		$normal_matrix = $program.get_uniform_location("normalMatrix");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		if (attributes.normals !== null) {
 			gl.enable_vertex_attrib_array($normal);
 			gl.bind_buffer(gl.ARRAY_BUFFER, attributes.normals);
 			gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, 0, 0);
 			$normal_matrix.matrix3fv(true, uniforms.normal);
 		}
-	};
-	super__teardown = $teardown;
-	$teardown = @{
-		super__teardown[$]();
+		super__call[$](uniforms, attributes, mode, offset, count);
 		gl.disable_vertex_attrib_array($normal);
 	};
 };
@@ -70,11 +74,11 @@ WithColor = @{
 		super__initialize[$](program);
 		$color = $program.get_uniform_location("color");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		color = uniforms.color;
 		$color.uniform4f(color.x, color.y, color.z, color.w);
+		super__call[$](uniforms, attributes, mode, offset, count);
 	};
 };
 
@@ -85,19 +89,15 @@ WithTexture = @{
 		$texcoord = $program.get_attrib_location("texcoord");
 		$color = $program.get_uniform_location("color");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		gl.enable_vertex_attrib_array($texcoord);
 		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.texcoords);
 		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, 0, 0);
 		gl.active_texture(gl.TEXTURE0);
 		gl.bind_texture(gl.TEXTURE_2D, uniforms.color);
 		$color.uniform1i(0);
-	};
-	super__teardown = $teardown;
-	$teardown = @{
-		super__teardown[$]();
+		super__call[$](uniforms, attributes, mode, offset, count);
 		gl.disable_vertex_attrib_array($texcoord);
 		gl.bind_texture(gl.TEXTURE_2D, null);
 	};
@@ -109,11 +109,11 @@ WithDiffuseColor = @{
 		super__initialize[$](program);
 		$diffuse = $program.get_uniform_location("diffuse");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		diffuse = uniforms.diffuse;
 		$diffuse.uniform4f(diffuse.x, diffuse.y, diffuse.z, diffuse.w);
+		super__call[$](uniforms, attributes, mode, offset, count);
 	};
 };
 
@@ -124,19 +124,15 @@ WithDiffuseTexture = @{
 		$texcoord = $program.get_attrib_location("texcoord");
 		$diffuse = $program.get_uniform_location("diffuse");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		gl.enable_vertex_attrib_array($texcoord);
 		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.texcoords);
 		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, 0, 0);
 		gl.active_texture(gl.TEXTURE0);
 		gl.bind_texture(gl.TEXTURE_2D, uniforms.diffuse);
 		$diffuse.uniform1i(0);
-	};
-	super__teardown = $teardown;
-	$teardown = @{
-		super__teardown[$]();
+		super__call[$](uniforms, attributes, mode, offset, count);
 		gl.disable_vertex_attrib_array($texcoord);
 		gl.bind_texture(gl.TEXTURE_2D, null);
 	};
@@ -149,12 +145,12 @@ WithSpecular = @{
 		$specular = $program.get_uniform_location("specular");
 		$shininess = $program.get_uniform_location("shininess");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		specular = uniforms.specular;
 		$specular.uniform4f(specular.x, specular.y, specular.z, specular.w);
 		$shininess.uniform1f(uniforms.shininess);
+		super__call[$](uniforms, attributes, mode, offset, count);
 	};
 };
 
@@ -164,17 +160,16 @@ WithRefraction = @{
 		super__initialize[$](program);
 		$refraction = $program.get_uniform_location("refraction");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		$refraction.uniform1f(uniforms.refraction);
+		super__call[$](uniforms, attributes, mode, offset, count);
 	};
 };
 
-WithSkin = @(n) @{
-	super__initialize = $__initialize;
+SkinShader = @(n) Class() :: @{
 	$__initialize = @(program) {
-		super__initialize[$](program);
+		$program = program;
 		$projection = $program.get_uniform_location("projection");
 		$vertex_matrices = $program.get_uniform_location("vertexMatrices");
 		$vertex = $program.get_attrib_location("vertex");
@@ -185,9 +180,7 @@ WithSkin = @(n) @{
 			$weights.push($program.get_attrib_location("weight" + i));
 		}
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	$call = @(uniforms, attributes, mode, offset, count) {
 		$projection.matrix4fv(true, uniforms.projection);
 		$vertex_matrices.matrix4fv(true, uniforms.vertices);
 		gl.enable_vertex_attrib_array($vertex);
@@ -203,15 +196,18 @@ WithSkin = @(n) @{
 			gl.enable_vertex_attrib_array($weights[i]);
 			gl.vertex_attrib_pointer($weights[i], 1, gl.FLOAT, false, n * gl.Float32Array.BYTES_PER_ELEMENT, i * gl.Float32Array.BYTES_PER_ELEMENT);
 		}
-	};
-	super__teardown = $teardown;
-	$teardown = @{
-		super__teardown[$]();
+		gl.draw_arrays(mode, offset, count);
 		gl.disable_vertex_attrib_array($vertex);
 		for (i = 0; i < n; i = i + 1) {
 			gl.disable_vertex_attrib_array($joints[i]);
 			gl.disable_vertex_attrib_array($weights[i]);
 		}
+	};
+	$__call = @(uniforms, attributes, mode, offset, count) {
+		gl.use_program($program);
+		$call(uniforms, attributes, mode, offset, count);
+		gl.use_program(null);
+		gl.bind_buffer(gl.ARRAY_BUFFER, null);
 	};
 };
 
@@ -221,28 +217,24 @@ WithSkinNormal = @{
 		super__initialize[$](program);
 		$normal = $program.get_attrib_location("normal");
 	};
-	super__setup = $setup;
-	$setup = @(uniforms, attributes) {
-		super__setup[$](uniforms, attributes);
+	super__call = $call;
+	$call = @(uniforms, attributes, mode, offset, count) {
 		gl.enable_vertex_attrib_array($normal);
 		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.normals);
 		gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, 0, 0);
-	};
-	super__teardown = $teardown;
-	$teardown = @{
-		super__teardown[$]();
+		super__call[$](uniforms, attributes, mode, offset, count);
 		gl.disable_vertex_attrib_array($normal);
 	};
 };
 
-ColorShader = Class(Shader) :: WithVertex :: WithColor;
-TextureShader = Class(Shader) :: WithVertex :: WithTexture;
-DiffuseColorShader = Class(Shader) :: WithVertex :: WithNormal :: WithColor :: WithDiffuseColor;
-DiffuseTextureShader = Class(Shader) :: WithVertex :: WithNormal :: WithColor :: WithDiffuseTexture;
-DiffuseColorSpecularShader = Class(Shader) :: WithVertex :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular;
-DiffuseTextureSpecularShader = Class(Shader) :: WithVertex :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular;
-DiffuseColorSpecularRefractionShader = Class(Shader) :: WithVertex :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction;
-DiffuseTextureSpecularRefractionShader = Class(Shader) :: WithVertex :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction;
+ColorShader = Class(VertexShader) :: WithColor;
+TextureShader = Class(VertexShader) :: WithTexture;
+DiffuseColorShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseColor;
+DiffuseTextureShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseTexture;
+DiffuseColorSpecularShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular;
+DiffuseTextureSpecularShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular;
+DiffuseColorSpecularRefractionShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction;
+DiffuseTextureSpecularRefractionShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction;
 
 compile = @(type, source) {
 	shader = gl.Shader(type);
@@ -617,19 +609,19 @@ void main()
 	};
 	$SkinColorShader = @(n) {
 		if ($_SkinColorShaders.has(n)) return $_SkinColorShaders[n];
-		$_SkinColorShaders[n] = Class(Shader) :: WithSkin(n) :: WithColor;
+		$_SkinColorShaders[n] = Class(SkinShader(n)) :: WithColor;
 	};
 	$SkinDiffuseColorShader = @(n) {
 		if ($_SkinDiffuseColorShaders.has(n)) return $_SkinDiffuseColorShaders[n];
-		$_SkinDiffuseColorShaders[n] = Class(Shader) :: WithSkin(n) :: WithSkinNormal :: WithColor :: WithDiffuseColor;
+		$_SkinDiffuseColorShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor;
 	};
 	$SkinDiffuseColorSpecularShader = @(n) {
 		if ($_SkinDiffuseColorSpecularShaders.has(n)) return $_SkinDiffuseColorSpecularShaders[n];
-		$_SkinDiffuseColorSpecularShaders[n] = Class(Shader) :: WithSkin(n) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular;
+		$_SkinDiffuseColorSpecularShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular;
 	};
 	$SkinDiffuseColorSpecularRefractionShader = @(n) {
 		if ($_SkinDiffuseColorSpecularRefractionShaders.has(n)) return $_SkinDiffuseColorSpecularRefractionShaders[n];
-		$_SkinDiffuseColorSpecularRefractionShaders[n] = Class(Shader) :: WithSkin(n) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction;
+		$_SkinDiffuseColorSpecularRefractionShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction;
 	};
 	skins_color = Object();
 	skins_color.constant = '($SkinColorShader, $constant_shader_color);
@@ -644,19 +636,19 @@ void main()
 	};
 	$SkinTextureShader = @(n) {
 		if ($_SkinTextureShaders.has(n)) return $_SkinTextureShaders[n];
-		$_SkinTextureShaders[n] = Class(Shader) :: WithSkin(n) :: WithTexture;
+		$_SkinTextureShaders[n] = Class(SkinShader(n)) :: WithTexture;
 	};
 	$SkinDiffuseTextureShader = @(n) {
 		if ($_SkinDiffuseTextureShaders.has(n)) return $_SkinDiffuseTextureShaders[n];
-		$_SkinDiffuseTextureShaders[n] = Class(Shader) :: WithSkin(n) :: WithSkinNormal :: WithColor :: WithDiffuseTexture;
+		$_SkinDiffuseTextureShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture;
 	};
 	$SkinDiffuseTextureSpecularShader = @(n) {
 		if ($_SkinDiffuseTextureSpecularShaders.has(n)) return $_SkinDiffuseTextureSpecularShaders[n];
-		$_SkinDiffuseTextureSpecularShaders[n] = Class(Shader) :: WithSkin(n) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular;
+		$_SkinDiffuseTextureSpecularShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular;
 	};
 	$SkinDiffuseTextureSpecularRefractionShader = @(n) {
 		if ($_SkinDiffuseTextureSpecularRefractionShaders.has(n)) return $_SkinDiffuseTextureSpecularRefractionShaders[n];
-		$_SkinDiffuseTextureSpecularRefractionShaders[n] = Class(Shader) :: WithSkin(n) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction;
+		$_SkinDiffuseTextureSpecularRefractionShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction;
 	};
 	skins_texture = Object();
 	skins_texture.constant = '($SkinTextureShader, $constant_shader_texture);

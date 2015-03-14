@@ -6,6 +6,7 @@ time = Module("time");
 libxml = Module("libxml");
 gl = Module("gl");
 glmatrix = Module("glmatrix");
+glshaders = Module("glshaders");
 glimage = Module("glimage");
 
 print_time = false;
@@ -234,14 +235,14 @@ Primitive = Class() :: WithTree :: @{
 	$build = @(resolve) {
 		vertices = $inputs["VERTEX"];
 		source = resolve(resolve(vertices.source).inputs["POSITION"]);
-		$_attributes = Object();
+		$_attributes = glshaders.Attributes();
 		$_attributes.vertices = input_buffer[$](resolve, vertices, source, source.params.size());
 		normal_and_others[$](resolve);
 	};
 	$create = @(count, material, vertices, normals, others) {
 		$count = count;
 		$material = material;
-		$_attributes = Object();
+		$_attributes = glshaders.Attributes();
 		$_attributes.vertices = create_buffer(vertices);
 		$_attributes.normals = normals === null ? null : create_buffer(normals);
 		$_others = {};
@@ -425,11 +426,11 @@ Constant = Class(ShadingModel) :: @{
 		uniforms.color = $emission + $ambient * 0.125;
 	};
 	$__call = @(vertex, normal, vertices, normals, others, mode, offset, count) {
-		uniforms = Object();
+		uniforms = glshaders.Uniforms();
 		uniforms.projection = projection;
 		uniforms.vertex = vertex;
 		uniforms.color = $emission + $ambient * 0.125;
-		attributes = Object();
+		attributes = glshaders.Attributes();
 		attributes.vertices = vertices;
 		$_shader(uniforms, attributes, mode, offset, count);
 	};
@@ -640,11 +641,7 @@ InstanceGeometry = Class() :: WithTree :: @{
 				if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
 				others[key] = x[1];
 			});
-			uniforms = Object();
-			uniforms.projection = null;
-			uniforms.vertex = null;
-			uniforms.normal = null;
-			shader.model.setup(uniforms, x._attributes, others);
+			uniforms = glshaders.Uniforms();
 			$_primitives.push(@(projection, viewing) {
 				uniforms.projection = projection;
 				uniforms.vertex = viewing.bytes;
@@ -854,7 +851,7 @@ SkinPrimitive = Class() :: WithTree :: @{
 		$_attributes.weights = create_buffer(wbytes);
 	};
 	$build = @(resolve, vertices, weights) {
-		$_attributes = Object();
+		$_attributes = glshaders.Attributes();
 		$vertex_buffer($inputs["VERTEX"], vertices, weights);
 		normal_and_others[$](resolve);
 	};
@@ -972,10 +969,8 @@ InstanceController = Class() :: WithTree :: @{
 				if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
 				others[key] = x[1];
 			});
-			uniforms = Object();
-			uniforms.projection = null;
+			uniforms = glshaders.Uniforms();
 			uniforms.vertices = $_vertices;
-			shader.model.setup(uniforms, x._attributes, others);
 			$_primitives.push(@(projection) {
 				uniforms.projection = projection;
 				shader.model.setup(uniforms, $_attributes, others);
