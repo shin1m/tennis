@@ -756,7 +756,6 @@ Frame = Class(xraft.Frame) :: @{
 
 xraft.main(system.arguments, @(application) {
 	cairo.main(@{
-		try {
 		gl.main(@{
 			al.main(@{
 				device = al.Device(null);
@@ -769,9 +768,5 @@ xraft.main(system.arguments, @(application) {
 				application.run();
 			});
 		});
-		} catch (Throwable e) {
-			print(e);
-			e.dump();
-		}
 	});
 });
