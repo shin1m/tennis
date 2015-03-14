@@ -24,7 +24,7 @@ $Attributes = Class() :: @{
 	};
 };
 
-VertexShader = Class() :: @{
+MeshShader = Class() :: @{
 	$__initialize = @(program) {
 		$program = program;
 		$projection = $program.get_uniform_location("projection");
@@ -227,14 +227,14 @@ WithSkinNormal = @{
 	};
 };
 
-ColorShader = Class(VertexShader) :: WithColor;
-TextureShader = Class(VertexShader) :: WithTexture;
-DiffuseColorShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseColor;
-DiffuseTextureShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseTexture;
-DiffuseColorSpecularShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular;
-DiffuseTextureSpecularShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular;
-DiffuseColorSpecularRefractionShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction;
-DiffuseTextureSpecularRefractionShader = Class(VertexShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction;
+ColorShader = Class(MeshShader) :: WithColor;
+TextureShader = Class(MeshShader) :: WithTexture;
+DiffuseColorShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseColor;
+DiffuseTextureShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseTexture;
+DiffuseColorSpecularShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular;
+DiffuseTextureSpecularShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular;
+DiffuseColorSpecularRefractionShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction;
+DiffuseTextureSpecularRefractionShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction;
 
 compile = @(type, source) {
 	shader = gl.Shader(type);
