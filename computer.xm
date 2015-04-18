@@ -59,7 +59,7 @@ $__get_at = @(stage) @(controller, player) {
 					dt = stage.second ? 0.0 : 1.0;
 					if (random() % 2 == 0) dt = dt + 1.0;
 					if (t < (swing.impact - swing.start) * 60.0 + dt) {
-						:net = random() % 10 > (stage.second ? 7 : 3);
+						:net = random() % 10 > (stage.second ? 7 : 4);
 						player.do(shot);
 					} else if (t < (swing.impact - swing.start) * 60.0 + 8.0) {
 						if (!player.left && !player.right) {
@@ -121,6 +121,10 @@ $__get_at = @(stage) @(controller, player) {
 			}
 			position = ball.position;
 			velocity = ball.velocity;
+			if (!ball.in) {
+				bound_t = math.ceil(ball.projected_time_for_y(Ball.radius, 1.0));
+				bound_position = Vector3(position.x + velocity.x * bound_t, Ball.radius, position.z + velocity.z * bound_t);
+			}
 			v = player.direction();
 			v.normalize();
 			whichhand = player.whichhand(v);
@@ -147,9 +151,9 @@ $__get_at = @(stage) @(controller, player) {
 				if (net || ball.in) {
 					t0 = 0.0;
 				} else {
-					t0 = math.ceil(ball.projected_time_for_y(Ball.radius, 1.0));
-					position = Vector3(position.x + velocity.x * t0, Ball.radius, position.z + velocity.z * t0);
-					velocity = Vector3(velocity.x, velocity.y - G * t0, velocity.z);
+					t0 = bound_t;
+					position = bound_position;
+					velocity = Vector3(velocity.x, velocity.y - G * bound_t, velocity.z);
 					ball.calculate_bounce(velocity, ball.spin * 1.0);
 				}
 				if (net && !ball.in) {
@@ -167,7 +171,8 @@ $__get_at = @(stage) @(controller, player) {
 			tt = t0 + t;
 			t1 = t0 + reach_range(position, velocity, point, player.speed, t0, 1.0);
 			if (t1 >= 0.0 && t1 < tt) tt = t1;
-			if (tt < (swing.impact - swing.start) * 60.0 + 1.0) {
+			if (tt < -1.0) {
+			} else if ((ball.in || bound_position.x > -(13 * 12 + 6) * 0.0254 - 0.125 && bound_position.x < (13 * 12 + 6) * 0.0254 + 0.125 && bound_position.z * player.end < 39 * 12 * 0.0254 + 0.5) && tt < (swing.impact - swing.start) * 60.0 + 1.0) {
 				reset_move();
 				player.left = left;
 				player.right = right;

@@ -52,7 +52,7 @@ exports.controller = (controller, player) ->
           dt = if @second then 0.0 else 1.0
           dt += 1.0 if random() % 2 == 0
           if t < (swing.impact - swing.start) * 60.0 + dt
-            net = random() % 10 > (if @second then 7 else 3)
+            net = random() % 10 > (if @second then 7 else 4)
             player.perform shot
           else if t < (swing.impact - swing.start) * 60.0 + 8.0
             if !player.left && !player.right
@@ -108,6 +108,9 @@ exports.controller = (controller, player) ->
           shot = 'flat'
       position = ball.position
       velocity = ball.velocity
+      unless ball.in
+        bound_t = Math.ceil(ball.projected_time_for_y(Ball::radius, 1.0))
+        bound_position = new THREE.Vector3(position.x + velocity.x * bound_t, Ball::radius, position.z + velocity.z * bound_t)
       v = player.direction().normalize()
       whichhand = player.whichhand(v)
       actions = player.actions.swing
@@ -131,8 +134,8 @@ exports.controller = (controller, player) ->
         if net || ball.in
           t0 = 0.0
         else
-          t0 = Math.ceil(ball.projected_time_for_y(Ball::radius, 1.0))
-          position = new THREE.Vector3(position.x + velocity.x * t0, Ball::radius, position.z + velocity.z * t0)
+          t0 = bound_t
+          position = bound_position
           velocity = new THREE.Vector3(velocity.x, velocity.y - G * t0, velocity.z)
           ball.calculate_bounce(velocity, ball.spin.clone())
         if net && !ball.in
@@ -147,7 +150,8 @@ exports.controller = (controller, player) ->
       tt = t0 + t
       t1 = t0 + reach_range(position, velocity, point, player.speed, t0, 1.0)
       tt = t1 if t1 >= 0.0 && t1 < tt
-      if tt < (swing.impact - swing.start) * 60.0 + 1.0
+      if tt < -1.0
+      else if (ball.in || bound_position.x > -(13 * 12 + 6) * 0.0254 - 0.125 && bound_position.x < (13 * 12 + 6) * 0.0254 + 0.125 && bound_position.z * player.end < 39 * 12 * 0.0254 + 0.5) && tt < (swing.impact - swing.start) * 60.0 + 1.0
         reset_move()
         player.left = left
         player.right = right
