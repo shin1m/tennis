@@ -99,7 +99,7 @@ Reader = Class(libxml.TextReader) :: @{
 		$read_next();
 		while (true) {
 			$move_to_tag();
-			if ($type() != libxml.ReaderTypes.ELEMENT) break;
+			if ($_type != libxml.ReaderTypes.ELEMENT) break;
 			try {
 				element = elements[$local_name()];
 			} catch (Throwable e) {
