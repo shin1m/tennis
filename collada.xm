@@ -182,17 +182,24 @@ normal_and_others = @(resolve) {
 	try {
 		normals = $inputs["NORMAL"];
 		source = resolve(normals.source);
-		$_attributes.normals = input_buffer[$](resolve, normals, source, source.params.size());
+		$_normals = input_buffer[$](resolve, normals, source, source.params.size());
 	} catch (Throwable e) {
-		$_attributes.normals = null;
+		$_normals = null;
 	}
-	$_others = [];
+	$_others = {};
 	$inputs.each(@(key, value) {
 		if (key == "VERTEX" || key == "NORMAL") return;
 		source = resolve(value.source);
-		$_others.push('(key, input_buffer[$](resolve, value, source, value.semantic == "TEXCOORD" ? 2 : source.params.size())));
+		$_others[key] = input_buffer[$](resolve, value, source, value.semantic == "TEXCOORD" ? 2 : source.params.size());
 	}[$]);
 	gl.bind_buffer(gl.ARRAY_BUFFER, null);
+};
+
+bound_input = @(binds, semantic) {
+	key = binds[semantic];
+	if ($_others.has(key)) return $_others[key];
+	if ($_others.has(key[0])) return $_others[key[0]];
+	throw Throwable("cannot find input");
 };
 
 invert4to3 = @(m) {
@@ -228,28 +235,27 @@ Primitive = Class() :: WithTree :: @{
 		$indices.(symbol)();
 	};
 	$destroy = @{
-		$_attributes.vertices.delete();
-		if ($_attributes.normals !== null) $_attributes.normals.delete();
+		$_vertices.delete();
+		if ($_normals !== null) $_normals.delete();
 		$_others.each(@(x) x[1].delete());
 	};
 	$build = @(resolve) {
 		vertices = $inputs["VERTEX"];
 		source = resolve(resolve(vertices.source).inputs["POSITION"]);
-		$_attributes = glshaders.Attributes();
-		$_attributes.vertices = input_buffer[$](resolve, vertices, source, source.params.size());
+		$_vertices = input_buffer[$](resolve, vertices, source, source.params.size());
 		normal_and_others[$](resolve);
 	};
 	$create = @(count, material, vertices, normals, others) {
 		$count = count;
 		$material = material;
-		$_attributes = glshaders.Attributes();
-		$_attributes.vertices = create_buffer(vertices);
-		$_attributes.normals = normals === null ? null : create_buffer(normals);
+		$_vertices = create_buffer(vertices);
+		$_normals = normals === null ? null : create_buffer(normals);
 		$_others = {};
-		others.each((@(key, value) $_others.push('(key, create_buffer(value))))[$]);
+		others.each((@(key, value) $_others[key] = create_buffer(value))[$]);
 		gl.bind_buffer(gl.ARRAY_BUFFER, null);
 		$;
 	};
+	$input = bound_input;
 };
 
 Lines = Class(Primitive) :: @{
@@ -303,8 +309,8 @@ Surface = Class() :: @{
 
 Sampler2D = Class() :: @{
 	$__initialize = @{
-		$minfilter = "NEAREST";
-		$magfilter = "NEAREST";
+		$minfilter = "NONE";
+		$magfilter = "NONE";
 		$built = false;
 	};
 	$__string = @() "Sampler2D(" + $sid + ") {source: " + $source + "}";
@@ -321,9 +327,12 @@ Sampler2D = Class() :: @{
 		gl.bind_texture(gl.TEXTURE_2D, $_texture);
 		gl.tex_image2d(gl.TEXTURE_2D, 0, gl.RGBA, from.width, from.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, from.data);
 		filter = gl.(Symbol($minfilter));
+		if (filter === gl.NONE) filter = gl.NEAREST_MIPMAP_LINEAR;
 		if (filter === gl.NEAREST_MIPMAP_NEAREST || filter === gl.NEAREST_MIPMAP_LINEAR || filter === gl.LINEAR_MIPMAP_NEAREST || filter === gl.LINEAR_MIPMAP_LINEAR) gl.generate_mipmap(gl.TEXTURE_2D);
 		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.(Symbol($magfilter)));
+		filter = gl.(Symbol($magfilter));
+		if (filter === gl.NONE) filter = gl.LINEAR;
+		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
 		gl.bind_texture(gl.TEXTURE_2D, null);
 		$built = true;
 	};
@@ -339,8 +348,8 @@ CommonParam = Class() :: @{
 	$build = @(resolve, sids) $_ref = sids[$ref];
 };
 
-Texture = Class() :: @{
-	$__string = @() "Texture(" + $texture + ") {texcoord: " + $texcoord + "}";
+CommonTexture = Class() :: @{
+	$__string = @() "CommonTexture(" + $texture + ") {texcoord: " + $texcoord + "}";
 	$build = @(resolve, sids) {
 		$_texture = sids[$texture];
 		$_texture.build(resolve, sids);
@@ -354,6 +363,48 @@ CommonFloat = Class() :: @{
 };
 
 ShadingModel = Class() :: WithTree :: @{
+	Shader = Class() :: @{
+		$__initialize = @(shader, setup) {
+			$shader = shader;
+			$uniforms = glshaders.Uniforms();
+			$attributes = glshaders.Attributes();
+			$_setup = setup;
+		};
+		$setup = @(model, primitive, binds) {
+			$mode = primitive.mode;
+			$count = primitive.count * primitive.unit;
+			$attributes.vertices = primitive._vertices;
+			$_setup[$](model, primitive, binds);
+		};
+	};
+	$MeshShader = Class(Shader) :: @{
+		$__call = @(projection, viewing) {
+			$uniforms.projection = projection;
+			$uniforms.vertex = viewing.bytes;
+			$uniforms.normal = invert4to3(viewing);
+			$shader($uniforms, $attributes, $mode, 0, $count);
+		};
+	};
+	$MeshNormalShader = Class($MeshShader) :: @{
+		$setup = @(model, primitive, binds) {
+			:$^setup[$](model, primitive, binds);
+			$attributes.normals = primitive._normals;
+		};
+	};
+	$SkinShader = Class(Shader) :: @{
+		$setup = @(model, vertices, primitive, binds) {
+			:$^setup[$](model, primitive, binds);
+			$uniforms.vertices = vertices;
+			$attributes.normals = primitive._normals;
+			$attributes.joints = primitive._joints;
+			$attributes.weights = primitive._weights;
+		};
+		$__call = @(projection) {
+			$uniforms.projection = projection;
+			$shader($uniforms, $attributes, $mode, 0, $count);
+		};
+	};
+
 	$__initialize = @{
 		$emission = CommonColor(0.0, 0.0, 0.0, 1.0);
 		$ambient = CommonColor(0.0, 0.0, 0.0, 1.0);
@@ -406,58 +457,51 @@ ShadingModel = Class() :: WithTree :: @{
 };
 
 Blinn = Class(ShadingModel) :: @{
-	$__string = @() "Blinn {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $diffuse.: === Texture ? shaders.blinn_texture() : shaders.blinn_color();
-	$skin_shader = @(shaders, joints, weights) $diffuse.: === Texture ? shaders.skin_texture(joints, weights, 'blinn) : shaders.skin_color(joints, weights, 'blinn);
-	$setup = @(uniforms, attributes, others) {
-		uniforms.color = $emission + $ambient * 0.125;
-		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._texture : $diffuse;
-		uniforms.specular = $specular;
-		uniforms.shininess = $shininess.value;
-		uniforms.refraction = $index_of_refraction.value;
-		if ($diffuse.: === Texture) attributes.texcoords = others[$diffuse.texcoord];
+	setup = @(model, primitive, binds) {
+		$uniforms.color = model.emission + model.ambient * 0.125;
+		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
+		$uniforms.specular = model.specular;
+		$uniforms.shininess = model.shininess.value;
+		$uniforms.refraction = model.index_of_refraction.value;
+		if (model.diffuse.: === CommonTexture) $attributes.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
+
+	$__string = @() "Blinn {" + :$^__string[$]() + "}";
+	$mesh_shader = @(shaders) $MeshNormalShader($diffuse.: === CommonTexture ? shaders.blinn_texture() : shaders.blinn_color(), setup);
+	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.: === CommonTexture ? shaders.skin_texture(joints, weights, 'blinn) : shaders.skin_color(joints, weights, 'blinn), setup);
 };
 
 Constant = Class(ShadingModel) :: @{
+	setup = @(model, primitive, binds) $uniforms.color = model.emission + model.ambient * 0.125;
+
 	$__string = @() "Constant {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) shaders.constant_color();
-	$setup = @(uniforms, attributes, others) {
-		uniforms.color = $emission + $ambient * 0.125;
-	};
-	$__call = @(vertex, normal, vertices, normals, others, mode, offset, count) {
-		uniforms = glshaders.Uniforms();
-		uniforms.projection = projection;
-		uniforms.vertex = vertex;
-		uniforms.color = $emission + $ambient * 0.125;
-		attributes = glshaders.Attributes();
-		attributes.vertices = vertices;
-		$_shader(uniforms, attributes, mode, offset, count);
-	};
+	$mesh_shader = @(shaders) $MeshShader(shaders.constant_color(), setup);
 };
 
 Lambert = Class(ShadingModel) :: @{
-	$__string = @() "Lambert {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $diffuse.: === Texture ? shaders.lambert_texture() : shaders.lambert_color();
-	$skin_shader = @(shaders, joints, weights) $diffuse.: === Texture ? shaders.skin_texture(joints, weights, 'lambert) : shaders.skin_color(joints, weights, 'lambert);
-	$setup = @(uniforms, attributes, others) {
-		uniforms.color = $emission + $ambient * 0.125;
-		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._texture : $diffuse;
-		if ($diffuse.: === Texture) attributes.texcoords = others[$diffuse.texcoord];
+	setup = @(model, primitive, binds) {
+		$uniforms.color = model.emission + model.ambient * 0.125;
+		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
+		if (model.diffuse.: === CommonTexture) $attributes.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
+
+	$__string = @() "Lambert {" + :$^__string[$]() + "}";
+	$mesh_shader = @(shaders) $MeshNormalShader($diffuse.: === CommonTexture ? shaders.lambert_texture() : shaders.lambert_color(), setup);
+	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.: === CommonTexture ? shaders.skin_texture(joints, weights, 'lambert) : shaders.skin_color(joints, weights, 'lambert), setup);
 };
 
 Phong = Class(ShadingModel) :: @{
-	$__string = @() "Phong {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $diffuse.: === Texture ? shaders.phong_texture() : shaders.phong_color();
-	$skin_shader = @(shaders, joints, weights) $diffuse.: === Texture ? shaders.skin_texture(joints, weights, 'phong) : shaders.skin_color(joints, weights, 'phong);
-	$setup = @(uniforms, attributes, others) {
-		uniforms.color = $emission + $ambient * 0.125;
-		uniforms.diffuse = $diffuse.: === Texture ? $diffuse._texture._texture : $diffuse;
-		uniforms.specular = $specular;
-		uniforms.shininess = $shininess.value;
-		if ($diffuse.: === Texture) attributes.texcoords = others[$diffuse.texcoord];
+	setup = @(model, primitive, binds) {
+		$uniforms.color = model.emission + model.ambient * 0.125;
+		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
+		$uniforms.specular = model.specular;
+		$uniforms.shininess = model.shininess.value;
+		if (model.diffuse.: === CommonTexture) $attributes.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
+
+	$__string = @() "Phong {" + :$^__string[$]() + "}";
+	$mesh_shader = @(shaders) $MeshNormalShader($diffuse.: === CommonTexture ? shaders.phong_texture() : shaders.phong_color(), setup);
+	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.: === CommonTexture ? shaders.skin_texture(joints, weights, 'phong) : shaders.skin_color(joints, weights, 'phong), setup);
 };
 
 TechniqueFX = Class() :: WithTree :: @{
@@ -605,18 +649,17 @@ InstanceMaterial = Class() :: WithTree :: @{
 };
 
 InstanceMaterialFallback = Class() :: WithTree :: @{
-	$__initialize = @{
-		$bind_vertex_inputs = {};
-	};
+	setup = @(model, primitive, binds) $uniforms.color = Vector4(1.0, 1.0, 1.0, 1.0);
+
+	$__initialize = @() $bind_vertex_inputs = {};
 	$tree = @(symbol) {
 		:$^.(symbol)[$]();
 		$bind_vertex_inputs.(symbol)();
 	};
 	$build = @(resolve) {};
 	$model = @() $;
-	$mesh_shader = @(shaders) shaders.constant_color();
-	$skin_shader = @(shaders, joints, weights) shaders.skin_color(joints, weights, 'constant);
-	$setup = @(uniforms, attributes, others) uniforms.color = Vector4(1.0, 1.0, 1.0, 1.0);
+	$mesh_shader = @(shaders) ShadingModel.MeshShader(shaders.constant_color(), setup);
+	$skin_shader = @(shaders, joints, weights) ShadingModel.SkinShader(shaders.skin_color(joints, weights, 'constant), setup);
 };
 
 InstanceGeometry = Class() :: WithTree :: @{
@@ -631,50 +674,36 @@ InstanceGeometry = Class() :: WithTree :: @{
 			if (key != "") value.(symbol)();
 		});
 	};
-	$build_render = @{
-		$_primitives = [];
+	$build_render = @(resolve, shaders) {
+		$_shaders = [];
 		$_geometry.primitives.each(@(x) {
-			shader = $_shaders[x.material];
-			others = {};
-			x._others.each(@(x) {
-				key = x[0];
-				if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
-				others[key] = x[1];
-			});
-			uniforms = glshaders.Uniforms();
-			$_primitives.push(@(projection, viewing) {
-				uniforms.projection = projection;
-				uniforms.vertex = viewing.bytes;
-				uniforms.normal = invert4to3(viewing);
-				shader.model.setup(uniforms, $_attributes, others);
-				shader.shader(uniforms, $_attributes, $mode, 0, $count * $unit);
-			}[x]);
+			material = $materials[x.material];
+			material.build(resolve);
+			model = material.model();
+			shader = model.mesh_shader(shaders);
+			shader.setup(model, x, material.bind_vertex_inputs);
+			$_shaders.push(shader.__call);
 		}[$]);
 	};
 	$build = @(resolve, shaders) {
 		$_geometry = resolve($url);
 		$_geometry.build(resolve);
-		$_shaders = {};
-		$materials.each(@(key, value) {
-			value.build(resolve);
-			shader = Object();
-			shader.model = value.model();
-			shader.shader = shader.model.mesh_shader(shaders);
-			shader.bind_vertex_inputs = value.bind_vertex_inputs;
-			$_shaders[key] = shader;
-		}[$]);
-		$build_render();
+		$build_render(resolve, shaders);
 	};
-	$create = @(geometry, shaders) {
+	$create = @(resolve, shaders, geometry, materials) {
 		$_geometry = geometry;
-		$_shaders = shaders;
-		$build_render();
+		materials.each(@(key, value) {
+			material = InstanceMaterial();
+			material.target = value;
+			$materials[key] = material;
+		}[$]);
+		$build_render(resolve, shaders);
 		$;
 	};
 	$render = @(projection, viewing) {
-		primitives = $_primitives;
-		n = primitives.size();
-		for (i = 0; i < n; i = i + 1) primitives[i](projection, viewing);
+		shaders = $_shaders;
+		n = shaders.size();
+		for (i = 0; i < n; i = i + 1) shaders[i](projection, viewing);
 	};
 };
 $InstanceGeometry = InstanceGeometry;
@@ -700,7 +729,6 @@ Node = Class() :: WithTree :: @{
 		$geometries.(symbol)();
 		$geometries.each(@(x) x.(symbol)());
 		$instance_nodes.(symbol)();
-		$instance_nodes.each(@(x) x.(symbol)());
 		$nodes.(symbol)();
 		$nodes.each(@(x) x.(symbol)());
 	};
@@ -782,7 +810,7 @@ Node = Class() :: WithTree :: @{
 		if ($joint) $_root_controllers.each(ancestors.remove);
 		$build_render();
 	};
-	$create = @() {
+	$create = @{
 		$joint = false;
 		$_nodes = [];
 		$_controllers = [];
@@ -809,10 +837,10 @@ SkinPrimitive = Class() :: WithTree :: @{
 		$indices.(symbol)();
 	};
 	$destroy = @{
-		$_attributes.vertices.delete();
-		$_attributes.joints.delete();
-		$_attributes.weights.delete();
-		if ($_attributes.normals !== null) $_attributes.normals.delete();
+		$_vertices.delete();
+		$_joints.delete();
+		$_weights.delete();
+		if ($_normals !== null) $_normals.delete();
 		$_others.each(@(x) x[1].delete());
 	};
 	$vertex_buffer = @(input, vertices, weights) {
@@ -846,15 +874,15 @@ SkinPrimitive = Class() :: WithTree :: @{
 			}
 			i = i + $stride;
 		}
-		$_attributes.vertices = create_buffer(bytes);
-		$_attributes.joints = create_buffer(jbytes);
-		$_attributes.weights = create_buffer(wbytes);
+		$_vertices = create_buffer(bytes);
+		$_joints = create_buffer(jbytes);
+		$_weights = create_buffer(wbytes);
 	};
 	$build = @(resolve, vertices, weights) {
-		$_attributes = glshaders.Attributes();
 		$vertex_buffer($inputs["VERTEX"], vertices, weights);
 		normal_and_others[$](resolve);
 	};
+	$input = bound_input;
 };
 
 Skin = Class() :: WithTree :: @{
@@ -873,6 +901,7 @@ Skin = Class() :: WithTree :: @{
 		$sources.each(@(x) x.(symbol)());
 		$joints.(symbol)();
 		$vertex_weights.(symbol)();
+		$vertex_weights.vcount.(symbol)();
 		$vertex_weights.v.(symbol)();
 	};
 	$destroy = @{
@@ -890,7 +919,7 @@ Skin = Class() :: WithTree :: @{
 		weights.build(resolve);
 		vertices = [];
 		$_weights_per_vertex = 0;
-		n = $vertex_weights.count;
+		n = $vertex_weights.vcount.size();
 		for (i = 0; i < n; i = i + 1) {
 			bones = [];
 			m = $vertex_weights.vcount[i];
@@ -951,40 +980,23 @@ InstanceController = Class() :: WithTree :: @{
 			skeleton.build(resolve, shaders);
 			skeleton._controllers.push($);
 		}[$]);
-		$_shaders = {};
-		$materials.each(@(key, value) {
-			value.build(resolve);
-			shader = Object();
-			shader.model = value.model();
-			shader.shader = shader.model.skin_shader(shaders, joints.count + 1, $_controller._weights_per_vertex);
-			shader.bind_vertex_inputs = value.bind_vertex_inputs;
-			$_shaders[key] = shader;
-		}[$]);
-		$_primitives = [];
+		$_shaders = [];
 		$_controller._primitives.each(@(x) {
-			shader = $_shaders[x.material];
-			others = {};
-			x._others.each(@(x) {
-				key = x[0];
-				if (shader.bind_vertex_inputs.has(key)) key = shader.bind_vertex_inputs[key];
-				others[key] = x[1];
-			});
-			uniforms = glshaders.Uniforms();
-			uniforms.vertices = $_vertices;
-			$_primitives.push(@(projection) {
-				uniforms.projection = projection;
-				shader.model.setup(uniforms, $_attributes, others);
-				shader.shader(uniforms, $_attributes, $mode, 0, $count * $unit);
-			}[x]);
+			material = $materials[x.material];
+			material.build(resolve);
+			model = material.model();
+			shader = model.skin_shader(shaders, joints.count + 1, $_controller._weights_per_vertex);
+			shader.setup(model, $_vertices, x, material.bind_vertex_inputs);
+			$_shaders.push(shader.__call);
 		}[$]);
 	};
 	$render = @(projection) {
 		n = $_ibms.size();
 		stride = 16 * gl.Float32Array.BYTES_PER_ELEMENT;
 		for (i = 0; i < n; i = i + 1) ($_joints[i].vertex * $_ibms[i]).bytes.copy(0, stride, $_vertices, i * stride);
-		primitives = $_primitives;
-		n = primitives.size();
-		for (i = 0; i < n; i = i + 1) primitives[i](projection);
+		shaders = $_shaders;
+		n = shaders.size();
+		for (i = 0; i < n; i = i + 1) shaders[i](projection);
 	};
 };
 
@@ -1066,7 +1078,7 @@ Channel = Class() :: @{
 				j = find_index(path[1], i, @(x) x == 0x29);
 				row = Integer(path[1].substring(i, j - i));
 				ij = row * 4 + column;
-				$__call = ij == 15 ? @(value) {} : @(value) target.v[ij] = value;
+				$__call = ij < 15 ? @(value) target.v[ij] = value : @(value) {};
 			} else {
 				$__call = @(value) value.bytes.copy(0, 16 * gl.Float32Array.BYTES_PER_ELEMENT, target.bytes, 0);
 			}
@@ -1362,7 +1374,6 @@ $load = @(source) {
 		n = 0;
 		for (i = 0; i < count; i = i + 1) n = n + vcount[i];
 		reader.check_start_element("v");
-		skin.vertex_weights.count = count;
 		skin.vertex_weights.vcount = vcount;
 		skin.vertex_weights.v = parse_array(gl.Int32Array, Integer, n * skin.vertex_weights.size(), reader.read_element_text());
 		while (reader.is_start_element("extra")) reader.read_element_text();
@@ -1406,7 +1417,7 @@ $load = @(source) {
 			value.ref = reader.get_attribute("ref");
 			reader.read_element_text();
 		} else if (reader.is_start_element("texture")) {
-			value = Texture();
+			value = CommonTexture();
 			value.texture = reader.get_attribute("texture");
 			value.texcoord = reader.get_attribute("texcoord");
 			reader.read_element_text();
@@ -1510,7 +1521,7 @@ $load = @(source) {
 		primitive;
 	};
 	read_primitive = @(type) read_primitive_common(type, @(primitive) {
-		if (reader.is_start_element("p")) primitive.indices = parse_array(gl.Int32Array, Integer, primitive.count * primitive.stride * 3, reader.read_element_text());
+		if (reader.is_start_element("p")) primitive.indices = parse_array(gl.Int32Array, Integer, primitive.count * primitive.stride * type.unit, reader.read_element_text());
 	});
 	read_polylist = @() read_primitive_common(Triangles, @(primitive) {
 		count = primitive.count;
@@ -1577,8 +1588,7 @@ $load = @(source) {
 				input_semantic = reader.get_attribute("input_semantic");
 				input_set = Integer(reader.get_attribute("input_set"));
 				reader.read_element_text();
-				material.bind_vertex_inputs[input_semantic] = semantic;
-				material.bind_vertex_inputs['(input_semantic, input_set)] = semantic;
+				material.bind_vertex_inputs[semantic] = '(input_semantic, input_set);
 			}
 			while (reader.is_start_element("extra")) reader.read_element_text();
 			reader.end_element();

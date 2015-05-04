@@ -28,15 +28,6 @@ $Stage = Class() :: @{
 		o;
 	};
 
-	$shader = @(name) {
-		material = $scene.ids[name];
-		material.build($scene.resolve);
-		shader = Object();
-		shader.model = material.model();
-		shader.shader = shader.model.mesh_shader($main.shaders);
-		shader.bind_vertex_inputs = {};
-		shader;
-	};
 	$ball_bounce = @() $sound_bounce.play();
 	$ball_in = @() $mark.mark($ball);
 	$ball_net = @() $sound_net.play();
@@ -81,9 +72,9 @@ $Stage = Class() :: @{
 		$sound_miss = main.load_sound("data/miss.wav");
 		$camera0 = Placement();
 		$camera1 = Placement();
-		$ball = Ball($, $shader("Material-Shadow"), $shader("Material-Ball"));
+		$ball = Ball($, $scene.resolve, main.shaders, "#Material-Shadow", "#Material-Ball");
 		$scene.scene.instance_visual_scene._scene.nodes.push($ball.node);
-		$mark = Mark($shader("Material-Shadow"));
+		$mark = Mark($scene.resolve, main.shaders, "#Material-Shadow");
 		$scene.scene.instance_visual_scene._scene.nodes.push($mark.node);
 		$player0 = Player($, player0);
 		$scene.scene.instance_visual_scene._scene.nodes.push($player0.node);

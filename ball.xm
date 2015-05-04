@@ -47,7 +47,7 @@ sphere = @(n) {
 	triangles;
 };
 
-node = @(triangles, shader) {
+node = @(resolve, shaders, triangles, material) {
 	bytes0 = Bytes(triangles.size() * 9 * gl.Float32Array.BYTES_PER_ELEMENT);
 	bytes1 = Bytes(triangles.size() * 9 * gl.Float32Array.BYTES_PER_ELEMENT);
 	array0 = gl.Float32Array(bytes0);
@@ -69,7 +69,7 @@ node = @(triangles, shader) {
 	mesh = collada.Mesh();
 	mesh.primitives.push(collada.Triangles().create(triangles.size(), "Symbol", bytes0, bytes1, {}));
 	node = collada.Node().create();
-	node.geometries.push(collada.InstanceGeometry(null).create(mesh, {"Symbol": shader}));
+	node.geometries.push(collada.InstanceGeometry(null).create(resolve, shaders, mesh, {"Symbol": material}));
 	node;
 };
 
@@ -83,7 +83,7 @@ $projected_time_for_y = projected_time_for_y = @(py, vy, y, sign) {
 $Ball = Class() :: @{
 	$radius = radius = 0.0625;
 
-	$__initialize = @(stage, shadow, body) {
+	$__initialize = @(stage, resolve, shaders, shadow, body) {
 		$stage = stage;
 		$position = Vector3(0.0, 0.0, 0.0);
 		$velocity = Vector3(0.0, 0.0, 0.0);
@@ -91,11 +91,11 @@ $Ball = Class() :: @{
 		$node = collada.Node().create();
 		$translate = collada.Translate(0.0, 0.0, 0.0);
 		$node.transforms.push($translate);
-		shadow = node(circle(8), shadow);
+		shadow = node(resolve, shaders, circle(8), shadow);
 		shadow.transforms.push(collada.Translate(0.0, 1.0 / 64.0, 0.0));
 		shadow.transforms.push(collada.Scale(radius, 1.0, radius));
 		$node.nodes.push(shadow);
-		body = node(sphere(2), body);
+		body = node(resolve, shaders, sphere(2), body);
 		$body_translate = collada.Translate(0.0, 0.0, 0.0);
 		body.transforms.push($body_translate);
 		body.transforms.push(collada.Scale(radius, radius, radius));
@@ -280,10 +280,10 @@ $Ball = Class() :: @{
 $Mark = Class() :: @{
 	radius = 0.0625;
 
-	$__initialize = @(shadow) {
+	$__initialize = @(resolve, shaders, shadow) {
 		$duration = 0.0;
 		$stretch = 1.0;
-		$node = node(circle(8), shadow);
+		$node = node(resolve, shaders, circle(8), shadow);
 		$placement = Placement();
 		$placement.position.y = 1.0 / 64.0;
 		$node.transforms.push($placement);
