@@ -84,7 +84,8 @@ class Ball
     @position.add @velocity
     @position.y = @position.y - 0.5 * G
     @velocity.y = @velocity.y - G
-    @velocity.add @spin.clone().cross(@velocity).multiplyScalar(1.0 / 4096)
+    @velocity.add(@spin.clone().cross(@velocity).multiplyScalar(1.0 / 1500.0)).multiplyScalar(0.999)
+    @spin.multiplyScalar 0.99
     if @position.y - radius <= 0.0
       @position.y = radius
       @bounce()

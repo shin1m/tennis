@@ -59,7 +59,7 @@ exports.controller = (controller, player) ->
               i = random()
               if i % 8 < (if @second then 1 else 2)
                 player.left = true
-              else if i % 8 > (if @second then 6 else 5)
+              else if i % 8 > (if @second then 5 else 4)
                 player.right = true
       else
         reset_move()

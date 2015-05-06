@@ -18,7 +18,7 @@ exports.shot_direction = shot_direction = (ball, end, left, right, forward, back
   vx -= 12 * 12 * 0.0254 * end if left
   vx += 12 * 12 * 0.0254 * end if right
   vz = -24 * 12 * 0.0254 * end - ball.z
-  vz -= 14 * 12 * 0.0254 * end if forward
+  vz -= 16 * 12 * 0.0254 * end if forward
   vz += 10 * 12 * 0.0254 * end if backward
   new THREE.Vector3(vx, 0.0, vz)
 
@@ -225,8 +225,8 @@ class Player
         @speed = @actions.run.speed
         @actions.serve.set.play()
         console.log @root.position
-        @lefty = @root.position.x < 0.0
-        @smash_hand = if @lefty then 0.25 else -0.25
+        @lefty = if @root.position.x < 0.0 then -1.0 else 1.0
+        @smash_hand = -0.25 * @lefty
         @motion = null
         @blend_last = null
         @blend_duration = 0.0
@@ -363,16 +363,22 @@ class Player
     speed = 2.0 / 64.0
     @ball.position.x = @ball.position.x - speed * @end if @left
     @ball.position.x = @ball.position.x + speed * @end if @right
+    es = @end * @stage.side
+    xes = @ball.position.x * es
+    center = 12 * 0.0254
+    wide = 14 * 12 * 0.0254
+    @ball.position.x = center * es if xes < center
+    @ball.position.x = wide * es if xes > wide
     @ball.position.y = 0.875
     @ball.velocity.set 0.0, 0.0, 0.0
     @ball.spin.set 0.0, 0.0, 0.0
     @node.position.set @ball.position.x, 0.0, @ball.position.z
-    @node.lookAt new THREE.Vector3((6 * 12 + 9) * -0.0254 * @end * @stage.side + (if @lefty then -1 else 1) * 12 * 0.0254 * @end, 0.0, 21 * 12 * -0.0254 * @end)
+    @node.lookAt new THREE.Vector3((6 * 12 + 9) * -0.0254 * es + 2 * 12 * 0.0254 * @lefty * @end, 0.0, 21 * 12 * -0.0254 * @end)
   , (shot) ->
     @transit @state_serve_toss
   state_serve_toss: State ->
     @ball.position.y = 1.5
-    @ball.velocity.set((if @lefty then -0.0075 else 0.0075), 0.085, 0.01).applyQuaternion(@node.getWorldQuaternion())
+    @ball.velocity.set(0.0075 * @lefty, 0.085, 0.01).applyQuaternion(@node.getWorldQuaternion())
     @ball.spin.set 0.0, 0.0, 0.0
     @set_motion new Motion @actions.serve.toss
   , ->
@@ -393,9 +399,11 @@ class Player
       ball = @relative_ball @motion.action
       if Math.abs(ball.y) < 0.3
         d = 58 * 12 * 0.0254 + ball.y * 10.0
+        spin = @motion.action.spin
+        d *= Math.pow(2.0, -spin.x * (4.0 / 64.0))
         speed = @motion.action.speed + ball.y * 0.125
         toward = new THREE.Vector3(0.0, 0.0, 1.0).applyQuaternion(@node.getWorldQuaternion())
-        @ball.impact toward.x, toward.z, speed, G * d / (2.0 * speed) - @ball.position.y * speed / d, @motion.action.spin
+        @ball.impact toward.x, toward.z, speed, G * d / (2.0 * speed) - @ball.position.y * speed / d, spin
         @ball.hitter = @
         @stage.sound_hit.play()
     return if @motion.playing()
@@ -417,7 +425,8 @@ class Player
         a = d / (60 * 12 * 0.0254)
         speed = @motion.action.speed * (if a > 1.25 then 1.25 else if a < 0.85 then 0.85 else a)
         spin = @motion.action.spin
-        d *= 1.0 - spin.x * (2.0 / 64.0)
+        dd = @ball.position.z * @end
+        d = dd + (d - dd) * Math.pow(2.0, -spin.x * ((if spin.x > 0.0 then 12.0 else 8.0) / 64.0))
         if b < 42 * 0.0254
           vm = Math.sqrt(G * (d - n) * n * 0.5 / (42 * 0.0254 - b))
           speed = vm if vm < speed
