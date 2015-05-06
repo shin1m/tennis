@@ -171,7 +171,8 @@ $Ball = Class() :: @{
 		$position = last + $velocity;
 		$position.y = $position.y - 0.5 * G;
 		$velocity.y = $velocity.y - G;
-		$velocity = $velocity + ($spin ^ $velocity) * (1.0 / 4096.0);
+		$velocity = ($velocity + ($spin ^ $velocity) * (1.0 / 1500.0)) * 0.999;
+		$spin = $spin * 0.99;
 		if ($position.y - radius <= 0.0) {
 			$position.y = radius;
 			$bounce();

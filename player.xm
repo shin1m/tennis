@@ -30,7 +30,7 @@ $shot_direction = shot_direction = @(ball, end, left, right, forward, backward) 
 	if (left) vx = vx - 12 * 12 * 0.0254 * end;
 	if (right) vx = vx + 12 * 12 * 0.0254 * end;
 	vz = -24 * 12 * 0.0254 * end - ball.z;
-	if (forward) vz = vz - 14 * 12 * 0.0254 * end;
+	if (forward) vz = vz - 16 * 12 * 0.0254 * end;
 	if (backward) vz = vz + 10 * 12 * 0.0254 * end;
 	Vector3(vx, 0.0, vz);
 };
@@ -305,8 +305,8 @@ $Player = Class() :: @{
 		$actions = load($scene, $root, model + ".player");
 		$speed = $actions.run.speed;
 		$actions.serve.set.rewind();
-		$lefty = $root.transforms[1].v[3] < 0.0;
-		$smash_hand = $lefty ? 0.25 : -0.25;
+		$lefty = $root.transforms[1].v[3] < 0.0 ? -1.0 : 1.0;
+		$smash_hand = -0.25 * $lefty;
 		$motion = null;
 		$reset(1.0, $state_default);
 	};
@@ -441,11 +441,17 @@ $Player = Class() :: @{
 		speed = 2.0 / 64.0;
 		if ($left) $ball.position.x = $ball.position.x - speed * $end;
 		if ($right) $ball.position.x = $ball.position.x + speed * $end;
+		es = $end * $stage.side;
+		xes = $ball.position.x * es;
+		center = 12 * 0.0254;
+		wide = 14 * 12 * 0.0254;
+		if (xes < center) $ball.position.x = center * es;
+		if (xes > wide) $ball.position.x = wide * es;
 		$ball.position.y = 0.875;
 		$ball.velocity = Vector3(0.0, 0.0, 0.0);
 		$ball.spin = Vector3(0.0, 0.0, 0.0);
 		$placement.position = Vector3($ball.position.x, 0.0, $ball.position.z);
-		$placement.toward = Vector3((6 * 12 + 9) * -0.0254 * $end * $stage.side + ($lefty ? -1 : 1) * 12 * 0.0254 * $end, 0.0, 21 * 12 * -0.0254 * $end) - $placement.position;
+		$placement.toward = Vector3((6 * 12 + 9) * -0.0254 * es + 2 * 12 * 0.0254 * $lefty * $end, 0.0, 21 * 12 * -0.0254 * $end) - $placement.position;
 		$placement.valid = false;
 		$motion();
 	}, @(shot) {
@@ -456,7 +462,7 @@ $Player = Class() :: @{
 		$placement.validate();
 		toward = $placement.toward;
 		left = Vector3(toward.z, 0.0, -toward.x);
-		$ball.velocity = left * ($lefty ? -0.0075 : 0.0075) + toward * 0.01;
+		$ball.velocity = left * 0.0075 * $lefty + toward * 0.01;
 		$ball.velocity.y = 0.085;
 		$ball.spin = Vector3(0.0, 0.0, 0.0);
 		$motion = Motion($actions.serve.toss);
@@ -482,8 +488,10 @@ $Player = Class() :: @{
 			ball = $relative_ball($motion.action);
 			if (math.fabs(ball.y) < 0.3) {
 				d = 58 * 12 * 0.0254 + ball.y * 10.0;
+				spin = $motion.action.spin;
+				d = d * math.pow(2.0, -spin.x * (4.0 / 64.0));
 				speed = $motion.action.speed + ball.y * 0.125;
-				$ball.impact($placement.toward.x, $placement.toward.z, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, $motion.action.spin);
+				$ball.impact($placement.toward.x, $placement.toward.z, speed, G * d / (2.0 * speed) - $ball.position.y * speed / d, spin);
 				$ball.hitter = $;
 				$stage.sound_hit.play();
 			}
@@ -511,7 +519,8 @@ $Player = Class() :: @{
 				a = d / (60 * 12 * 0.0254);
 				speed = $motion.action.speed * (a > 1.25 ? 1.25 : a < 0.85 ? 0.85 : a);
 				spin = $motion.action.spin;
-				d = d * (1.0 - spin.x * (2.0 / 64.0));
+				dd = $ball.position.z * $end;
+				d = dd + (d - dd) * math.pow(2.0, -spin.x * ((spin.x > 0.0 ? 12.0 : 8.0) / 64.0));
 				if (b < 42 * 0.0254) {
 					vm = math.sqrt(G * (d - n) * n * 0.5 / (42 * 0.0254 - b));
 					if (vm < speed) speed = vm;

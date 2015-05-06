@@ -66,7 +66,7 @@ $__get_at = @(stage) @(controller, player) {
 							i = random();
 							if (i % 8 < (stage.second ? 1 : 2))
 								player.left = true;
-							else if (i % 8 > (stage.second ? 6 : 5))
+							else if (i % 8 > (stage.second ? 5 : 4))
 								player.right = true;
 						}
 					}
