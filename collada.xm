@@ -237,7 +237,7 @@ Primitive = Class() :: WithTree :: @{
 	$destroy = @{
 		$_vertices.delete();
 		if ($_normals !== null) $_normals.delete();
-		$_others.each(@(x) x[1].delete());
+		$_others.each(@(key, value) value.delete());
 	};
 	$build = @(resolve) {
 		vertices = $inputs["VERTEX"];
@@ -841,7 +841,7 @@ SkinPrimitive = Class() :: WithTree :: @{
 		$_joints.delete();
 		$_weights.delete();
 		if ($_normals !== null) $_normals.delete();
-		$_others.each(@(x) x[1].delete());
+		$_others.each(@(key, value) value.delete());
 	};
 	$vertex_buffer = @(input, vertices, weights) {
 		n = $count * $unit;
