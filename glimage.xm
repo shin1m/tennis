@@ -9,6 +9,9 @@ get_rgba = @(image0) {
 	try {
 		context = cairo.Context(image1);
 		try {
+			context.set_operator(cairo.Operator.CLEAR);
+			context.paint();
+			context.set_operator(cairo.Operator.OVER);
 			context.set_source(image0, 0.0, 0.0);
 			context.paint();
 		} finally {
