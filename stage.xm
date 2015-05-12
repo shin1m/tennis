@@ -72,16 +72,10 @@ $Stage = Class() :: @{
 		$sound_miss = main.load_sound("data/miss.wav");
 		$camera0 = Placement();
 		$camera1 = Placement();
-		$ball = Ball($, $scene.resolve, main.shaders, "#Material-Shadow", "#Material-Ball");
-		$scene.scene.instance_visual_scene._scene.nodes.push($ball.node);
-		$mark = Mark($scene.resolve, main.shaders, "#Material-Shadow");
-		$scene.scene.instance_visual_scene._scene.nodes.push($mark.node);
+		$ball = Ball($, main.shaders, "#Material-Shadow", "#Material-Ball");
+		$mark = Mark($, main.shaders, "#Material-Shadow");
 		$player0 = Player($, player0);
-		$scene.scene.instance_visual_scene._scene.nodes.push($player0.node);
-		$player0.scene.scene.instance_visual_scene._scene._controllers.each($scene.scene.instance_visual_scene._scene._controllers.push);
 		$player1 = Player($, player1);
-		$scene.scene.instance_visual_scene._scene.nodes.push($player1.node);
-		$player1.scene.scene.instance_visual_scene._scene._controllers.each($scene.scene.instance_visual_scene._scene._controllers.push);
 		$player0.opponent = $player1;
 		$player1.opponent = $player0;
 		$state_ready = $State(@{
@@ -130,7 +124,7 @@ if (print_time) print("\tclear: " + (time.now() - t0));
 		$player1.setup();
 		gl.enable(gl.DEPTH_TEST);
 		if ($dual) gl.viewport(0, 0, w / 2, h);
-		pw = extent.width() * ($dual ? 0.5 : 1.0) / extent.height();
+		pw = w * ($dual ? 0.5 : 1.0) / h;
 		ph = 1.0;
 		projection = Matrix4().frustum(-pw, pw, -ph, ph, 10.0, 200.0).bytes;
 		$scene.render(projection, $camera0.viewing());

@@ -83,7 +83,7 @@ $projected_time_for_y = projected_time_for_y = @(py, vy, y, sign) {
 $Ball = Class() :: @{
 	$radius = radius = 0.0625;
 
-	$__initialize = @(stage, resolve, shaders, shadow, body) {
+	$__initialize = @(stage, shaders, shadow, body) {
 		$stage = stage;
 		$position = Vector3(0.0, 0.0, 0.0);
 		$velocity = Vector3(0.0, 0.0, 0.0);
@@ -91,15 +91,16 @@ $Ball = Class() :: @{
 		$node = collada.Node().create();
 		$translate = collada.Translate(0.0, 0.0, 0.0);
 		$node.transforms.push($translate);
-		shadow = node(resolve, shaders, circle(8), shadow);
+		shadow = node(stage.scene.resolve, shaders, circle(8), shadow);
 		shadow.transforms.push(collada.Translate(0.0, 1.0 / 64.0, 0.0));
 		shadow.transforms.push(collada.Scale(radius, 1.0, radius));
 		$node.nodes.push(shadow);
-		body = node(resolve, shaders, sphere(2), body);
+		body = node(stage.scene.resolve, shaders, sphere(2), body);
 		$body_translate = collada.Translate(0.0, 0.0, 0.0);
 		body.transforms.push($body_translate);
 		body.transforms.push(collada.Scale(radius, radius, radius));
 		$node.nodes.push(body);
+		stage.scene.scene.instance_visual_scene._scene.nodes.push($node);
 	};
 	$setup = @{
 		$translate.x = $position.x;
@@ -281,10 +282,10 @@ $Ball = Class() :: @{
 $Mark = Class() :: @{
 	radius = 0.0625;
 
-	$__initialize = @(resolve, shaders, shadow) {
+	$__initialize = @(stage, shaders, shadow) {
 		$duration = 0.0;
 		$stretch = 1.0;
-		$node = node(resolve, shaders, circle(8), shadow);
+		$node = node(stage.scene.resolve, shaders, circle(8), shadow);
 		$placement = Placement();
 		$placement.position.y = 1.0 / 64.0;
 		$node.transforms.push($placement);
@@ -294,6 +295,7 @@ $Mark = Class() :: @{
 		$node.render = @(projection, viewing, joints) {
 			if ($duration > 0.0) node__render(projection, viewing, joints);
 		}[$];
+		stage.scene.scene.instance_visual_scene._scene.nodes.push($node);
 	};
 	$setup = @{
 		$placement.validate();

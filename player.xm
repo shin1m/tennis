@@ -309,6 +309,9 @@ $Player = Class() :: @{
 		$smash_hand = -0.25 * $lefty;
 		$motion = null;
 		$reset(1.0, $state_default);
+		scene = stage.scene.scene.instance_visual_scene._scene;
+		scene.nodes.push($node);
+		$scene.scene.instance_visual_scene._scene._controllers.each(scene._controllers.push);
 	};
 	$transit = @(state) {
 		$state = state;
