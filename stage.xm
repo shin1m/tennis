@@ -60,9 +60,6 @@ $Stage = Class() :: @{
 		$main = main;
 		$dual = dual;
 		$fixed = fixed;
-		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0);
-		$scene = collada.load((io.Path(system.script) / "../data/court.dae").__string());
-		$scene.build(main.shaders);
 		$sound_bounce = main.load_sound("data/bounce.wav");
 		$sound_net = main.load_sound("data/net.wav");
 		$sound_chip = main.load_sound("data/chip.wav");
@@ -70,6 +67,9 @@ $Stage = Class() :: @{
 		$sound_swing = main.load_sound("data/swing.wav");
 		$sound_ace = main.load_sound("data/ace.wav");
 		$sound_miss = main.load_sound("data/miss.wav");
+		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0);
+		$scene = collada.load((io.Path(system.script) / "../data/court.dae").__string());
+		$scene.build(main.shaders);
 		$camera0 = Placement();
 		$camera1 = Placement();
 		$ball = Ball($, main.shaders, "#Material-Shadow", "#Material-Ball");
@@ -98,9 +98,6 @@ $Stage = Class() :: @{
 		controller1[$]($state_play, $player1);
 	};
 	$destroy = @{
-		$scene.destroy();
-		$player0.scene.destroy();
-		$player1.scene.destroy();
 		$sound_bounce.delete();
 		$sound_net.delete();
 		$sound_chip.delete();
@@ -108,6 +105,9 @@ $Stage = Class() :: @{
 		$sound_swing.delete();
 		$sound_ace.delete();
 		$sound_miss.delete();
+		$scene.destroy();
+		$player0.scene.destroy();
+		$player1.scene.destroy();
 	};
 	$step = @() $state.step[$]();
 	$render = @{

@@ -412,16 +412,16 @@ Dialog = Class() :: @{
 
 	$__initialize = @(main, background, sound) {
 		$main = main;
-		$background = glimage.Renderer.from_file((io.Path(system.script) / ".." / background).__string(), 1);
 		$sound_background = main.load_sound(sound);
 		$sound_background.setb(al.LOOPING, true);
 		$sound_background.play();
+		$background = glimage.Renderer.from_file((io.Path(system.script) / ".." / background).__string(), 1);
 		$action = null;
 		$duration = 0.0;
 	};
 	$destroy = @{
-		$background.destroy();
 		$sound_background.delete();
+		$background.destroy();
 	};
 	$flush = @{
 		$action[$]();
@@ -715,8 +715,14 @@ if (print_time) print("flush: " + (time.now() - t0));
 	};
 	$load_sound = @(name) {
 		path = (io.Path(system.script) / ".." / name).__string();
+		buffer = $alcontext.get_device().create_buffer_from_file(path);
 		source = $alcontext.create_source();
-		source.set_buffer($alcontext.get_device().create_buffer_from_file(path));
+		source.set_buffer(buffer);
+		source__delete = source.delete;
+		source.delete = @{
+			source__delete();
+			buffer.delete();
+		};
 		source;
 	};
 	$screen__ = @(screen) {
