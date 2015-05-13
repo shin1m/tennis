@@ -427,8 +427,9 @@ class Player
         spin = @motion.action.spin
         dd = @ball.position.z * @end
         d = dd + (d - dd) * Math.pow(2.0, -spin.x * ((if spin.x > 0.0 then 12.0 else 8.0) / 64.0))
-        if b < 42 * 0.0254
-          vm = Math.sqrt(G * (d - n) * n * 0.5 / (42 * 0.0254 - b))
+        nh = (36 + 42) * 0.5 * 0.0254 + @ball.radius
+        if b < nh
+          vm = Math.sqrt(G * (d - n) * n * 0.5 / (nh - b))
           speed = vm if vm < speed
         d -= ball.x * 2.0
         speed -= ball.x * 0.125
