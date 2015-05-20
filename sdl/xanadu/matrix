@@ -1,0 +1,398 @@
+#ifndef XANADU__MATRIX
+#define XANADU__MATRIX
+
+#include <algorithm>
+
+#include "tuple"
+
+namespace xanadu
+{
+
+class t_singular_matrix_exception
+{
+};
+
+template<size_t N, typename T>
+class t_matrix
+{
+	struct t_lu
+	{
+		struct t_row
+		{
+			T w;
+			T m[N];
+
+			bool f_initialize(const T ds[N])
+			{
+				m[0] = ds[0];
+				T d = f_absolute(m[0]);
+				for (size_t i = 1; i < N; ++i) {
+					m[i] = ds[i];
+					T d0 = f_absolute(m[i]);
+					if (d0 > d) d = d0;
+				}
+				if (d == 0.0) return false;
+				w = 1.0 / d;
+				return true;
+			}
+			T f_pivot(size_t i) const
+			{
+				return w * f_absolute(m[i]);
+			}
+			void f_erase(T d, size_t i, const T ds[N])
+			{
+				m[i] /= d;
+				for (size_t j = i + 1; j < N; ++j) m[j] -= m[i] * ds[j];
+			}
+		};
+
+		t_row rows[N];
+		size_t is[N];
+
+		bool f_initialize(const t_matrix<N, T>& x)
+		{
+			for (size_t i = 0; i < N; ++i) {
+				if (!rows[i].f_initialize(x[i])) return false;
+				is[i] = i;
+			}
+			return true;
+		}
+		size_t f_pivot(size_t i) const
+		{
+			T d = rows[is[i]].f_pivot(i);
+			size_t p = i;
+			for (size_t j = i + 1; j < N; ++j) {
+				T d0 = rows[is[j]].f_pivot(i);
+				if (d0 <= d) continue;
+				d = d0;
+				p = j;
+			}
+			return p;
+		}
+		void f_erase(size_t i, T d)
+		{
+			const T* ds = rows[is[i]].m;
+			for (size_t j = i + 1; j < N; ++j) rows[is[j]].f_erase(d, i, ds);
+		}
+		bool f_decompose(const t_matrix<N, T>& x)
+		{
+			if (!f_initialize(x)) return false;
+			for (size_t i = 0; i < N - 1; ++i) {
+				size_t p = f_pivot(i);
+				if (p != i) std::swap(is[i], is[p]);
+				T d = rows[is[i]].m[i];
+				if (d == 0.0) return false;
+				f_erase(i, d);
+			}
+			return rows[is[N - 1]].m[N - 1] != 0.0;
+		}
+		void f_backsubstitute(t_matrix<N, T>& x) const
+		{
+			for (size_t j = 0; j < N; ++j) {
+				size_t i;
+				for (i = 0; i < N; ++i) {
+					const T* ds = rows[is[i]].m;
+					T d = is[i] == j ? 1.0 : 0.0;
+					for (size_t k = 0; k < i; ++k) d -= ds[k] * x[k][j];
+					x[i][j] = d;
+				}
+				do {
+					const T* ds = rows[is[--i]].m;
+					T d = x[i][j];
+					for (size_t k = i + 1; k < N; ++k) d -= ds[k] * x[k][j];
+					x[i][j] = d / ds[i];
+				} while (i > 0);
+			}
+		}
+		T f_determinant(const t_matrix<N, T>& x)
+		{
+			if (!f_initialize(x)) return 0.0;
+			T determinant = 1.0;
+			for (size_t i = 0; i < N - 1; ++i) {
+				size_t p = f_pivot(i);
+				if (p != i) {
+					std::swap(is[i], is[p]);
+					determinant = -determinant;
+				}
+				T d = rows[is[i]].m[i];
+				if (d == 0.0) return 0.0;
+				determinant *= d;
+				f_erase(i, d);
+			}
+			return determinant * rows[is[N - 1]].m[N - 1];
+		}
+	};
+
+public:
+	typedef T t_value;
+
+	union
+	{
+		T v_array[N * N];
+		T v[N][N];
+	};
+
+	t_matrix()
+	{
+	}
+	t_matrix(const t_matrix<N, T>& a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] = a_value.v_array[i];
+	}
+	explicit t_matrix(const t_matrix<N - 1, T>& a_value)
+	{
+		for (size_t i = 0; i < N - 1; ++i) {
+			for (size_t j = 0; j < N - 1; ++j) v[i][j] = a_value[i][j];
+			v[i][N - 1] = v[N - 1][i] = 0.0;
+		}
+		v[N - 1][N - 1] = 1.0;
+	}
+	explicit t_matrix(const t_matrix<N + 1, T>& a_value)
+	{
+		for (size_t i = 0; i < N; ++i)
+			for (size_t j = 0; j < N; ++j)
+				v[i][j] = a_value[i][j];
+	}
+	explicit t_matrix(T a_value)
+	{
+		for (size_t i = 0; i < N; ++i) {
+			size_t j = 0;
+			while (j < i) v[i][j++] = 0.0;
+			v[i][j++] = a_value;
+			while (j < N) v[i][j++] = 0.0;
+		}
+	}
+	t_matrix(const T a_values[N][N])
+	{
+		for (size_t i = 0; i < N; ++i) for (size_t j = 0; j < N; ++j) v[i][j] = a_values[i][j];
+	}
+	t_matrix(const T a_values[N * N])
+	{
+		for (size_t i = 0; i < N; ++i) v_array[i] = a_values[i];
+	}
+	t_matrix<N, T>& operator=(const t_matrix<N, T>& a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] = a_value.v_array[i];
+		return *this;
+	}
+	t_matrix<N, T>& operator=(const t_matrix<N - 1, T>& a_value)
+	{
+		for (size_t i = 0; i < N - 1; ++i) {
+			for (size_t j = 0; j < N - 1; ++j) v[i][j] = a_value[i][j];
+			v[i][N - 1] = v[N - 1][i] = 0.0;
+		}
+		v[N - 1][N - 1] = 1.0;
+		return *this;
+	}
+	t_matrix<N, T>& operator=(T a_value)
+	{
+		for (size_t i = 0; i < N; ++i) {
+			size_t j = 0;
+			while (j < i) v[i][j++] = 0.0;
+			v[i][j++] = a_value;
+			while (j < N) v[i][j++] = 0.0;
+		}
+		return *this;
+	}
+	T* operator[](size_t a_index)
+	{
+		return v[a_index];
+	}
+	const T* operator[](size_t a_index) const
+	{
+		return v[a_index];
+	}
+	bool operator==(const t_matrix<N, T>& a_value) const
+	{
+		for (size_t i = 0; i < N * N; ++i) if (v_array[i] != a_value.v_array[i]) return false;
+		return true;
+	}
+	bool operator!=(const t_matrix<N, T>& a_value) const
+	{
+		return !operator==(a_value);
+	}
+	t_matrix<N, T> operator-() const
+	{
+		t_matrix<N, T> x;
+		for (size_t i = 0; i < N * N; ++i) x.v_array[i] = -v_array[i];
+		return x;
+	}
+	t_matrix<N, T>& operator+=(const t_matrix<N, T>& a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] += a_value.v_array[i];
+		return *this;
+	}
+	t_matrix<N, T>& operator+=(T a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] += a_value;
+		return *this;
+	}
+	t_matrix<N, T>& operator-=(const t_matrix<N, T>& a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] -= a_value.v_array[i];
+		return *this;
+	}
+	t_matrix<N, T>& operator-=(T a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] -= a_value;
+		return *this;
+	}
+	t_matrix<N, T>& operator*=(const t_matrix<N, T>& a_value)
+	{
+		for (size_t i = 0; i < N; ++i) {
+			T ds[N];
+			for (size_t j = 0; j < N; ++j) ds[j] = v[i][j];
+			for (size_t j = 0; j < N; ++j) {
+				v[i][j] = ds[0] * a_value[0][j];
+				for (size_t k = 1; k < N; ++k) v[i][j] += ds[k] * a_value[k][j];
+			}
+		}
+		return *this;
+	}
+	t_matrix<N, T>& operator*=(const t_matrix<N - 1, T>& a_value)
+	{
+		for (size_t i = 0; i < N - 1; ++i) {
+			T ds[N - 1];
+			for (size_t j = 0; j < N - 1; ++j) ds[j] = v[i][j];
+			for (size_t j = 0; j < N - 1; ++j) {
+				v[i][j] = ds[0] * a_value[0][j];
+				for (size_t k = 1; k < N - 1; ++k) v[i][j] += ds[k] * a_value[k][j];
+			}
+		}
+		return *this;
+	}
+	t_matrix<N, T>& operator*=(T a_value)
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] *= a_value;
+		return *this;
+	}
+	t_matrix<N, T>& operator/=(T a_value)
+	{
+		return *this *= 1.0 / a_value;
+	}
+	t_matrix<N, T> operator+(const t_matrix<N, T>& a_value) const
+	{
+		return t_matrix<N, T>(*this) += a_value;
+	}
+	t_matrix<N, T> operator-(const t_matrix<N, T>& a_value) const
+	{
+		return t_matrix<N, T>(*this) -= a_value;
+	}
+	t_matrix<N, T> operator*(const t_matrix<N, T>& a_value) const
+	{
+		return t_matrix<N, T>(*this) *= a_value;
+	}
+	t_matrix<N, T> operator*(const t_matrix<N - 1, T>& a_value) const
+	{
+		return t_matrix<N, T>(*this) *= a_value;
+	}
+	t_matrix<N, T> operator*(T a_value) const
+	{
+		return t_matrix<N, T>(*this) *= a_value;
+	}
+	t_matrix<N, T> operator/(T a_value) const
+	{
+		return t_matrix<N, T>(*this) /= a_value;
+	}
+	t_matrix<N, T> operator~() const
+	{
+		t_lu lu;
+		if (!lu.f_decompose(*this)) throw t_singular_matrix_exception();
+		t_matrix<N, T> x;
+		lu.f_backsubstitute(x);
+		return x;
+	}
+	bool f_equals(const t_matrix<N, T>& a_value, T a_epsilon) const
+	{
+		for (size_t i = 0; i < N * N; ++i) if (f_absolute(v_array[i] - a_value.v_array[i]) > a_epsilon) return false;
+		return true;
+	}
+	void f_negate()
+	{
+		for (size_t i = 0; i < N * N; ++i) v_array[i] = -v_array[i];
+	}
+	void f_transpose()
+	{
+		for (size_t i = 0; i < N - 1; ++i) for (size_t j = i + 1; j < N; ++j) std::swap(v[i][j], v[j][i]);
+	}
+	t_matrix<N, T> f_transposition() const
+	{
+		t_matrix<N, T> x;
+		for (size_t i = 0; i < N; ++i) for (size_t j = 0; j < N; ++j) x[i][j] = v[j][i];
+		return x;
+	}
+	void f_invert()
+	{
+		t_lu lu;
+		if (!lu.f_decompose(*this)) throw t_singular_matrix_exception();
+		lu.f_backsubstitute(*this);
+	}
+	T f_determinant() const
+	{
+		t_lu lu;
+		return lu.f_determinant(*this);
+	}
+/*	void f_normalize()
+	{
+		t_matrix<N, T> scale;
+		t_matrix<N, T> rotate;
+		f_sv_decompose(*this, scale, rotate);
+		*this = rotate;
+	}
+	t_matrix<N, T> f_normalized() const
+	{
+		t_matrix<N, T> scale;
+		t_matrix<N, T> rotate;
+		f_sv_decompose(*this, scale, rotate);
+		return rotate;
+	}
+	T f_get_scale() const
+	{
+		t_matrix<N, T> scale;
+		t_matrix<N, T> rotate;
+		f_sv_decompose(*this, scale, rotate);
+		T d = scale.v_array[0];
+		for (size_t i = 1; i < N * N; ++i) if (scale.v_array[i] > d) d = scale.v_array[i];
+		return d;
+	}
+	void f_set_scale(T a_value)
+	{
+		t_matrix<N, T> scale;
+		t_matrix<N, T> rotate;
+		f_sv_decompose(*this, scale, rotate);
+		*this = rotate * a_value;
+	}*/
+};
+
+template<size_t N, typename T, typename U>
+inline U f_transform(const t_matrix<N, T>& a_value0, const U& a_value1)
+{
+	U x;
+	for (size_t i = 0; i < N; ++i) {
+		x[i] = a_value0[i][0] * a_value1[0];
+		for (size_t j = 1; j < N; ++j) x[i] += a_value0[i][j] * a_value1[j];
+	}
+	return x;
+}
+
+template<size_t N, typename T, typename U>
+inline U f_transform(const U& a_value0, const t_matrix<N, T>& a_value1)
+{
+	U x;
+	for (size_t i = 0; i < N; ++i) {
+		x[i] = a_value0[0] * a_value1[0][i];
+		for (size_t j = 1; j < N; ++j) x[i] += a_value0[j] * a_value1[j][i];
+	}
+	return x;
+}
+
+typedef t_matrix<2, float> t_matrix2f;
+typedef t_matrix<3, float> t_matrix3f;
+typedef t_matrix<4, float> t_matrix4f;
+typedef t_matrix<2, double> t_matrix2d;
+typedef t_matrix<3, double> t_matrix3d;
+typedef t_matrix<4, double> t_matrix4d;
+
+}
+
+#endif

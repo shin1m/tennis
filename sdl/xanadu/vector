@@ -1,0 +1,350 @@
+#ifndef XANADU__VECTOR
+#define XANADU__VECTOR
+
+#include "tuple"
+
+namespace xanadu
+{
+
+template<typename T>
+class t_vector2 : public t_tuple2<T>
+{
+public:
+	t_vector2()
+	{
+	}
+	t_vector2(const t_tuple2<T>& a_tuple) : t_tuple2<T>(a_tuple)
+	{
+	}
+	t_vector2(T a_x, T a_y) : t_tuple2<T>(a_x, a_y)
+	{
+	}
+	t_vector2<T>& operator=(const t_tuple2<T>& a_tuple)
+	{
+		this->f_set(a_tuple);
+		return *this;
+	}
+	bool operator==(const t_vector2<T>& a_vector) const
+	{
+		return this->f_equals(a_vector);
+	}
+	bool operator!=(const t_vector2<T>& a_vector) const
+	{
+		return !this->f_equals(a_vector);
+	}
+	t_vector2<T> operator-() const
+	{
+		return t_vector2<T>(-this->v_x, -this->v_y);
+	}
+	t_vector2<T>& operator+=(const t_vector2<T>& a_vector)
+	{
+		this->f_add(a_vector);
+		return *this;
+	}
+	t_vector2<T>& operator-=(const t_vector2<T>& a_vector)
+	{
+		this->f_subtract(a_vector);
+		return *this;
+	}
+	t_vector2<T>& operator*=(T a_value)
+	{
+		this->f_scale(a_value);
+		return *this;
+	}
+	t_vector2<T>& operator/=(T a_value)
+	{
+		this->f_scale(1 / a_value);
+		return *this;
+	}
+	t_vector2<T> operator+(const t_vector2<T>& a_vector) const
+	{
+		return t_vector2<T>(*this) += a_vector;
+	}
+	t_vector2<T> operator-(const t_vector2<T>& a_vector) const
+	{
+		return t_vector2<T>(*this) -= a_vector;
+	}
+	t_vector2<T> operator*(T a_value) const
+	{
+		return t_vector2<T>(*this) *= a_value;
+	}
+	T operator*(const t_vector2<T>& a_vector) const
+	{
+		return this->v_x * a_vector.v_x + this->v_y * a_vector.v_y;
+	}
+	t_vector2<T> operator/(T a_value) const
+	{
+		return t_vector2<T>(*this) /= a_value;
+	}
+	double f_length() const
+	{
+		return sqrt(static_cast<double>(*this * *this));
+	}
+	void f_normalize()
+	{
+		*this /= f_length();
+	}
+	t_vector2<T> f_normalized() const
+	{
+		return *this / f_length();
+	}
+	T f_angle(const t_vector2<T>& a_vector) const
+	{
+		T d = *this * a_vector / (f_length() * a_vector.f_length());
+		return acos(d < -1.0 ? -1.0 : (d > 1.0 ? 1.0 : d));
+	}
+};
+
+template<typename T>
+class t_vector3 : public t_tuple3<T>
+{
+public:
+	t_vector3()
+	{
+	}
+	t_vector3(const t_tuple3<T>& a_tuple) : t_tuple3<T>(a_tuple)
+	{
+	}
+	t_vector3(T a_x, T a_y, T a_z) : t_tuple3<T>(a_x, a_y, a_z)
+	{
+	}
+	t_vector3<T>& operator=(const t_tuple3<T>& a_tuple)
+	{
+		this->f_set(a_tuple);
+		return *this;
+	}
+	bool operator==(const t_vector3<T>& a_vector) const
+	{
+		return this->f_equals(a_vector);
+	}
+	bool operator!=(const t_vector3<T>& a_vector) const
+	{
+		return !this->f_equals(a_vector);
+	}
+	t_vector3<T> operator-() const
+	{
+		return t_vector3<T>(-this->v_x, -this->v_y, -this->v_z);
+	}
+	t_vector3<T>& operator+=(const t_vector3<T>& a_vector)
+	{
+		this->f_add(a_vector);
+		return *this;
+	}
+	t_vector3<T>& operator-=(const t_vector3<T>& a_vector)
+	{
+		this->f_subtract(a_vector);
+		return *this;
+	}
+	t_vector3<T>& operator*=(T a_value)
+	{
+		this->f_scale(a_value);
+		return *this;
+	}
+	t_vector3<T>& operator/=(T a_value)
+	{
+		this->f_scale(1 / a_value);
+		return *this;
+	}
+	t_vector3<T> operator+(const t_vector3<T>& a_vector) const
+	{
+		return t_vector3<T>(*this) += a_vector;
+	}
+	t_vector3<T> operator-(const t_vector3<T>& a_vector) const
+	{
+		return t_vector3<T>(*this) -= a_vector;
+	}
+	t_vector3<T> operator*(T a_value) const
+	{
+		return t_vector3<T>(*this) *= a_value;
+	}
+	T operator*(const t_vector3<T>& a_vector) const
+	{
+		return this->v_x * a_vector.v_x + this->v_y * a_vector.v_y + this->v_z * a_vector.v_z;
+	}
+	t_vector3<T> operator/(T a_value) const
+	{
+		return t_vector3<T>(*this) /= a_value;
+	}
+	t_vector3<T> operator^(const t_vector3<T>& a_vector) const
+	{
+		return t_vector3<T>(this->v_y * a_vector.v_z - this->v_z * a_vector.v_y, this->v_z * a_vector.v_x - this->v_x * a_vector.v_z, this->v_x * a_vector.v_y - this->v_y * a_vector.v_x);
+	}
+	double f_length() const
+	{
+		return sqrt(static_cast<double>(*this * *this));
+	}
+	void f_normalize()
+	{
+		*this /= f_length();
+	}
+	t_vector3<T> f_normalized() const
+	{
+		return *this / f_length();
+	}
+	T f_angle(const t_vector3<T>& a_vector) const
+	{
+		T d = *this * a_vector / (f_length() * a_vector.f_length());
+		return acos(d < -1.0 ? -1.0 : (d > 1.0 ? 1.0 : d));
+	}
+};
+
+template<typename T>
+class t_vector4 : public t_tuple4<T>
+{
+public:
+	t_vector4()
+	{
+	}
+	t_vector4(const t_tuple4<T>& a_tuple) : t_tuple4<T>(a_tuple)
+	{
+	}
+	explicit t_vector4(const t_tuple3<T>& a_tuple) : t_tuple4<T>(a_tuple.v_x, a_tuple.v_y, a_tuple.v_z, 0.0)
+	{
+	}
+	t_vector4(T a_x, T a_y, T a_z, T a_w) : t_tuple4<T>(a_x, a_y, a_z, a_w)
+	{
+	}
+	t_vector4<T>& operator=(const t_tuple4<T>& a_tuple)
+	{
+		this->f_set(a_tuple);
+		return *this;
+	}
+	t_vector4<T>& operator=(const t_tuple3<T>& a_tuple)
+	{
+		return *this = t_vector4<T>(a_tuple);
+	}
+	bool operator==(const t_vector4<T>& a_vector) const
+	{
+		return this->f_equals(a_vector);
+	}
+	bool operator!=(const t_vector4<T>& a_vector) const
+	{
+		return !this->f_equals(a_vector);
+	}
+	t_vector4<T> operator-() const
+	{
+		return t_vector4<T>(-this->v_x, -this->v_y, -this->v_z, -this->v_w);
+	}
+	t_vector4<T>& operator+=(const t_vector4<T>& a_vector)
+	{
+		this->f_add(a_vector);
+		return *this;
+	}
+	t_vector4<T>& operator-=(const t_vector4<T>& a_vector)
+	{
+		this->f_subtract(a_vector);
+		return *this;
+	}
+	t_vector4<T>& operator*=(T a_value)
+	{
+		this->f_scale(a_value);
+		return *this;
+	}
+	t_vector4<T>& operator/=(T a_value)
+	{
+		this->f_scale(1 / a_value);
+		return *this;
+	}
+	t_vector4<T> operator+(const t_vector4<T>& a_vector) const
+	{
+		return t_vector4<T>(*this) += a_vector;
+	}
+	t_vector4<T> operator-(const t_vector4<T>& a_vector) const
+	{
+		return t_vector4<T>(*this) -= a_vector;
+	}
+	t_vector4<T> operator*(T a_value) const
+	{
+		return t_vector4<T>(*this) *= a_value;
+	}
+	T operator*(const t_vector4<T>& a_vector) const
+	{
+		return this->v_x * a_vector.v_x + this->v_y * a_vector.v_y + this->v_z * a_vector.v_z + this->v_w * a_vector.v_w;
+	}
+	t_vector4<T> operator/(T a_value) const
+	{
+		return t_vector4<T>(*this) /= a_value;
+	}
+	double f_length() const
+	{
+		return sqrt(static_cast<double>(*this * *this));
+	}
+	void f_normalize()
+	{
+		*this /= f_length();
+	}
+	t_vector4<T> f_normalized() const
+	{
+		return *this / f_length();
+	}
+	T f_angle(const t_vector4<T>& a_vector) const
+	{
+		T d = *this * a_vector / (f_length() * a_vector.f_length());
+		return acos(d < -1.0 ? -1.0 : (d > 1.0 ? 1.0 : d));
+	}
+};
+
+template<typename T>
+inline t_vector2<T> operator*(T a_value0, const t_vector2<T>& a_value1)
+{
+	return a_value1 * a_value0;
+}
+
+template<typename T>
+inline t_vector2<T> operator*(const t_matrix<2, T>& a_value0, const t_vector2<T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_vector2<T> operator*(const t_vector2<T>& a_value0, const t_matrix<2, T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_vector3<T> operator*(T a_value0, const t_vector3<T>& a_value1)
+{
+	return a_value1 * a_value0;
+}
+
+template<typename T>
+inline t_vector3<T> operator*(const t_matrix<3, T>& a_value0, const t_vector3<T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_vector3<T> operator*(const t_vector3<T>& a_value0, const t_matrix<3, T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_vector4<T> operator*(T a_value0, const t_vector4<T>& a_value1)
+{
+	return a_value1 * a_value0;
+}
+
+template<typename T>
+inline t_vector4<T> operator*(const t_matrix<4, T>& a_value0, const t_vector4<T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_vector4<T> operator*(const t_vector4<T>& a_value0, const t_matrix<4, T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+typedef t_vector2<float> t_vector2f;
+typedef t_vector3<float> t_vector3f;
+typedef t_vector4<float> t_vector4f;
+typedef t_vector2<double> t_vector2d;
+typedef t_vector3<double> t_vector3d;
+typedef t_vector4<double> t_vector4d;
+
+}
+
+#endif

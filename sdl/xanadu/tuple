@@ -1,0 +1,441 @@
+#ifndef XANADU__TUPLE
+#define XANADU__TUPLE
+
+#include <cstdlib>
+#include <cmath>
+
+namespace xanadu
+{
+
+template<typename T>
+inline T f_absolute(T a_x)
+{
+	return std::fabs(a_x);
+}
+
+inline short f_absolute(short a_x)
+{
+	return std::abs(a_x);
+}
+
+inline int f_absolute(int a_x)
+{
+	return std::abs(a_x);
+}
+
+inline long f_absolute(long a_x)
+{
+	return std::labs(a_x);
+}
+
+template<typename T>
+class t_tuple2
+{
+public:
+	typedef T t_value;
+
+	union
+	{
+		T v[2];
+		struct
+		{
+			T v_x;
+			T v_y;
+		};
+	};
+
+	t_tuple2()
+	{
+	}
+	t_tuple2(const t_tuple2<T>& a_tuple) : v_x(a_tuple.v_x), v_y(a_tuple.v_y)
+	{
+	}
+	t_tuple2(T a_x, T a_y) : v_x(a_x), v_y(a_y)
+	{
+	}
+	T operator[](size_t a_index) const
+	{
+		return v[a_index];
+	}
+	T& operator[](size_t a_index)
+	{
+		return v[a_index];
+	}
+	void f_set(const t_tuple2<T>& a_tuple)
+	{
+		v_x = a_tuple.v_x;
+		v_y = a_tuple.v_y;
+	}
+	void f_add(const t_tuple2<T>& a_tuple)
+	{
+		v_x += a_tuple.v_x;
+		v_y += a_tuple.v_y;
+	}
+	void f_subtract(const t_tuple2<T>& a_tuple)
+	{
+		v_x -= a_tuple.v_x;
+		v_y -= a_tuple.v_y;
+	}
+	void f_negate()
+	{
+		v_x = -v_x;
+		v_y = -v_y;
+	}
+	void f_scale(T a_value)
+	{
+		v_x *= a_value;
+		v_y *= a_value;
+	}
+	bool f_equals(const t_tuple2<T>& a_tuple) const
+	{
+		return v_x == a_tuple.v_x && v_y == a_tuple.v_y;
+	}
+	bool f_equals(const t_tuple2<T>& a_tuple, T a_epsilon) const
+	{
+		if (xanadu::f_absolute(v_x - a_tuple.v_x) > a_epsilon) return false;
+		if (xanadu::f_absolute(v_y - a_tuple.v_y) > a_epsilon) return false;
+		return true;
+	}
+	void f_clamp(T a_minimum, T a_maximum)
+	{
+		if (v_x > a_maximum)
+			v_x = a_maximum;
+		else if (v_x < a_minimum)
+			v_x = a_minimum;
+		if (v_y > a_maximum)
+			v_y = a_maximum;
+		else if (v_y < a_minimum)
+			v_y = a_minimum;
+	}
+	void f_clamp_minimum(T a_minimum)
+	{
+		if (v_x < a_minimum) v_x = a_minimum;
+		if (v_y < a_minimum) v_y = a_minimum;
+	}
+	void f_clamp_maximum(T a_maximum)
+	{
+		if (v_x > a_maximum) v_x = a_maximum;
+		if (v_y > a_maximum) v_y = a_maximum;
+	}
+	void f_absolute()
+	{
+		v_x = xanadu::f_absolute(v_x);
+		v_y = xanadu::f_absolute(v_y);
+	}
+	void f_interpolate(const t_tuple2<T>& a_tuple, T a_t)
+	{
+		v_x = static_cast<T>((1.0 - a_t) * v_x + a_t * a_tuple.v_x);
+		v_y = static_cast<T>((1.0 - a_t) * v_y + a_t * a_tuple.v_y);
+	}
+};
+
+template<typename T>
+class t_tuple3
+{
+public:
+	typedef T t_value;
+
+	union
+	{
+		T v[3];
+		struct
+		{
+			T v_x;
+			T v_y;
+			T v_z;
+		};
+	};
+
+	t_tuple3()
+	{
+	}
+	t_tuple3(const t_tuple3<T>& a_tuple) : v_x(a_tuple.v_x), v_y(a_tuple.v_y), v_z(a_tuple.v_z)
+	{
+	}
+	t_tuple3(T a_x, T a_y, T a_z) : v_x(a_x), v_y(a_y), v_z(a_z)
+	{
+	}
+	T operator[](size_t a_index) const
+	{
+		return v[a_index];
+	}
+	T& operator[](size_t a_index)
+	{
+		return v[a_index];
+	}
+	void f_set(const t_tuple3<T>& a_tuple)
+	{
+		v_x = a_tuple.v_x;
+		v_y = a_tuple.v_y;
+		v_z = a_tuple.v_z;
+	}
+	void f_add(const t_tuple3<T>& a_tuple)
+	{
+		v_x += a_tuple.v_x;
+		v_y += a_tuple.v_y;
+		v_z += a_tuple.v_z;
+	}
+	void f_subtract(const t_tuple3<T>& a_tuple)
+	{
+		v_x -= a_tuple.v_x;
+		v_y -= a_tuple.v_y;
+		v_z -= a_tuple.v_z;
+	}
+	void f_negate()
+	{
+		v_x = -v_x;
+		v_y = -v_y;
+		v_z = -v_z;
+	}
+	void f_scale(T a_value)
+	{
+		v_x *= a_value;
+		v_y *= a_value;
+		v_z *= a_value;
+	}
+	bool f_equals(const t_tuple3<T>& a_tuple) const
+	{
+		return v_x == a_tuple.v_x && v_y == a_tuple.v_y && v_z == a_tuple.v_z;
+	}
+	bool f_equals(const t_tuple3<T>& a_tuple, T a_epsilon) const
+	{
+		if (xanadu::f_absolute(v_x - a_tuple.v_x) > a_epsilon) return false;
+		if (xanadu::f_absolute(v_y - a_tuple.v_y) > a_epsilon) return false;
+		if (xanadu::f_absolute(v_z - a_tuple.v_z) > a_epsilon) return false;
+		return true;
+	}
+	void f_clamp(T a_minimum, T a_maximum)
+	{
+		if (v_x > a_maximum)
+			v_x = a_maximum;
+		else if (v_x < a_minimum)
+			v_x = a_minimum;
+		if (v_y > a_maximum)
+			v_y = a_maximum;
+		else if (v_y < a_minimum)
+			v_y = a_minimum;
+		if (v_z > a_maximum)
+			v_z = a_maximum;
+		else if (v_z < a_minimum)
+			v_z = a_minimum;
+	}
+	void f_clamp_minimum(T a_minimum)
+	{
+		if (v_x < a_minimum) v_x = a_minimum;
+		if (v_y < a_minimum) v_y = a_minimum;
+		if (v_z < a_minimum) v_z = a_minimum;
+	}
+	void f_clamp_maximum(T a_maximum)
+	{
+		if (v_x > a_maximum) v_x = a_maximum;
+		if (v_y > a_maximum) v_y = a_maximum;
+		if (v_z > a_maximum) v_z = a_maximum;
+	}
+	void f_absolute()
+	{
+		v_x = xanadu::f_absolute(v_x);
+		v_y = xanadu::f_absolute(v_y);
+		v_z = xanadu::f_absolute(v_z);
+	}
+	void f_interpolate(const t_tuple3<T>& a_tuple, T a_t)
+	{
+		v_x = static_cast<T>((1.0 - a_t) * v_x + a_t * a_tuple.v_x);
+		v_y = static_cast<T>((1.0 - a_t) * v_y + a_t * a_tuple.v_y);
+		v_z = static_cast<T>((1.0 - a_t) * v_z + a_t * a_tuple.v_z);
+	}
+};
+
+template<typename T>
+class t_tuple4
+{
+public:
+	typedef T t_value;
+
+	union
+	{
+		T v[4];
+		struct
+		{
+			T v_x;
+			T v_y;
+			T v_z;
+			T v_w;
+		};
+	};
+
+	t_tuple4()
+	{
+	}
+	t_tuple4(const t_tuple4<T>& a_tuple) : v_x(a_tuple.v_x), v_y(a_tuple.v_y), v_z(a_tuple.v_z), v_w(a_tuple.v_w)
+	{
+	}
+	t_tuple4(T a_x, T a_y, T a_z, T a_w) : v_x(a_x), v_y(a_y), v_z(a_z), v_w(a_w)
+	{
+	}
+	T operator[](size_t a_index) const
+	{
+		return v[a_index];
+	}
+	T& operator[](size_t a_index)
+	{
+		return v[a_index];
+	}
+	void f_set(const t_tuple4<T>& a_tuple)
+	{
+		v_x = a_tuple.v_x;
+		v_y = a_tuple.v_y;
+		v_z = a_tuple.v_z;
+		v_w = a_tuple.v_w;
+	}
+	void f_add(const t_tuple4<T>& a_tuple)
+	{
+		v_x += a_tuple.v_x;
+		v_y += a_tuple.v_y;
+		v_z += a_tuple.v_z;
+		v_w += a_tuple.v_w;
+	}
+	void f_subtract(const t_tuple4<T>& a_tuple)
+	{
+		v_x -= a_tuple.v_x;
+		v_y -= a_tuple.v_y;
+		v_z -= a_tuple.v_z;
+		v_w -= a_tuple.v_w;
+	}
+	void f_negate()
+	{
+		v_x = -v_x;
+		v_y = -v_y;
+		v_z = -v_z;
+		v_w = -v_w;
+	}
+	void f_scale(T a_value)
+	{
+		v_x *= a_value;
+		v_y *= a_value;
+		v_z *= a_value;
+		v_w *= a_value;
+	}
+	bool f_equals(const t_tuple4<T>& a_tuple) const
+	{
+		return v_x == a_tuple.v_x && v_y == a_tuple.v_y && v_z == a_tuple.v_z && v_w == a_tuple.v_w;
+	}
+	bool f_equals(const t_tuple4<T>& a_tuple, T a_epsilon) const
+	{
+		if (xanadu::f_absolute(v_x - a_tuple.v_x) > a_epsilon) return false;
+		if (xanadu::f_absolute(v_y - a_tuple.v_y) > a_epsilon) return false;
+		if (xanadu::f_absolute(v_z - a_tuple.v_z) > a_epsilon) return false;
+		if (xanadu::f_absolute(v_w - a_tuple.v_w) > a_epsilon) return false;
+		return true;
+	}
+	void f_clamp(T a_minimum, T a_maximum)
+	{
+		if (v_x > a_maximum)
+			v_x = a_maximum;
+		else if (v_x < a_minimum)
+			v_x = a_minimum;
+		if (v_y > a_maximum)
+			v_y = a_maximum;
+		else if (v_y < a_minimum)
+			v_y = a_minimum;
+		if (v_z > a_maximum)
+			v_z = a_maximum;
+		else if (v_z < a_minimum)
+			v_z = a_minimum;
+		if (v_w > a_maximum)
+			v_w = a_maximum;
+		else if (v_w < a_minimum)
+			v_w = a_minimum;
+	}
+	void f_clamp_minimum(T a_minimum)
+	{
+		if (v_x < a_minimum) v_x = a_minimum;
+		if (v_y < a_minimum) v_y = a_minimum;
+		if (v_z < a_minimum) v_z = a_minimum;
+		if (v_w < a_minimum) v_w = a_minimum;
+	}
+	void f_clamp_maximum(T a_maximum)
+	{
+		if (v_x > a_maximum) v_x = a_maximum;
+		if (v_y > a_maximum) v_y = a_maximum;
+		if (v_z > a_maximum) v_z = a_maximum;
+		if (v_w > a_maximum) v_w = a_maximum;
+	}
+	void f_absolute()
+	{
+		v_x = xanadu::f_absolute(v_x);
+		v_y = xanadu::f_absolute(v_y);
+		v_z = xanadu::f_absolute(v_z);
+		v_w = xanadu::f_absolute(v_w);
+	}
+	void f_interpolate(const t_tuple4<T>& a_tuple, T a_t)
+	{
+		v_x = static_cast<T>((1.0 - a_t) * v_x + a_t * a_tuple.v_x);
+		v_y = static_cast<T>((1.0 - a_t) * v_y + a_t * a_tuple.v_y);
+		v_z = static_cast<T>((1.0 - a_t) * v_z + a_t * a_tuple.v_z);
+		v_w = static_cast<T>((1.0 - a_t) * v_w + a_t * a_tuple.v_w);
+	}
+};
+
+template<size_t N, typename T>
+class t_matrix;
+
+template<size_t N, typename T, typename U>
+U f_transform(const t_matrix<N, T>& a_value0, const U& a_value1);
+template<size_t N, typename T, typename U>
+U f_transform(const U& a_value0, const t_matrix<N, T>& a_value1);
+
+template<typename T>
+inline t_tuple2<T> operator*(const t_matrix<2, T>& a_value0, const t_tuple2<T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_tuple2<T> operator*(const t_tuple2<T>& a_value0, const t_matrix<2, T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_tuple3<T> operator*(const t_matrix<3, T>& a_value0, const t_tuple3<T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_tuple3<T> operator*(const t_tuple3<T>& a_value0, const t_matrix<3, T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_tuple4<T> operator*(const t_matrix<4, T>& a_value0, const t_tuple4<T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+template<typename T>
+inline t_tuple4<T> operator*(const t_tuple4<T>& a_value0, const t_matrix<4, T>& a_value1)
+{
+	return f_transform(a_value0, a_value1);
+}
+
+typedef t_tuple2<short> t_tuple2s;
+typedef t_tuple3<short> t_tuple3s;
+typedef t_tuple4<short> t_tuple4s;
+typedef t_tuple2<int> t_tuple2i;
+typedef t_tuple3<int> t_tuple3i;
+typedef t_tuple4<int> t_tuple4i;
+typedef t_tuple2<long> t_tuple2l;
+typedef t_tuple3<long> t_tuple3l;
+typedef t_tuple4<long> t_tuple4l;
+typedef t_tuple2<float> t_tuple2f;
+typedef t_tuple3<float> t_tuple3f;
+typedef t_tuple4<float> t_tuple4f;
+typedef t_tuple2<double> t_tuple2d;
+typedef t_tuple3<double> t_tuple3d;
+typedef t_tuple4<double> t_tuple4d;
+
+}
+
+#endif
