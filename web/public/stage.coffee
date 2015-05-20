@@ -78,7 +78,7 @@ class Stage
               @duration -= 1.0
             ,
               13: -> @transit_play()
-              27: -> @transit_back()
+              27: -> @back()
             , {})
             @state_play = State(->
               @step_things()
@@ -87,7 +87,7 @@ class Stage
               @duration -= 1.0
             ,
               13: -> @next()
-              27: -> @transit_back()
+              27: -> @back()
             , {})
             controller0.call @, @state_play, @player0
             controller1.call @, @state_play, @player1

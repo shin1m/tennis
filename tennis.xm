@@ -25,7 +25,7 @@ Vector3 = glmatrix.Vector3;
 Posture = placement.Posture;
 Player = player.Player;
 
-MainMenu = null;
+MainScreen = null;
 
 Match = Class(stage.Stage) :: @{
 	$new_game = @{
@@ -99,7 +99,7 @@ Match = Class(stage.Stage) :: @{
 		$step_things();
 	}, {
 		xraft.Key.RETURN: @() $new_set(),
-		xraft.Key.ESCAPE: @() $transit_back()
+		xraft.Key.ESCAPE: @() $back()
 	}, {});
 	$transit_close = @{
 		$state = state_close;
@@ -115,7 +115,6 @@ Match = Class(stage.Stage) :: @{
 		$state = $state_play;
 		$message = [];
 	};
-	$transit_back = @() $main.screen__(MainMenu($main));
 	$reset = @{
 		$side = ($player0.point + $player1.point) % 2 == 0 ? 1.0 : -1.0;
 		$ball.reset($side, 2 * 12 * 0.0254 * $end * $side, 0.875, 39 * 12 * 0.0254 * $end);
@@ -154,15 +153,10 @@ Match = Class(stage.Stage) :: @{
 			$transit_ready();
 		}
 	};
+	$back = @() $main.screen__(MainScreen($main));
 };
 
 Training = Class(stage.Stage) :: @{
-	$ball_in = @{
-		$mark.mark($ball);
-		if ($ball.hitter !== $player0) return;
-		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0);
-		$message = ["IN"];
-	};
 	$ball_ace = @() $duration = 0.5 * 64.0;
 	$ball_let = @{
 		$mark.mark($ball);
@@ -182,6 +176,12 @@ Training = Class(stage.Stage) :: @{
 		$message = [message];
 		$duration = 0.5 * 64.0;
 		$sound_miss.play();
+	};
+	$ball_in = @{
+		$mark.mark($ball);
+		if ($ball.hitter !== $player0) return;
+		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0);
+		$message = ["IN"];
 	};
 	$step_things = @{
 		:$^step_things[$]();
@@ -245,7 +245,7 @@ Training = Class(stage.Stage) :: @{
 		o;
 	};
 	items = '(
-		Item(" SERVE   ", @{
+		Item(" SERVE ", @{
 			$ball.reset($side, 2 * 12 * 0.0254 * $side, 0.875, 39 * 12 * 0.0254);
 			$mark.duration = 0.0;
 			$player0.reset(1.0, Player.state_serve_set);
@@ -263,28 +263,28 @@ Training = Class(stage.Stage) :: @{
 			];
 			$duration = 0.0 * 64.0;
 		}, @{}, @() $transit_select()),
-		Item(" STROKE  ", @{
+		Item(" STROKE", @{
 			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss);
 		}, @() $transit_ready(), @{
 			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss), @() $transit_select()),
-		Item(" VOLLEY  ", @{
+		Item(" VOLLEY", @{
 			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss);
 		}, @() $transit_ready(), @{
 			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss), @() $transit_select()),
-		Item(" SMASH   ", @{
+		Item(" SMASH ", @{
 			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob);
 		}, @() $transit_ready(), @{
 			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
 			$message = toss_message;
 			$duration = 0.5 * 64.0;
 		}, @() $toss('toss_lob), @() $transit_select()),
-		Item("  BACK   ", @{
+		Item(" BACK  ", @{
 			$ball.reset($side, 2 * 12 * 0.0254, $ball.radius + 0.01, 2 * 12 * 0.0254);
 			$mark.duration = 0.0;
 			$player0.placement.position = Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
@@ -293,7 +293,7 @@ Training = Class(stage.Stage) :: @{
 			$player1.placement.position = Vector3((0.1 + 2.0 * $side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
 			$player1.placement.valid = false;
 			$player1.reset(-1.0, Player.state_default);
-		}, @() $transit_back(), @{}, @{}, @() $back())
+		}, @() $back(), @{}, @{}, @() $exit())
 	);
 	$update_select = @{
 		$text_viewing = Matrix4().translate(0.0, 0.0, 0.0).scale(0.25, 0.25, 1.0);
@@ -303,7 +303,8 @@ Training = Class(stage.Stage) :: @{
 		}[$]);
 		$step_things();
 	};
-	$back = @() $main.screen__(MainMenu($main));
+	$back = @() items[$selected].back[$]();
+	$exit = @() $main.screen__(MainScreen($main));
 	$up = @{
 		if ($selected <= 0) return;
 		$selected = $selected - 1;
@@ -323,7 +324,7 @@ Training = Class(stage.Stage) :: @{
 		items[$selected].do[$]();
 	};
 	state_select = $State(@{}, {
-		xraft.Key.ESCAPE: $back,
+		xraft.Key.ESCAPE: $exit,
 		xraft.Key.SPACE: $select,
 		xraft.Key.D2: $select,
 		xraft.Key.UP: $up,
@@ -331,7 +332,10 @@ Training = Class(stage.Stage) :: @{
 		xraft.Key.E: $up,
 		xraft.Key.C: $down
 	}, {});
-	$transit_back = @() items[$selected].back[$]();
+	$transit_play = @{
+		$state = $state_play;
+		items[$selected].play[$]();
+	};
 	$transit_select = @{
 		$state = state_select;
 		$side = 1.0;
@@ -344,10 +348,6 @@ Training = Class(stage.Stage) :: @{
 		items[$selected].reset[$]();
 		items[$selected].ready[$]();
 		$step_things();
-	};
-	$transit_play = @{
-		$state = $state_play;
-		items[$selected].play[$]();
 	};
 };
 
@@ -402,7 +402,7 @@ controller1 = @(controller, player) {
 	}.each(@(key, value) controller.key_release[key] = value);
 };
 
-Dialog = Class() :: @{
+Menu = Class() :: @{
 	$Item = @(label, do) {
 		o = Object();
 		o.label = label;
@@ -410,52 +410,187 @@ Dialog = Class() :: @{
 		o;
 	};
 
-	$__initialize = @(main, background, sound) {
+	$__initialize = @(main, columns = 1) {
 		$main = main;
-		$sound_background = main.load_sound(sound);
-		$sound_background.setb(al.LOOPING, true);
-		$sound_background.play();
-		$background = glimage.Renderer.from_file((io.Path(system.script) / ".." / background).__string(), 1);
-		$action = null;
-		$duration = 0.0;
+		$columns = columns;
+		$selected = 0;
 	};
-	$destroy = @{
-		$sound_background.delete();
-		$background.destroy();
+	$render = @(viewing) {
+		n = ($items.size() + $columns - 1) / $columns;
+		viewing = Matrix4(viewing).scale(1.0 / n, 1.0 / n, 1.0);
+		dx = 8.0 * 2.0 / $columns;
+		x = dx * 0.5 - 8.0;
+		y = 0.0;
+		i = 0;
+		$items.each(@(item) {
+			text = (i == $selected ? "*" : " ") + item.label;
+			:y = y - 1.0;
+			viewing = Matrix4(:viewing).translate(x - text.size() * 0.25, y, 0.0).bytes;
+			$main.text_renderer($main.text_projection, viewing, text);
+			:i = i + 1;
+			if (i % n != 0) return;
+			:x = x + dx;
+			:y = 0.0;
+		}[$]);
 	};
-	$flush = @{
-		$action[$]();
-		$action = null;
+	$up = @{
+		if ($selected <= 0) return;
+		$selected = $selected - 1;
+		$main.sound_cursor.play();
 	};
-	$step = @{
-		if ($action === null) return;
-		if ($duration <= 0.0) return $flush();
-		$duration = $duration - 1.0;
+	$down = @{
+		if ($selected >= $items.size() - 1) return;
+		$selected = $selected + 1;
+		$main.sound_cursor.play();
 	};
-	$render = @{
-		extent = $main.geometry();
-		w = extent.width();
-		h = extent.height();
-		gl.viewport(0, 0, w, h);
-		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		gl.disable(gl.DEPTH_TEST);
-		a = w / (h * $background.unit);
-		a = 2.0 * (a < 1.0 ? 1.0 : a);
-		viewing = Matrix4().scale(a, a, 1.0).translate(-0.5 * $background.unit, -0.5, 0.0).bytes;
-		$background($main.text_projection, viewing, String.from_code(0));
-		viewing = Matrix4().translate(0.0, 0.5, 0.0).scale(1.5 / 4.0, 1.5 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes;
-		$main.text_renderer($main.text_projection, viewing, $title);
+	$left = @{
+		n = ($items.size() + $columns - 1) / $columns;
+		if ($selected < n) return;
+		$selected = $selected - n;
+		$main.sound_cursor.play();
 	};
-	$transit = @(action, duration) {
-		if ($action !== null) $flush();
-		$action = action;
-		$duration = duration;
+	$right = @{
+		n = ($items.size() + $columns - 1) / $columns;
+		if ($selected >= $items.size() - n) return;
+		$selected = $selected + n;
+		$main.sound_cursor.play();
 	};
-	$key_press = @(modifier, key, ascii) $action === null && $keys.has(key) && $keys[key][$]();
-	$key_release = @(modifier, key, ascii) {};
+	$select = @{
+		$main.sound_select.play();
+		$items[$selected].do();
+	};
+	keys = {
+		xraft.Key.ESCAPE: @() $back(),
+		xraft.Key.SPACE: $select,
+		xraft.Key.D2: $select,
+		xraft.Key.LEFT: $left,
+		xraft.Key.RIGHT: $right,
+		xraft.Key.UP: $up,
+		xraft.Key.DOWN: $down,
+		xraft.Key.S: $left,
+		xraft.Key.F: $right,
+		xraft.Key.E: $up,
+		xraft.Key.C: $down
+	};
+	$key_press = @(key) keys.has(key) && keys[key][$]();
 };
 
-PlayersSelector = Class(Dialog) :: @{
+Dialog = Class() :: @{
+	$__initialize = @(main, image, sound, title) {
+		$main = main;
+		$image = glimage.Renderer.from_file((io.Path(system.script) / ".." / image).__string(), 1);
+		$sound = main.load_sound(sound);
+		$sound.setb(al.LOOPING, true);
+		$sound.play();
+		$title = title;
+	};
+	$destroy = @{
+		$sound.delete();
+		$image.destroy();
+	};
+	$render = @(width, height, viewing) {
+		a = width / (height * $image.unit);
+		a = 2.0 * (a < 1.0 ? 1.0 : a);
+		v = Matrix4(viewing).scale(a, a, 1.0).translate(-0.5 * $image.unit, -0.5, 0.0).bytes;
+		$image($main.text_projection, v, String.from_code(0));
+		v = Matrix4(viewing).translate(0.0, 0.5, 0.0).scale(1.5 / 4.0, 1.5 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes;
+		$main.text_renderer($main.text_projection, v, $title);
+	};
+};
+
+MainMenu = null;
+
+StageMenu = Class(Dialog) :: @{
+	$__initialize = @(screen, image, sound, title, done) {
+		:$^__initialize[$](screen.main, image, sound, title);
+		$player0 = Menu(screen.main, 2);
+		$player0.back = @{
+			$sound.stop();
+			screen.transit(MainMenu(screen), 1.0);
+		}[$];
+		$player0.items = [];
+		$player1 = Menu(screen.main, 2);
+		$player1.back = (@() $transit($player0, 1.0))[$];
+		$player1.items = [];
+		screen.players.each(@(x) {
+			$player0.items.push(Menu.Item(x.name, (@() $transit($player1, -1.0))[$]));
+			$player1.items.push(Menu.Item(x.name, (@() done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]));
+		}[$]);
+		$menu = $player0;
+		$transitting = null;
+	};
+	$step = @{
+		if ($transitting === null) return;
+		if ($t < $duration)
+			$t = $t + 1.0;
+		else
+			$transitting = null;
+	};
+	$render = @(width, height, viewing) {
+		:$^render[$](width, height, viewing);
+		message = $player0.items[$player0.selected].label + ($menu === $player0 ? "? vs     " : " vs " + $player1.items[$player1.selected].label + "?");
+		v = Matrix4(viewing).translate(0.0, 0.25, 0.0).scale(1.0 / 4.0, 1.0 / 4.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes;
+		$main.text_renderer($main.text_projection, v, message);
+		if ($transitting !== null) {
+			a = 2.0 * $direction * width / height;
+			t = $t / $duration;
+			$transitting.render(Matrix4(viewing).translate(a * t, 0.0, 0.0));
+			viewing = Matrix4(viewing).translate(a * (t - 1.0), 0.0, 0.0);
+		}
+		$menu.render(Matrix4(viewing).translate(0.0, 0.0, 0.0));
+	};
+	$key_press = @(key) $transitting === null && $menu.key_press(key);
+	$transit = @(menu, direction) {
+		$transitting = $menu;
+		$menu = menu;
+		$direction = direction;
+		$duration = 30.0;
+		$t = 0.0;
+	};
+};
+
+MainMenu = Class(Dialog) :: @{
+	$__initialize = @(screen) {
+		:$^__initialize[$](screen.main, "data/main-background.jpg", "data/main-background.wav", "TENNIS");
+		$menu = Menu(screen.main);
+		$menu.back = @() xraft.application().exit();
+		$menu.items = '(
+			Menu.Item("  1P vs COM  ", @{
+				$sound.stop();
+				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/main-background.wav", "1P vs COM", @(player0, player1) {
+					$main.screen__(Match($main, false, false, controller0, player0.path, computer, player1.path));
+				}[$]), -1.0);
+			}[$]),
+			Menu.Item("  1P vs 2P   ", @{
+				$sound.stop();
+				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/main-background.wav", "1P vs 2P", @(player0, player1) {
+					$main.screen__(Match($main, true, false, controller0, player0.path, controller1, player1.path));
+				}[$]), -1.0);
+			}[$]),
+			Menu.Item(" COM vs COM  ", @{
+				$sound.stop();
+				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/main-background.wav", "COM vs COM", @(player0, player1) {
+					$main.screen__(Match($main, false, true, computer, player0.path, computer, player1.path));
+				}[$]), -1.0);
+			}[$]),
+			Menu.Item("  TRAINING   ", @{
+				$sound.stop();
+				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/training-background.wav", "TRAINING", @(player0, player1) {
+					$main.screen__(Training($main, controller0, player0.path, player1.path));
+				}[$]), -1.0);
+			}[$]),
+			Menu.Item("    EXIT     ", $menu.back)
+		);
+	};
+	$step = @{};
+	$render = @(width, height, viewing) {
+		:$^render[$](width, height, viewing);
+		$menu.render(Matrix4(viewing).translate(0.0, 0.125, 0.0));
+	};
+	$key_press = @(key) $menu.key_press(key);
+};
+
+MainScreen = Class() :: @{
 	load = @(source) {
 		reader = collada.Reader(source);
 		try {
@@ -478,206 +613,49 @@ PlayersSelector = Class(Dialog) :: @{
 		}
 	};
 
-	Item = $Item;
-	StateMain = Class() :: @{
-		$__initialize = @(parent, player0, player1) {
-			$main = parent.main;
-			$parent = parent;
-			$items = '(
-				Item(player0, @() $transit(@{
-					$state = $state_player0;
-				}, 0.0 * 64.0)),
-				Item(player1, @() $transit(@{
-					$state = $state_player1;
-				}, 0.0 * 64.0)),
-				Item("NEXT", @() $transit(@{
-					$next($players[$state_player0.selected], $players[$state_player1.selected]);
-				}, 0.0 * 64.0)),
-				Item("BACK", @() $transit(@{
-					$main.screen__(MainMenu($main));
-				}, 0.0 * 64.0))
-			);
-			$selected = 0;
-		};
-		$left = @{
-			if ($selected <= 0) return;
-			$selected = $selected - 1;
-			$main.sound_cursor.play();
-		};
-		$right = @{
-			if ($selected >= $items.size() - 1) return;
-			$selected = $selected + 1;
-			$main.sound_cursor.play();
-		};
-		$up = $left;
-		$down = $right;
-		$select = @{
-			$main.sound_select.play();
-			$items[$selected].do[$parent]();
-		};
-	};
-	StatePlayer = Class() :: @{
-		$__initialize = @(parent, selected) {
-			$main = parent.main;
-			$parent = parent;
-			$selected = selected;
-		};
-		$left = @{
-			if ($selected <= 0) return;
-			$selected = $selected - 1;
-			$main.sound_cursor.play();
-		};
-		$right = @{
-			if ($selected >= $parent.players.size() - 1) return;
-			$selected = $selected + 1;
-			$main.sound_cursor.play();
-		};
-		$up = @{
-			if ($selected < 4) return;
-			$selected = $selected - 4;
-			$main.sound_cursor.play();
-		};
-		$down = @{
-			if ($selected >= $parent.players.size() - 4) return;
-			$selected = $selected + 4;
-			$main.sound_cursor.play();
-		};
-		$select = @{
-			$main.sound_select.play();
-			$parent.state = $parent.state_main;
-		};
-	};
-
-	$__initialize = @(main, title, background, sound, next) {
-		:$^__initialize[$](main, background, sound);
-		$title = title;
-		$next = next;
+	$__initialize = @(main) {
+		$main = main;
 		$players = load((io.Path(system.script) / "../data/players").__string());
-		$state_main = StateMain($, "1:", "2:");
-		$state_player0 = StatePlayer($, 0);
-		$state_player1 = StatePlayer($, 1);
-		$state = $state_main;
+		$dialog = MainMenu($);
+		$transitting = null;
 	};
-	current = @(text) " " + text + "?";
-	selected = @(text) "[" + text + "]";
-	normal = @(text) " " + text + " ";
-	$render = @{
-		:$^render[$]();
-		player0 = ($state === $state_player0 ? current : $state_main.selected == 0 ? selected : normal)($state_main.items[0].label + $players[$state_player0.selected].name);
-		player1 = ($state === $state_player1 ? current : $state_main.selected == 1 ? selected : normal)($state_main.items[1].label + $players[$state_player1.selected].name);
-		text = player0 + player1 + ($state_main.selected == 2 ? selected : normal)($state_main.items[2].label) + ($state_main.selected == 3 ? selected : normal)($state_main.items[3].label);
-		viewing = Matrix4().translate(0.0, 0.125, 0.0).scale(2.5 / 16.0, 2.5 / 16.0, 1.0).translate(text.size() * -0.25, 0.0, 0.0).bytes;
-		$main.text_renderer($main.text_projection, viewing, text);
-		viewing = Matrix4().translate(0.0, -0.25, 0.0);
-		i = 0;
-		x = -3.0 / 4.0;
-		y = 0.0;
-		$players.each(@(player) {
-			if ($state === $state_player0 && i == $state_player0.selected || $state === $state_player1 && i == $state_player1.selected) {
-				text = selected(player.name);
+	$destroy = @{
+		if ($transitting !== null) $transitting.destroy();
+		$dialog.destroy();
+	};
+	$step = @{
+		if ($transitting !== null) {
+			if ($t < $duration) {
+				$t = $t + 1.0;
 			} else {
-				c0 = i == $state_player0.selected ? ">" : " ";
-				c1 = i == $state_player1.selected ? "<" : " ";
-				text = c0 + player.name + c1;
+				$transitting.destroy();
+				$transitting = null;
 			}
-			viewing = Matrix4(:viewing).translate(x, y, 0.0).scale(2.5 / 16.0, 2.5 / 16.0, 1.0).translate(text.size() * -0.25, 0.0, 0.0).bytes;
-			$main.text_renderer($main.text_projection, viewing, text);
-			:i = i + 1;
-			if ((i % 4) == 0) {
-				:x = -3.0 / 4.0;
-				:y = y - 1.0 / 4.0;
-			} else {
-				:x = x + 2.0 / 4.0;
-			}
-		}[$]);
+		}
+		$dialog.step();
 	};
-	$transit_back = @() $main.screen__(MainMenu($main));
-	$keys = {
-		xraft.Key.ESCAPE: @() $transit_back(),
-		xraft.Key.SPACE: @() $state.select(),
-		xraft.Key.D2: @() $state.select(),
-		xraft.Key.LEFT: @() $state.left(),
-		xraft.Key.RIGHT: @() $state.right(),
-		xraft.Key.UP: @() $state.up(),
-		xraft.Key.DOWN: @() $state.down(),
-		xraft.Key.S: @() $state.left(),
-		xraft.Key.F: @() $state.right(),
-		xraft.Key.E: @() $state.up(),
-		xraft.Key.C: @() $state.down()
+	$render = @(width, height) {
+		gl.viewport(0, 0, width, height);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.disable(gl.DEPTH_TEST);
+		viewing = Matrix4(1.0);
+		if ($transitting !== null) {
+			a = 2.0 * $direction * width / height;
+			t = $t / $duration;
+			$transitting.render(width, height, Matrix4(viewing).translate(a * t, 0.0, 0.0));
+			viewing = Matrix4(viewing).translate(a * (t - 1.0), 0.0, 0.0);
+		}
+		$dialog.render(width, height, viewing);
 	};
-};
-
-Menu = Class(Dialog) :: @{
-	$__initialize = @(main, background, sound) {
-		:$^__initialize[$](main, background, sound);
-		$selected = 0;
+	$key_press = @(modifier, key, ascii) $transitting === null && $dialog.key_press(key);
+	$key_release = @(modifier, key, ascii) {};
+	$transit = @(dialog, direction) {
+		$transitting = $dialog;
+		$dialog = dialog;
+		$direction = direction;
+		$duration = 30.0;
+		$t = 0.0;
 	};
-	$render = @{
-		:$^render[$]();
-		viewing = Matrix4().translate(0.0, -0.125, 0.0).scale(3.0 / 16.0, 3.0 / 16.0, 1.0);
-		i = 0;
-		y = 1.0;
-		$items.each(@(item) {
-			text = (i == $selected ? "*" : " ") + item.label;
-			viewing = Matrix4(:viewing).translate(text.size() * -0.25, y, 0.0).bytes;
-			$main.text_renderer($main.text_projection, viewing, text);
-			:y = y - 1.0;
-			:i = i + 1;
-		}[$]);
-	};
-	$up = @{
-		if ($selected <= 0) return;
-		$selected = $selected - 1;
-		$main.sound_cursor.play();
-	};
-	$down = @{
-		if ($selected >= $items.size() - 1) return;
-		$selected = $selected + 1;
-		$main.sound_cursor.play();
-	};
-	$select = @{
-		$main.sound_select.play();
-		$items[$selected].do[$]();
-	};
-	$keys = {
-		xraft.Key.ESCAPE: @() $transit_back(),
-		xraft.Key.SPACE: $select,
-		xraft.Key.D2: $select,
-		xraft.Key.UP: $up,
-		xraft.Key.DOWN: $down,
-		xraft.Key.E: $up,
-		xraft.Key.C: $down
-	};
-};
-
-MainMenu = Class(Menu) :: @{
-	$title = "TENNIS";
-	$items = '(
-		$Item("  1P vs COM  ", @() $transit(@{
-			$main.screen__(PlayersSelector($main, "1P vs COM", "data/main-background.jpg", "data/main-background.wav", @(player0, player1) {
-				$main.screen__(Match($main, false, false, controller0, player0.path, computer, player1.path));
-			}[$]));
-		}, 0.0 * 64.0)),
-		$Item("  1P vs 2P   ", @() $transit(@{
-			$main.screen__(PlayersSelector($main, "1P vs 2P", "data/main-background.jpg", "data/main-background.wav", @(player0, player1) {
-				$main.screen__(Match($main, true, false, controller0, player0.path, controller1, player1.path));
-			}[$]));
-		}, 0.0 * 64.0)),
-		$Item(" COM vs COM  ", @() $transit(@{
-			$main.screen__(PlayersSelector($main, "COM vs COM", "data/main-background.jpg", "data/main-background.wav", @(player0, player1) {
-				$main.screen__(Match($main, false, true, computer, player0.path, computer, player1.path));
-			}[$]));
-		}, 0.0 * 64.0)),
-		$Item("  TRAINING   ", @() $transit(@{
-			$main.screen__(PlayersSelector($main, "TRAINING", "data/main-background.jpg", "data/training-background.wav", @(player0, player1) {
-				$main.screen__(Training($main, controller0, player0.path, player1.path));
-			}[$]));
-		}, 0.0 * 64.0)),
-		$Item("    EXIT     ", @() xraft.application().exit())
-	);
-
-	$__initialize = @(main) :$^__initialize[$](main, "data/main-background.jpg", "data/main-background.wav");
-	$transit_back = @() xraft.application().exit();
 };
 
 Game = Class(xraft.GLWidget) :: @{
@@ -687,7 +665,7 @@ Game = Class(xraft.GLWidget) :: @{
 		$text_renderer = glimage.Renderer.from_font();
 		gl.enable(gl.CULL_FACE);
 		$on_move();
-		$screen = MainMenu($);
+		$screen = MainScreen($);
 		$timer.start(1000 / 60);
 	};
 	$on_move = @{
@@ -698,7 +676,8 @@ Game = Class(xraft.GLWidget) :: @{
 	$on_paint = @(g) {
 t0 = time.now();
 		$glcontext.make_current($);
-		$screen.render();
+		extent = $geometry();
+		$screen.render(extent.width(), extent.height());
 if (print_time) print("render: " + (time.now() - t0));
 t0 = time.now();
 		$glcontext.flush();

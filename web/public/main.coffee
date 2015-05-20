@@ -65,7 +65,7 @@ class Match extends Stage
     @step_things()
   ,
     13: -> @new_set()
-    27: -> @transit_back()
+    27: -> @back()
   , {}
   transit_close: ->
     @state = state_close
@@ -79,9 +79,6 @@ class Match extends Stage
   transit_play: ->
     @state = @state_play
     @set_message []
-  transit_back: ->
-    @container.removeEventListener 'click', @onclick
-    @exited = true
   reset: ->
     @side = if (@player0.point + @player1.point) % 2 == 0 then 1.0 else -1.0
     @ball.reset @side, 2 * 12 * 0.0254 * @end * @side, 0.875, 39 * 12 * 0.0254 * @end
@@ -103,7 +100,7 @@ class Match extends Stage
         return unless event.target.tagName == 'BUTTON'
         @audio.sound_select.play()
         if event.target.value == ''
-          @transit_back()
+          @back()
         else
           @next()
       @container.addEventListener 'click', @onclick
@@ -126,6 +123,9 @@ class Match extends Stage
     else
       @reset()
       @transit_ready()
+  back: ->
+    @container.removeEventListener 'click', @onclick
+    @exited = true
   set_message: (message) ->
     @message.innerText = message.join '\n'
 
@@ -180,7 +180,7 @@ class Training extends Stage
           if @current
             @transit_select()
           else
-            @back()
+            @exit()
         else
           slide @container.querySelector('#trainings'), 'left'
           @current = trainings[event.target.value]
@@ -241,13 +241,13 @@ class Training extends Stage
         @set_instruction toss_message
         @duration = 0.5 * 64.0
       play: -> @toss 'toss_lob'
-  back: ->
+  back: -> @transit_select()
+  exit: ->
     @container.removeEventListener 'click', @onclick
     @exited = true
   state_select = Stage::State (->),
-    27: -> @back()
+    27: -> @exit()
   , {}
-  transit_back: -> @transit_select()
   transit_select: ->
     slide @container.querySelector('#trainings'), 'center'
     @state = state_select
@@ -358,6 +358,7 @@ setup = (screen, container, onexit) ->
   pointLight = new THREE.PointLight 0x333333, 4
   particleLight.add pointLight
 
+  back = container.querySelector '.back'
   overlay = container.querySelector 'div'
   renderer = new THREE.WebGLRenderer
   renderer.autoClear = false
@@ -367,8 +368,8 @@ setup = (screen, container, onexit) ->
   stats = new Stats
   stats.domElement.style.position = 'absolute'
   stats.domElement.style.top = '3em'
+  stats.domElement.style.visibility = back.style.visibility
   container.appendChild stats.domElement
-  back = container.querySelector '.back'
 
   onresize = -> renderer.setSize window.innerWidth, window.innerHeight
   onkeydown = (event) ->
@@ -381,8 +382,8 @@ setup = (screen, container, onexit) ->
   onclick = ->
     return unless event.target.classList.contains 'content'
     value = if back.style.visibility == 'hidden' then 'visible' else 'hidden'
-    stats.domElement.style.visibility = value
     back.style.visibility = value
+    stats.domElement.style.visibility = value
   window.addEventListener 'click', onclick
 
   render = ->

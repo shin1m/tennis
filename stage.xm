@@ -83,7 +83,7 @@ $Stage = Class() :: @{
 			$duration = $duration - 1.0;
 		}, {
 			xraft.Key.RETURN: @() $transit_play(),
-			xraft.Key.ESCAPE: @() $transit_back()
+			xraft.Key.ESCAPE: @() $back()
 		}, {});
 		$state_play = $State(@{
 			$step_things();
@@ -92,7 +92,7 @@ $Stage = Class() :: @{
 			$duration = $duration - 1.0;
 		}, {
 			xraft.Key.RETURN: @() $next(),
-			xraft.Key.ESCAPE: @() $transit_back()
+			xraft.Key.ESCAPE: @() $back()
 		}, {});
 		controller0[$]($state_play, $player0);
 		controller1[$]($state_play, $player1);
@@ -110,11 +110,8 @@ $Stage = Class() :: @{
 		$player1.scene.destroy();
 	};
 	$step = @() $state.step[$]();
-	$render = @{
-		extent = $main.geometry();
-		w = extent.width();
-		h = extent.height();
-		gl.viewport(0, 0, w, h);
+	$render = @(width, height) {
+		gl.viewport(0, 0, width, height);
 t0 = time.now();
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 if (print_time) print("\tclear: " + (time.now() - t0));
@@ -123,15 +120,15 @@ if (print_time) print("\tclear: " + (time.now() - t0));
 		$player0.setup();
 		$player1.setup();
 		gl.enable(gl.DEPTH_TEST);
-		if ($dual) gl.viewport(0, 0, w / 2, h);
-		pw = w * ($dual ? 0.5 : 1.0) / h;
+		if ($dual) gl.viewport(0, 0, width / 2, height);
+		pw = width * ($dual ? 0.5 : 1.0) / height;
 		ph = 1.0;
 		projection = Matrix4().frustum(-pw, pw, -ph, ph, 10.0, 200.0).bytes;
 		$scene.render(projection, $camera0.viewing());
 		if ($dual) {
-			gl.viewport(w / 2, 0, w - w / 2, h);
+			gl.viewport(width / 2, 0, width - width / 2, height);
 			$scene.render(projection, $camera1.viewing());
-			gl.viewport(0, 0, w, h);
+			gl.viewport(0, 0, width, height);
 		}
 t0 = time.now();
 		gl.disable(gl.DEPTH_TEST);
