@@ -517,31 +517,31 @@ StageMenu = Class(Dialog) :: @{
 			$player1.items.push(Menu.Item(x.name, (@() done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]));
 		}[$]);
 		$menu = $player0;
-		$transitting = null;
+		$transit_from = null;
 	};
 	$step = @{
-		if ($transitting === null) return;
+		if ($transit_from === null) return;
 		if ($t < $duration)
 			$t = $t + 1.0;
 		else
-			$transitting = null;
+			$transit_from = null;
 	};
 	$render = @(width, height, viewing) {
 		:$^render[$](width, height, viewing);
 		message = $player0.items[$player0.selected].label + ($menu === $player0 ? "? vs     " : " vs " + $player1.items[$player1.selected].label + "?");
 		v = Matrix4(viewing).translate(0.0, 0.25, 0.0).scale(1.0 / 4.0, 1.0 / 4.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes;
 		$main.text_renderer($main.text_projection, v, message);
-		if ($transitting !== null) {
+		if ($transit_from !== null) {
 			a = 2.0 * $direction * width / height;
 			t = $t / $duration;
-			$transitting.render(Matrix4(viewing).translate(a * t, 0.0, 0.0));
+			$transit_from.render(Matrix4(viewing).translate(a * t, 0.0, 0.0));
 			viewing = Matrix4(viewing).translate(a * (t - 1.0), 0.0, 0.0);
 		}
 		$menu.render(Matrix4(viewing).translate(0.0, 0.0, 0.0));
 	};
-	$key_press = @(key) $transitting === null && $menu.key_press(key);
+	$key_press = @(key) $transit_from === null && $menu.key_press(key);
 	$transit = @(menu, direction) {
-		$transitting = $menu;
+		$transit_from = $menu;
 		$menu = menu;
 		$direction = direction;
 		$duration = 30.0;
@@ -617,19 +617,19 @@ MainScreen = Class() :: @{
 		$main = main;
 		$players = load((io.Path(system.script) / "../data/players").__string());
 		$dialog = MainMenu($);
-		$transitting = null;
+		$transit_from = null;
 	};
 	$destroy = @{
-		if ($transitting !== null) $transitting.destroy();
+		if ($transit_from !== null) $transit_from.destroy();
 		$dialog.destroy();
 	};
 	$step = @{
-		if ($transitting !== null) {
+		if ($transit_from !== null) {
 			if ($t < $duration) {
 				$t = $t + 1.0;
 			} else {
-				$transitting.destroy();
-				$transitting = null;
+				$transit_from.destroy();
+				$transit_from = null;
 			}
 		}
 		$dialog.step();
@@ -639,18 +639,18 @@ MainScreen = Class() :: @{
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.disable(gl.DEPTH_TEST);
 		viewing = Matrix4(1.0);
-		if ($transitting !== null) {
+		if ($transit_from !== null) {
 			a = 2.0 * $direction * width / height;
 			t = $t / $duration;
-			$transitting.render(width, height, Matrix4(viewing).translate(a * t, 0.0, 0.0));
+			$transit_from.render(width, height, Matrix4(viewing).translate(a * t, 0.0, 0.0));
 			viewing = Matrix4(viewing).translate(a * (t - 1.0), 0.0, 0.0);
 		}
 		$dialog.render(width, height, viewing);
 	};
-	$key_press = @(modifier, key, ascii) $transitting === null && $dialog.key_press(key);
+	$key_press = @(modifier, key, ascii) $transit_from === null && $dialog.key_press(key);
 	$key_release = @(modifier, key, ascii) {};
 	$transit = @(dialog, direction) {
-		$transitting = $dialog;
+		$transit_from = $dialog;
 		$dialog = dialog;
 		$direction = direction;
 		$duration = 30.0;
