@@ -4,7 +4,7 @@
 
 #include "main.h"
 
-int f_random()
+auto f_random()
 {
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
@@ -58,7 +58,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 					if (stage.v_second) {
 						state.v_shot = &t_player::t_shots::v_lob;
 					} else {
-						int i = f_random() % 10;
+						auto i = f_random() % 10;
 						if (i > 6)
 							state.v_shot = &t_player::t_shots::v_topspin;
 						else if (i > 4)
@@ -75,7 +75,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 						a_player.f_do(state.v_shot);
 					} else if (t < (swing.v_impact - swing.v_start) * 60.0 + 8.0) {
 						if (!a_player.v_left && !a_player.v_right) {
-							int i = f_random();
+							auto i = f_random();
 							if (i % 8 < (stage.v_second ? 1 : 2))
 								a_player.v_left = true;
 							else if (i % 8 > (stage.v_second ? 5 : 4))
@@ -112,7 +112,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 		} else if (a_player.v_state == &t_player::v_state_default) {
 			if (!state.v_decided1) {
 				state.v_decided1 = true;
-				int i = f_random();
+				auto i = f_random();
 				if (i % 3 == 1)
 					state.v_left = true;
 				else if (i % 3 == 2)
