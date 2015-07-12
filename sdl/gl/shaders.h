@@ -4,6 +4,7 @@
 #include <map>
 #include <xanadu/vector>
 
+#include "portable.h"
 #include "core.h"
 
 namespace gl

@@ -1,6 +1,6 @@
 #include <gl/image.h>
 
-#include "path.h"
+#include "portable.h"
 #include "sdl_core.h"
 
 namespace gl
@@ -28,7 +28,67 @@ void f_load_rgba(const std::wstring& a_path, size_t& a_width, size_t& a_height, 
 	if (!error.empty()) throw std::runtime_error(error);
 }
 
-void t_text_renderer::f_create(GLsizei a_width, GLsizei a_height, const GLvoid* a_data, size_t a_count, float a_unit)
+void t_image::f_create(const std::wstring& a_path)
+{
+	size_t width;
+	size_t height;
+	std::vector<unsigned char> data;
+	f_load_rgba(a_path, width, height, data);
+	v_width = width;
+	v_height = height;
+	t_shader vshader;
+	vshader.f_create(GL_VERTEX_SHADER);
+	vshader.f_compile(
+"uniform mat4 projection;\n"
+"uniform mat4 vertexMatrix;\n"
+"attribute vec3 vertex;\n"
+"attribute vec2 texcoord;\n"
+"varying vec2 varyingTexcoord;\n"
+"\n"
+"void main()\n"
+"{\n"
+"gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));\n"
+"varyingTexcoord = texcoord;\n"
+"}\n"
+	);
+	t_shader fshader;
+	fshader.f_create(GL_FRAGMENT_SHADER);
+	fshader.f_compile(
+"#ifdef GL_ES\n"
+"precision mediump float;\n"
+"precision mediump int;\n"
+"#endif\n"
+"\n"
+"uniform sampler2D color;\n"
+"varying vec2 varyingTexcoord;\n"
+"\n"
+"void main()\n"
+"{\n"
+"vec4 sample = texture2D(color, varyingTexcoord);\n"
+"if (sample.a < 0.5) discard;\n"
+"gl_FragColor = sample;\n"
+"}\n"
+	);
+	v_program.f_create();
+	v_program.f_attach(vshader);
+	v_program.f_attach(fshader);
+	v_program.f_link();
+	v_projection = v_program.f_get_uniform_location("projection");
+	v_vertex_matrix = v_program.f_get_uniform_location("vertexMatrix");
+	v_vertex = v_program.f_get_attrib_location("vertex");
+	v_texcoord = v_program.f_get_attrib_location("texcoord");
+	v_color = v_program.f_get_uniform_location("color");
+	v_texture.f_create();
+	f_active_texture(GL_TEXTURE0);
+	f_bind_texture(GL_TEXTURE_2D, v_texture);
+	f_tex_image2d(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+	f_tex_parameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	f_tex_parameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	f_bind_texture(GL_TEXTURE_2D, 0);
+	v_vertices.f_create();
+}
+
+void t_font::f_create(GLsizei a_width, GLsizei a_height, const GLvoid* a_data, size_t a_count, float a_unit)
 {
 	v_unit = a_unit;
 	t_shader vshader;
@@ -96,9 +156,9 @@ void t_text_renderer::f_create(GLsizei a_width, GLsizei a_height, const GLvoid* 
 	f_bind_buffer(GL_ARRAY_BUFFER, 0);
 }
 
-void t_text_renderer::f_create_from_font(const std::wstring& a_path)
+void t_font::f_create(const std::wstring& a_path)
 {
-	t_font font(f_convert(a_path).c_str(), 32);
+	::t_font font(f_convert(a_path).c_str(), 32);
 	std::string text(128, ' ');
 	for (size_t i = 32; i < 127; ++i) text[i] = i;
 	SDL_Color color = {255, 255, 255, 255};
@@ -112,16 +172,7 @@ void t_text_renderer::f_create_from_font(const std::wstring& a_path)
 	f_create(width, height, data.data(), 128, width / (128.0 * height));
 }
 
-void t_text_renderer::f_create_from_file(const std::wstring& a_path, size_t a_count)
-{
-	size_t width;
-	size_t height;
-	std::vector<unsigned char> data;
-	f_load_rgba(a_path, width, height, data);
-	f_create(width, height, data.data(), a_count, static_cast<float>(width) / height);
-}
-
-void t_text_renderer::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_vertex, const std::wstring& a_text)
+void t_font::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_vertex, const std::wstring& a_text)
 {
 	f_use_program(v_program);
 	v_projection.f_matrix4(true, a_projection.v_array);

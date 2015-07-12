@@ -2,7 +2,7 @@
 
 #include <gl/image.h>
 
-#include "path.h"
+#include "portable.h"
 #include "xml_reader.h"
 
 void t_unique::f_dump(std::wostream& a_out, const std::wstring& a_indent) const
@@ -1180,65 +1180,64 @@ void t_visual_scene::f_build(const t_resolve& a_resolve, gl::t_shaders& a_shader
 	v_built = true;
 }
 
-void t_document::f_load(const std::wstring& a_source)
+void t_document::f_load(t_reader& a_reader, const std::wstring& a_base)
 {
-	t_reader reader(a_source);
 	auto f_read_optional_integer = [&](const wchar_t* a_name, size_t a_default)
 	{
-		auto x = reader.f_get_attribute(a_name);
+		auto x = a_reader.f_get_attribute(a_name);
 		return x.empty() ? a_default : std::stoul(x);
 	};
 	auto f_read_empty_elements = [&](const wchar_t* a_name, auto a_callback)
 	{
-		for (; reader.f_is_start_element(a_name); reader.f_read_element_text()) a_callback();
+		for (; a_reader.f_is_start_element(a_name); a_reader.f_read_element_text()) a_callback();
 	};
 	auto f_read_asset_x_extra = [&](auto a_callback)
 	{
-		reader.f_read_next();
-		if (reader.f_is_start_element(L"asset")) reader.f_read_element_text();
+		a_reader.f_read_next();
+		if (a_reader.f_is_start_element(L"asset")) a_reader.f_read_element_text();
 		a_callback();
-		while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-		reader.f_end_element();
+		while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+		a_reader.f_end_element();
 	};
 	auto f_read_asset_0x_extra = [&](const wchar_t* a_name, auto a_callback)
 	{
-		if (reader.f_is_empty_element()) return reader.f_read_next();
+		if (a_reader.f_is_empty_element()) return a_reader.f_read_next();
 		f_read_asset_x_extra([&]
 		{
-			while (reader.f_is_start_element(a_name)) a_callback();
+			while (a_reader.f_is_start_element(a_name)) a_callback();
 		});
 	};
 	auto f_read_asset_1x_extra = [&](const wchar_t* a_name, auto a_callback)
 	{
 		f_read_asset_x_extra([&]
 		{
-			reader.f_check_start_element(a_name);
+			a_reader.f_check_start_element(a_name);
 			while (true) {
 				a_callback();
-				if (!reader.f_is_start_element(a_name)) break;
+				if (!a_reader.f_is_start_element(a_name)) break;
 			}
 		});
 	};
 	const std::map<std::wstring, std::function<void(t_asset&)>> asset_elements{
 		{L"unit", [&](t_asset& a_x)
 			{
-				a_x.v_unit_meter = std::stod(reader.f_get_attribute(L"meter"));
-				a_x.v_unit_name = reader.f_get_attribute(L"name");
-				reader.f_read_element_text();
+				a_x.v_unit_meter = std::stod(a_reader.f_get_attribute(L"meter"));
+				a_x.v_unit_name = a_reader.f_get_attribute(L"name");
+				a_reader.f_read_element_text();
 			}
 		},
 		{L"up_axis", [&](t_asset& a_x)
 			{
-				a_x.v_up_axis = reader.f_read_element_text();
+				a_x.v_up_axis = a_reader.f_read_element_text();
 			}
 		}
 	};
 	auto f_read_array = [&](auto a_parse)
 	{
-		size_t count = std::stoul(reader.f_get_attribute(L"count"));
-		auto id = reader.f_get_attribute(L"id");
+		size_t count = std::stoul(a_reader.f_get_attribute(L"count"));
+		auto id = a_reader.f_get_attribute(L"id");
 		auto array = std::make_unique<t_array_of<decltype(a_parse(std::wstring()))>>();
-		f_parse_vector(count, reader.f_read_element_text(), *array);
+		f_parse_vector(count, a_reader.f_read_element_text(), *array);
 		array->v_id = id;
 		if (!id.empty()) v_ids.emplace(id, array.get());
 		return array;
@@ -1246,11 +1245,11 @@ void t_document::f_load(const std::wstring& a_source)
 	const std::map<std::wstring, std::function<void(t_source&)>> source_elements{
 		{L"Name_array", [&](t_source& a_x)
 			{
-				size_t count = std::stoul(reader.f_get_attribute(L"count"));
-				auto id = reader.f_get_attribute(L"id");
+				size_t count = std::stoul(a_reader.f_get_attribute(L"count"));
+				auto id = a_reader.f_get_attribute(L"id");
 				auto array = std::make_unique<t_array_of<std::wstring>>();
 				array->reserve(count);
-				f_parse_texts(reader.f_read_element_text(), f_is_whitespace, [&](auto a_i, auto a_j)
+				f_parse_texts(a_reader.f_read_element_text(), f_is_whitespace, [&](auto a_i, auto a_j)
 				{
 					array->emplace_back(a_i, a_j);
 				});
@@ -1272,18 +1271,18 @@ void t_document::f_load(const std::wstring& a_source)
 		},
 		{L"technique_common", [&](t_source& a_x)
 			{
-				reader.f_read_next();
-				reader.f_check_start_element(L"accessor");
-				a_x.v_count = std::stoul(reader.f_get_attribute(L"count"));
+				a_reader.f_read_next();
+				a_reader.f_check_start_element(L"accessor");
+				a_x.v_count = std::stoul(a_reader.f_get_attribute(L"count"));
 				a_x.v_offset = f_read_optional_integer(L"offset", 0);
-				a_x.v_source_id = reader.f_get_attribute(L"source");
+				a_x.v_source_id = a_reader.f_get_attribute(L"source");
 				a_x.v_stride = f_read_optional_integer(L"stride", 1);
-				reader.f_read_next();
+				a_reader.f_read_next();
 				std::vector<std::tuple<std::wstring, std::wstring>> params;
 				f_read_empty_elements(L"param", [&]
 				{
-					auto name = reader.f_get_attribute(L"name");
-					auto type = reader.f_get_attribute(L"type");
+					auto name = a_reader.f_get_attribute(L"name");
+					auto type = a_reader.f_get_attribute(L"type");
 					params.emplace_back(name, type);
 				});
 				if (!params.empty()) {
@@ -1299,17 +1298,17 @@ void t_document::f_load(const std::wstring& a_source)
 						a_x.v_type = std::get<1>(params[0]);
 					}
 				}
-				reader.f_end_element();
-				reader.f_end_element();
+				a_reader.f_end_element();
+				a_reader.f_end_element();
 			}
 		}
 	};
 	auto f_read_source = [&]
 	{
 		auto source = std::make_unique<t_source>();
-		auto id = reader.f_get_attribute(L"id");
+		auto id = a_reader.f_get_attribute(L"id");
 		source->v_id = id;
-		reader.f_parse_elements(source_elements, *source);
+		a_reader.f_parse_elements(source_elements, *source);
 		v_ids.emplace(id, source.get());
 		return source;
 	};
@@ -1328,23 +1327,23 @@ void t_document::f_load(const std::wstring& a_source)
 		{L"sampler", [&](t_animation& a_x)
 			{
 				auto sampler = std::make_unique<t_sampler>();
-				auto id = reader.f_get_attribute(L"id");
+				auto id = a_reader.f_get_attribute(L"id");
 				sampler->v_id = id;
-				reader.f_read_next();
+				a_reader.f_read_next();
 				f_read_empty_elements(L"input", [&]
 				{
-					sampler->v_inputs.emplace(reader.f_get_attribute(L"semantic"), reader.f_get_attribute(L"source"));
+					sampler->v_inputs.emplace(a_reader.f_get_attribute(L"semantic"), a_reader.f_get_attribute(L"source"));
 				});
-				reader.f_end_element();
+				a_reader.f_end_element();
 				if (!id.empty()) v_ids.emplace(id, sampler.get());
 				a_x.v_samplers.push_back(std::move(sampler));
 			}
 		},
 		{L"channel", [&](t_animation& a_x)
 			{
-				auto source = reader.f_get_attribute(L"source");
-				auto target = reader.f_get_attribute(L"target");
-				reader.f_read_element_text();
+				auto source = a_reader.f_get_attribute(L"source");
+				auto target = a_reader.f_get_attribute(L"target");
+				a_reader.f_read_element_text();
 				a_x.v_channels.emplace_back(source, target);
 			}
 		}
@@ -1352,16 +1351,16 @@ void t_document::f_load(const std::wstring& a_source)
 	f_read_animation = [&]
 	{
 		auto animation = std::make_unique<t_animation>();
-		auto id = reader.f_get_attribute(L"id");
+		auto id = a_reader.f_get_attribute(L"id");
 		animation->v_id = id;
-		reader.f_parse_elements(animation_elements, *animation);
+		a_reader.f_parse_elements(animation_elements, *animation);
 		if (!id.empty()) v_ids.emplace(id, animation.get());
 		return animation;
 	};
 	auto f_read_matrix = [&]
 	{
 		std::vector<float> xs;
-		f_parse_vector(16, reader.f_read_element_text(), xs);
+		f_parse_vector(16, a_reader.f_read_element_text(), xs);
 		t_matrix4f m;
 		std::copy(xs.begin(), xs.end(), m.v_array);
 		return m;
@@ -1369,70 +1368,70 @@ void t_document::f_load(const std::wstring& a_source)
 	auto f_read_skin = [&]
 	{
 		auto skin = std::make_unique<t_skin>();
-		skin->v_source_id = reader.f_get_attribute(L"source");
-		reader.f_read_next();
-		if (reader.f_is_start_element(L"bind_shape_matrix")) skin->v_bind_shape_matrix = f_read_matrix();
+		skin->v_source_id = a_reader.f_get_attribute(L"source");
+		a_reader.f_read_next();
+		if (a_reader.f_is_start_element(L"bind_shape_matrix")) skin->v_bind_shape_matrix = f_read_matrix();
 		for (size_t i = 0; i < 3; ++i) {
-			reader.f_check_start_element(L"source");
+			a_reader.f_check_start_element(L"source");
 			skin->v_sources.push_back(f_read_source());
 		}
-		while (reader.f_is_start_element(L"source")) skin->v_sources.push_back(f_read_source());
-		reader.f_check_start_element(L"joints");
-		reader.f_read_next();
+		while (a_reader.f_is_start_element(L"source")) skin->v_sources.push_back(f_read_source());
+		a_reader.f_check_start_element(L"joints");
+		a_reader.f_read_next();
 		f_read_empty_elements(L"input", [&]
 		{
-			skin->v_joints.emplace(reader.f_get_attribute(L"semantic"), reader.f_get_attribute(L"source"));
+			skin->v_joints.emplace(a_reader.f_get_attribute(L"semantic"), a_reader.f_get_attribute(L"source"));
 		});
-		while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-		reader.f_end_element();
-		reader.f_check_start_element(L"vertex_weights");
-		size_t count = std::stoul(reader.f_get_attribute(L"count"));
-		reader.f_read_next();
+		while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+		a_reader.f_end_element();
+		a_reader.f_check_start_element(L"vertex_weights");
+		size_t count = std::stoul(a_reader.f_get_attribute(L"count"));
+		a_reader.f_read_next();
 		f_read_empty_elements(L"input", [&]
 		{
-			skin->v_vertex_weights.emplace(reader.f_get_attribute(L"semantic"), std::make_tuple(skin->v_vertex_weights.size(), reader.f_get_attribute(L"source")));
+			skin->v_vertex_weights.emplace(a_reader.f_get_attribute(L"semantic"), std::make_tuple(skin->v_vertex_weights.size(), a_reader.f_get_attribute(L"source")));
 		});
-		reader.f_check_start_element(L"vcount");
-		f_parse_vector(count, reader.f_read_element_text(), skin->v_vcount);
+		a_reader.f_check_start_element(L"vcount");
+		f_parse_vector(count, a_reader.f_read_element_text(), skin->v_vcount);
 		size_t n = 0;
 		for (size_t x : skin->v_vcount) n += x;
-		reader.f_check_start_element(L"v");
-		f_parse_vector(n * skin->v_vertex_weights.size(), reader.f_read_element_text(), skin->v_v);
-		while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-		reader.f_end_element();
-		while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-		reader.f_end_element();
+		a_reader.f_check_start_element(L"v");
+		f_parse_vector(n * skin->v_vertex_weights.size(), a_reader.f_read_element_text(), skin->v_v);
+		while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+		a_reader.f_end_element();
+		while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+		a_reader.f_end_element();
 		return skin;
 	};
 	const std::map<std::wstring, std::function<void(t_surface&)>> profile_COMMON_newparam_surface_elements{
 		{L"init_from", [&](t_surface& a_x)
 			{
-				a_x.v_mip = reader.f_get_attribute(L"mip");
-				a_x.v_slice = reader.f_get_attribute(L"slice");
-				a_x.v_face = reader.f_get_attribute(L"face");
-				a_x.v_from_id = reader.f_read_element_text();
+				a_x.v_mip = a_reader.f_get_attribute(L"mip");
+				a_x.v_slice = a_reader.f_get_attribute(L"slice");
+				a_x.v_face = a_reader.f_get_attribute(L"face");
+				a_x.v_from_id = a_reader.f_read_element_text();
 			}
 		},
 		{L"format", [&](t_surface& a_x)
 			{
-				a_x.v_format = reader.f_read_element_text();
+				a_x.v_format = a_reader.f_read_element_text();
 			}
 		}
 	};
 	const std::map<std::wstring, std::function<void(t_sampler2d&)>> profile_COMMON_newparam_sampler2D_elements{
 		{L"source", [&](t_sampler2d& a_x)
 			{
-				a_x.v_source_sid = reader.f_read_element_text();
+				a_x.v_source_sid = a_reader.f_read_element_text();
 			}
 		},
 		{L"minfilter", [&](t_sampler2d& a_x)
 			{
-				a_x.v_minfilter = reader.f_read_element_text();
+				a_x.v_minfilter = a_reader.f_read_element_text();
 			}
 		},
 		{L"magfilter", [&](t_sampler2d& a_x)
 			{
-				a_x.v_magfilter = reader.f_read_element_text();
+				a_x.v_magfilter = a_reader.f_read_element_text();
 			}
 		}
 	};
@@ -1441,54 +1440,54 @@ void t_document::f_load(const std::wstring& a_source)
 			{
 				auto p = new t_surface();
 				a_x.reset(p);
-				p->v_type = reader.f_get_attribute(L"type");
-				reader.f_parse_elements(profile_COMMON_newparam_surface_elements, *p);
+				p->v_type = a_reader.f_get_attribute(L"type");
+				a_reader.f_parse_elements(profile_COMMON_newparam_surface_elements, *p);
 			}
 		},
 		{L"sampler2D", [&](std::unique_ptr<t_with_sid>& a_x)
 			{
 				auto p = new t_sampler2d();
 				a_x.reset(p);
-				reader.f_parse_elements(profile_COMMON_newparam_sampler2D_elements, *p);
+				a_reader.f_parse_elements(profile_COMMON_newparam_sampler2D_elements, *p);
 			}
 		}
 	};
 	auto f_read_common_color_or_texture = [&]
 	{
-		reader.f_read_next();
+		a_reader.f_read_next();
 		std::unique_ptr<t_common> value;
-		if (reader.f_is_start_element(L"color")) {
+		if (a_reader.f_is_start_element(L"color")) {
 			std::vector<float> xs;
-			f_parse_vector(4, reader.f_read_element_text(), xs);
+			f_parse_vector(4, a_reader.f_read_element_text(), xs);
 			value.reset(new t_common_color(xs[0], xs[1], xs[2], xs[3]));
-		} else if (reader.f_is_start_element(L"param")) {
+		} else if (a_reader.f_is_start_element(L"param")) {
 			auto p = new t_common_param();
 			value.reset(p);
-			p->v_ref_sid = reader.f_get_attribute(L"ref");
-			reader.f_read_element_text();
-		} else if (reader.f_is_start_element(L"texture")) {
+			p->v_ref_sid = a_reader.f_get_attribute(L"ref");
+			a_reader.f_read_element_text();
+		} else if (a_reader.f_is_start_element(L"texture")) {
 			auto p = new t_common_texture();
 			value.reset(p);
-			p->v_texture_sid = reader.f_get_attribute(L"texture");
-			p->v_texcoord = reader.f_get_attribute(L"texcoord");
-			reader.f_read_element_text();
+			p->v_texture_sid = a_reader.f_get_attribute(L"texture");
+			p->v_texcoord = a_reader.f_get_attribute(L"texcoord");
+			a_reader.f_read_element_text();
 		}
-		reader.f_end_element();
+		a_reader.f_end_element();
 		return value;
 	};
 	auto f_read_float_or_param = [&]
 	{
-		reader.f_read_next();
+		a_reader.f_read_next();
 		std::unique_ptr<t_common> value;
-		if (reader.f_is_start_element(L"float")) {
-			value.reset(new t_common_float(f_to<float>(reader.f_read_element_text())));
-		} else if (reader.f_is_start_element(L"param")) {
+		if (a_reader.f_is_start_element(L"float")) {
+			value.reset(new t_common_float(f_to<float>(a_reader.f_read_element_text())));
+		} else if (a_reader.f_is_start_element(L"param")) {
 			auto p = new t_common_param();
 			value.reset(p);
-			p->v_ref_sid = reader.f_get_attribute(L"ref");
-			reader.f_read_element_text();
+			p->v_ref_sid = a_reader.f_get_attribute(L"ref");
+			a_reader.f_read_element_text();
 		}
-		reader.f_end_element();
+		a_reader.f_end_element();
 		return value;
 	};
 	const std::map<std::wstring, std::function<void(t_shading_model&)>> shader_elements{
@@ -1547,25 +1546,25 @@ void t_document::f_load(const std::wstring& a_source)
 		{L"blinn", [&](t_technique_fx& a_x)
 			{
 				a_x.v_model.reset(new t_blinn());
-				reader.f_parse_elements(shader_elements, *a_x.v_model);
+				a_reader.f_parse_elements(shader_elements, *a_x.v_model);
 			}
 		},
 		{L"constant", [&](t_technique_fx& a_x)
 			{
 				a_x.v_model.reset(new t_constant());
-				reader.f_parse_elements(shader_elements, *a_x.v_model);
+				a_reader.f_parse_elements(shader_elements, *a_x.v_model);
 			}
 		},
 		{L"lambert", [&](t_technique_fx& a_x)
 			{
 				a_x.v_model.reset(new t_lambert());
-				reader.f_parse_elements(shader_elements, *a_x.v_model);
+				a_reader.f_parse_elements(shader_elements, *a_x.v_model);
 			}
 		},
 		{L"phong", [&](t_technique_fx& a_x)
 			{
 				a_x.v_model.reset(new t_phong());
-				reader.f_parse_elements(shader_elements, *a_x.v_model);
+				a_reader.f_parse_elements(shader_elements, *a_x.v_model);
 			}
 		}
 	};
@@ -1573,26 +1572,26 @@ void t_document::f_load(const std::wstring& a_source)
 		{L"profile_COMMON", [&](t_effect& a_x)
 			{
 				auto profile = std::make_unique<t_profile_common>();
-				auto id = reader.f_get_attribute(L"id");
+				auto id = a_reader.f_get_attribute(L"id");
 				profile->v_id = id;
 				f_read_asset_x_extra([&]
 				{
-					while (reader.f_is_start_element(L"image")) reader.f_read_element_text();
-					while (reader.f_is_start_element(L"newparam")) {
+					while (a_reader.f_is_start_element(L"image")) a_reader.f_read_element_text();
+					while (a_reader.f_is_start_element(L"newparam")) {
 						std::unique_ptr<t_with_sid> newparam;
-						auto sid = reader.f_get_attribute(L"sid");
-						reader.f_parse_elements(profile_COMMON_newparam_elements, newparam);
+						auto sid = a_reader.f_get_attribute(L"sid");
+						a_reader.f_parse_elements(profile_COMMON_newparam_elements, newparam);
 						newparam->v_sid = sid;
 						profile->v_sids.emplace(sid, newparam.get());
 						profile->v_newparams.push_back(std::move(newparam));
 					}
-					reader.f_check_start_element(L"technique");
+					a_reader.f_check_start_element(L"technique");
 					auto technique = std::make_unique<t_technique_fx>();
-					auto id = reader.f_get_attribute(L"id");
-					auto sid = reader.f_get_attribute(L"sid");
+					auto id = a_reader.f_get_attribute(L"id");
+					auto sid = a_reader.f_get_attribute(L"sid");
 					technique->v_id = id;
 					technique->v_sid = sid;
-					reader.f_parse_elements(profile_COMMON_technique_elements, *technique);
+					a_reader.f_parse_elements(profile_COMMON_technique_elements, *technique);
 					profile->v_sids.emplace(sid, technique.get());
 					if (!id.empty()) v_ids.emplace(id, technique.get());
 					profile->v_technique = std::move(technique);
@@ -1604,32 +1603,32 @@ void t_document::f_load(const std::wstring& a_source)
 	};
 	auto f_read_primitive_common = [&](const auto& a_primitive, auto a_callback)
 	{
-		a_primitive->v_count = std::stoul(reader.f_get_attribute(L"count"));
-		a_primitive->v_material = reader.f_get_attribute(L"material");
-		reader.f_read_next();
+		a_primitive->v_count = std::stoul(a_reader.f_get_attribute(L"count"));
+		a_primitive->v_material = a_reader.f_get_attribute(L"material");
+		a_reader.f_read_next();
 		size_t stride = 0;
 		f_read_empty_elements(L"input", [&]
 		{
 			t_input input;
-			input.v_offset = std::stoul(reader.f_get_attribute(L"offset"));
+			input.v_offset = std::stoul(a_reader.f_get_attribute(L"offset"));
 			if (input.v_offset + 1 > stride) stride = input.v_offset + 1;
-			auto semantic = reader.f_get_attribute(L"semantic");
+			auto semantic = a_reader.f_get_attribute(L"semantic");
 			input.v_semantic = semantic;
-			input.v_source_id = reader.f_get_attribute(L"source");
-			auto set = reader.f_get_attribute(L"set");
+			input.v_source_id = a_reader.f_get_attribute(L"source");
+			auto set = a_reader.f_get_attribute(L"set");
 			size_t i = set.empty() ? 0 : std::stoul(set);
 			a_primitive->v_inputs.emplace(std::make_tuple(semantic, i), input);
 		});
 		a_primitive->v_stride = stride;
 		a_callback();
-		while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-		reader.f_end_element();
+		while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+		a_reader.f_end_element();
 	};
 	auto f_read_primitive = [&](const auto& a_primitive)
 	{
 		f_read_primitive_common(a_primitive, [&]
 		{
-			if (reader.f_is_start_element(L"p")) f_parse_vector(a_primitive->v_count * a_primitive->v_stride * a_primitive->v_unit, reader.f_read_element_text(), a_primitive->v_indices);
+			if (a_reader.f_is_start_element(L"p")) f_parse_vector(a_primitive->v_count * a_primitive->v_stride * a_primitive->v_unit, a_reader.f_read_element_text(), a_primitive->v_indices);
 		});
 	};
 	auto f_read_polylist = [&]
@@ -1639,18 +1638,18 @@ void t_document::f_load(const std::wstring& a_source)
 		{
 			size_t count = primitive->v_count;
 			size_t stride = primitive->v_stride;
-			reader.f_check_start_element(L"vcount");
+			a_reader.f_check_start_element(L"vcount");
 			std::vector<size_t> vcount;
-			f_parse_vector(count, reader.f_read_element_text(), vcount);
+			f_parse_vector(count, a_reader.f_read_element_text(), vcount);
 			size_t n = 0;
 			size_t m = 0;
 			for (size_t x : vcount) {
 				n += x;
 				m += (x - 2) * 3;
 			}
-			reader.f_check_start_element(L"p");
+			a_reader.f_check_start_element(L"p");
 			std::vector<size_t> indices0;
-			f_parse_vector(n * stride, reader.f_read_element_text(), indices0);
+			f_parse_vector(n * stride, a_reader.f_read_element_text(), indices0);
 			std::vector<size_t>& indices1 = primitive->v_indices;
 			indices1.resize(m * stride);
 			n = m = 0;
@@ -1680,15 +1679,15 @@ void t_document::f_load(const std::wstring& a_source)
 		},
 		{L"vertices", [&](t_mesh& a_x)
 			{
-				auto id = reader.f_get_attribute(L"id");
+				auto id = a_reader.f_get_attribute(L"id");
 				a_x.v_vertices->v_id = id;
-				reader.f_read_next();
+				a_reader.f_read_next();
 				f_read_empty_elements(L"input", [&]
 				{
-					a_x.v_vertices->v_inputs.emplace(reader.f_get_attribute(L"semantic"), reader.f_get_attribute(L"source"));
+					a_x.v_vertices->v_inputs.emplace(a_reader.f_get_attribute(L"semantic"), a_reader.f_get_attribute(L"source"));
 				});
-				while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-				reader.f_end_element();
+				while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+				a_reader.f_end_element();
 				v_ids.emplace(id, a_x.v_vertices.get());
 			}
 		},
@@ -1717,52 +1716,52 @@ void t_document::f_load(const std::wstring& a_source)
 			{
 				auto p = new t_mesh();
 				a_x.reset(p);
-				reader.f_parse_elements(mesh_elements, *p);
+				a_reader.f_parse_elements(mesh_elements, *p);
 			}
 		}
 	};
 	auto f_read_instance_material = [&](auto& a_x)
 	{
 		auto material = std::make_unique<t_instance_material>();
-		material->v_target_id = reader.f_get_attribute(L"target");
-		material->v_symbol = reader.f_get_attribute(L"symbol");
-		bool b = reader.f_is_empty_element();
-		reader.f_read_next();
+		material->v_target_id = a_reader.f_get_attribute(L"target");
+		material->v_symbol = a_reader.f_get_attribute(L"symbol");
+		bool b = a_reader.f_is_empty_element();
+		a_reader.f_read_next();
 		if (!b) {
-			while (reader.f_is_start_element(L"bind")) reader.f_read_element_text();
-			while (reader.f_is_start_element(L"bind_vertex_input")) {
-				auto semantic = reader.f_get_attribute(L"semantic");
-				auto input_semantic = reader.f_get_attribute(L"input_semantic");
-				auto input_set = reader.f_get_attribute(L"input_set");
+			while (a_reader.f_is_start_element(L"bind")) a_reader.f_read_element_text();
+			while (a_reader.f_is_start_element(L"bind_vertex_input")) {
+				auto semantic = a_reader.f_get_attribute(L"semantic");
+				auto input_semantic = a_reader.f_get_attribute(L"input_semantic");
+				auto input_set = a_reader.f_get_attribute(L"input_set");
 				size_t set = input_set.empty() ? 0 : f_to<size_t>(input_set);
-				reader.f_read_element_text();
+				a_reader.f_read_element_text();
 				material->v_bind_vertex_inputs.emplace(semantic, std::make_tuple(input_semantic, set));
 			}
-			while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-			reader.f_end_element();
+			while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+			a_reader.f_end_element();
 		}
 		a_x.v_materials.emplace(material->v_symbol, material.get());
 		a_x.v_instance_materials.push_back(std::move(material));
 	};
 	auto f_read_bind_material = [&](auto& a_x)
 	{
-		reader.f_read_next();
-		while (reader.f_is_start_element(L"param")) reader.f_read_element_text();
-		reader.f_check_start_element(L"technique_common");
-		reader.f_read_next();
-		reader.f_check_start_element(L"instance_material");
+		a_reader.f_read_next();
+		while (a_reader.f_is_start_element(L"param")) a_reader.f_read_element_text();
+		a_reader.f_check_start_element(L"technique_common");
+		a_reader.f_read_next();
+		a_reader.f_check_start_element(L"instance_material");
 		f_read_instance_material(a_x);
-		while (reader.f_is_start_element(L"instance_material")) f_read_instance_material(a_x);
-		reader.f_end_element();
-		while (reader.f_is_start_element(L"technique")) reader.f_read_element_text();
-		while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-		reader.f_end_element();
+		while (a_reader.f_is_start_element(L"instance_material")) f_read_instance_material(a_x);
+		a_reader.f_end_element();
+		while (a_reader.f_is_start_element(L"technique")) a_reader.f_read_element_text();
+		while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+		a_reader.f_end_element();
 	};
 	std::function<std::unique_ptr<t_node>()> f_read_node;
 	const std::map<std::wstring, std::function<void(t_node&)>> node_elements{
 		{L"matrix", [&](t_node& a_x)
 			{
-				auto sid = reader.f_get_attribute(L"sid");
+				auto sid = a_reader.f_get_attribute(L"sid");
 				auto transform = std::make_unique<t_matrix_transform>(f_read_matrix());
 				transform->v_sid = sid;
 				if (!sid.empty()) a_x.v_sids.emplace(sid, transform.get());
@@ -1771,9 +1770,9 @@ void t_document::f_load(const std::wstring& a_source)
 		},
 		{L"rotate", [&](t_node& a_x)
 			{
-				auto sid = reader.f_get_attribute(L"sid");
+				auto sid = a_reader.f_get_attribute(L"sid");
 				std::vector<float> xs;
-				f_parse_vector(4, reader.f_read_element_text(), xs);
+				f_parse_vector(4, a_reader.f_read_element_text(), xs);
 				auto transform = std::make_unique<t_rotate>(xs[0], xs[1], xs[2], xs[3] * M_PI / 180.0);
 				transform->v_sid = sid;
 				if (!sid.empty()) a_x.v_sids.emplace(sid, transform.get());
@@ -1782,9 +1781,9 @@ void t_document::f_load(const std::wstring& a_source)
 		},
 		{L"scale", [&](t_node& a_x)
 			{
-				auto sid = reader.f_get_attribute(L"sid");
+				auto sid = a_reader.f_get_attribute(L"sid");
 				std::vector<float> xs;
-				f_parse_vector(3, reader.f_read_element_text(), xs);
+				f_parse_vector(3, a_reader.f_read_element_text(), xs);
 				auto transform = std::make_unique<t_scale>(xs[0], xs[1], xs[2]);
 				transform->v_sid = sid;
 				if (!sid.empty()) a_x.v_sids.emplace(sid, transform.get());
@@ -1793,9 +1792,9 @@ void t_document::f_load(const std::wstring& a_source)
 		},
 		{L"translate", [&](t_node& a_x)
 			{
-				auto sid = reader.f_get_attribute(L"sid");
+				auto sid = a_reader.f_get_attribute(L"sid");
 				std::vector<float> xs;
-				f_parse_vector(3, reader.f_read_element_text(), xs);
+				f_parse_vector(3, a_reader.f_read_element_text(), xs);
 				auto transform = std::make_unique<t_translate>(xs[0], xs[1], xs[2]);
 				transform->v_sid = sid;
 				if (!sid.empty()) a_x.v_sids.emplace(sid, transform.get());
@@ -1805,15 +1804,15 @@ void t_document::f_load(const std::wstring& a_source)
 		{L"instance_controller", [&](t_node& a_x)
 			{
 				auto controller = std::make_unique<t_instance_controller>(&v_instance_material_fallback);
-				controller->v_url = reader.f_get_attribute(L"url");
-				if (reader.f_is_empty_element()) {
-					reader.f_read_next();
+				controller->v_url = a_reader.f_get_attribute(L"url");
+				if (a_reader.f_is_empty_element()) {
+					a_reader.f_read_next();
 				} else {
-					reader.f_read_next();
-					while (reader.f_is_start_element(L"skeleton")) controller->v_skeletons.push_back(reader.f_read_element_text());
-					if (reader.f_is_start_element(L"bind_material")) f_read_bind_material(*controller);
-					while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-					reader.f_end_element();
+					a_reader.f_read_next();
+					while (a_reader.f_is_start_element(L"skeleton")) controller->v_skeletons.push_back(a_reader.f_read_element_text());
+					if (a_reader.f_is_start_element(L"bind_material")) f_read_bind_material(*controller);
+					while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+					a_reader.f_end_element();
 				}
 				a_x.v_controllers.push_back(std::move(controller));
 			}
@@ -1821,22 +1820,22 @@ void t_document::f_load(const std::wstring& a_source)
 		{L"instance_geometry", [&](t_node& a_x)
 			{
 				auto geometry = std::make_unique<t_instance_geometry>(&v_instance_material_fallback);
-				geometry->v_url = reader.f_get_attribute(L"url");
-				if (reader.f_is_empty_element()) {
-					reader.f_read_next();
+				geometry->v_url = a_reader.f_get_attribute(L"url");
+				if (a_reader.f_is_empty_element()) {
+					a_reader.f_read_next();
 				} else {
-					reader.f_read_next();
-					if (reader.f_is_start_element(L"bind_material")) f_read_bind_material(*geometry);
-					while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-					reader.f_end_element();
+					a_reader.f_read_next();
+					if (a_reader.f_is_start_element(L"bind_material")) f_read_bind_material(*geometry);
+					while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+					a_reader.f_end_element();
 				}
 				a_x.v_geometries.push_back(std::move(geometry));
 			}
 		},
 		{L"instance_node", [&](t_node& a_x)
 			{
-				a_x.v_instance_node_ids.push_back(reader.f_get_attribute(L"url"));
-				reader.f_read_element_text();
+				a_x.v_instance_node_ids.push_back(a_reader.f_get_attribute(L"url"));
+				a_reader.f_read_element_text();
 			}
 		},
 		{L"node", [&](t_node& a_x)
@@ -1848,19 +1847,19 @@ void t_document::f_load(const std::wstring& a_source)
 	f_read_node = [&]
 	{
 		auto node = std::make_unique<t_node>();
-		auto id = reader.f_get_attribute(L"id");
+		auto id = a_reader.f_get_attribute(L"id");
 		node->v_id = id;
-		node->v_sid = reader.f_get_attribute(L"sid");
-		node->v_joint = reader.f_get_attribute(L"type") == L"JOINT";
-		node->v_layer = reader.f_get_attribute(L"layer");
-		reader.f_parse_elements(node_elements, *node);
+		node->v_sid = a_reader.f_get_attribute(L"sid");
+		node->v_joint = a_reader.f_get_attribute(L"type") == L"JOINT";
+		node->v_layer = a_reader.f_get_attribute(L"layer");
+		a_reader.f_parse_elements(node_elements, *node);
 		if (!id.empty()) v_ids.emplace(id, node.get());
 		return node;
 	};
 	const std::map<std::wstring, std::function<void()>> root_elements{
 		{L"asset", [&]
 			{
-				reader.f_parse_elements(asset_elements, v_asset);
+				a_reader.f_parse_elements(asset_elements, v_asset);
 			}
 		},
 		{L"library_animations", [&]
@@ -1876,13 +1875,13 @@ void t_document::f_load(const std::wstring& a_source)
 				f_read_asset_1x_extra(L"controller", [&]
 				{
 					std::unique_ptr<t_controller> controller;
-					auto id = reader.f_get_attribute(L"id");
+					auto id = a_reader.f_get_attribute(L"id");
 					f_read_asset_x_extra([&]
 					{
-						if (reader.f_is_start_element(L"skin"))
+						if (a_reader.f_is_start_element(L"skin"))
 							controller = f_read_skin();
-						else if (reader.f_is_start_element(L"morph"))
-							reader.f_read_element_text();
+						else if (a_reader.f_is_start_element(L"morph"))
+							a_reader.f_read_element_text();
 					});
 					controller->v_id = id;
 					v_ids.emplace(id, controller.get());
@@ -1895,9 +1894,9 @@ void t_document::f_load(const std::wstring& a_source)
 				f_read_asset_1x_extra(L"effect", [&]
 				{
 					auto effect = std::make_unique<t_effect>();
-					auto id = reader.f_get_attribute(L"id");
+					auto id = a_reader.f_get_attribute(L"id");
 					effect->v_id = id;
-					reader.f_parse_elements(effect_elements, *effect);
+					a_reader.f_parse_elements(effect_elements, *effect);
 					v_ids.emplace(id, effect.get());
 					v_library_effects.push_back(std::move(effect));
 				});
@@ -1908,8 +1907,8 @@ void t_document::f_load(const std::wstring& a_source)
 				f_read_asset_1x_extra(L"geometry", [&]
 				{
 					std::unique_ptr<t_geometry> geometry;
-					auto id = reader.f_get_attribute(L"id");
-					reader.f_parse_elements(geometry_elements, geometry);
+					auto id = a_reader.f_get_attribute(L"id");
+					a_reader.f_parse_elements(geometry_elements, geometry);
 					geometry->v_id = id;
 					if (!id.empty()) v_ids.emplace(id, geometry.get());
 					v_library_geometries.push_back(std::move(geometry));
@@ -1922,16 +1921,16 @@ void t_document::f_load(const std::wstring& a_source)
 				f_read_asset_0x_extra(L"image", [&]
 				{
 					auto image = std::make_unique<t_image>();
-					auto id = reader.f_get_attribute(L"id");
+					auto id = a_reader.f_get_attribute(L"id");
 					image->v_id = id;
 					f_read_asset_x_extra([&]
 					{
-						if (reader.f_is_start_element(L"data")) {
+						if (a_reader.f_is_start_element(L"data")) {
 							image->v_type = L"data";
-							image->v_value = reader.f_read_element_text();
-						} else if (reader.f_is_start_element(L"init_from")) {
+							image->v_value = a_reader.f_read_element_text();
+						} else if (a_reader.f_is_start_element(L"init_from")) {
 							image->v_type = L"path";
-							image->v_value = t_path(a_source) / L".." / reader.f_read_element_text();
+							image->v_value = a_base + a_reader.f_read_element_text();
 						}
 					});
 					if (!id.empty()) v_ids.emplace(id, image.get());
@@ -1944,13 +1943,13 @@ void t_document::f_load(const std::wstring& a_source)
 				f_read_asset_1x_extra(L"material", [&]
 				{
 					auto material = std::make_unique<t_material>();
-					auto id = reader.f_get_attribute(L"id");
+					auto id = a_reader.f_get_attribute(L"id");
 					material->v_id = id;
 					f_read_asset_x_extra([&]
 					{
-						reader.f_check_start_element(L"instance_effect");
-						material->v_instance_effect_id = reader.f_get_attribute(L"url");
-						reader.f_read_element_text();
+						a_reader.f_check_start_element(L"instance_effect");
+						material->v_instance_effect_id = a_reader.f_get_attribute(L"url");
+						a_reader.f_read_element_text();
 					});
 					if (!id.empty()) v_ids.emplace(id, material.get());
 					v_library_materials.push_back(std::move(material));
@@ -1970,13 +1969,13 @@ void t_document::f_load(const std::wstring& a_source)
 				f_read_asset_1x_extra(L"visual_scene", [&]
 				{
 					auto scene = std::make_unique<t_visual_scene>();
-					auto id = reader.f_get_attribute(L"id");
+					auto id = a_reader.f_get_attribute(L"id");
 					scene->v_id = id;
 					f_read_asset_x_extra([&]
 					{
-						reader.f_check_start_element(L"node");
-						do scene->v_nodes.push_back(f_read_node()); while (reader.f_is_start_element(L"node"));
-						while (reader.f_is_start_element(L"evaluate_scene")) reader.f_read_element_text();
+						a_reader.f_check_start_element(L"node");
+						do scene->v_nodes.push_back(f_read_node()); while (a_reader.f_is_start_element(L"node"));
+						while (a_reader.f_is_start_element(L"evaluate_scene")) a_reader.f_read_element_text();
 					});
 					if (!id.empty()) v_ids.emplace(id, scene.get());
 					v_library_visual_scenes.push_back(std::move(scene));
@@ -1985,22 +1984,22 @@ void t_document::f_load(const std::wstring& a_source)
 		},
 		{L"scene", [&]
 			{
-				reader.f_read_next();
-				while (reader.f_is_start_element(L"instance_physics_scene")) reader.f_read_element_text();
-				if (reader.f_is_start_element(L"instance_visual_scene")) {
-					v_scene.v_instance_visual_scene.v_url = reader.f_get_attribute(L"url");
-					reader.f_read_element_text();
+				a_reader.f_read_next();
+				while (a_reader.f_is_start_element(L"instance_physics_scene")) a_reader.f_read_element_text();
+				if (a_reader.f_is_start_element(L"instance_visual_scene")) {
+					v_scene.v_instance_visual_scene.v_url = a_reader.f_get_attribute(L"url");
+					a_reader.f_read_element_text();
 				}
-				while (reader.f_is_start_element(L"extra")) reader.f_read_element_text();
-				reader.f_end_element();
+				while (a_reader.f_is_start_element(L"extra")) a_reader.f_read_element_text();
+				a_reader.f_end_element();
 			}
 		}
 	};
-	reader.f_read_next();
-	reader.f_move_to_tag();
-	reader.f_check_start_element(L"COLLADA");
-	v_version = reader.f_get_attribute(L"version");
-	reader.f_parse_elements(root_elements);
+	a_reader.f_read_next();
+	a_reader.f_move_to_tag();
+	a_reader.f_check_start_element(L"COLLADA");
+	v_version = a_reader.f_get_attribute(L"version");
+	a_reader.f_parse_elements(root_elements);
 }
 
 void t_document::f_dump(std::wostream& a_out) const

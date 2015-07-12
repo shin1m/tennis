@@ -8,6 +8,8 @@
 #include <xanadu/transform>
 #include <gl/shaders.h>
 
+#include "xml_reader.h"
+
 using namespace xanadu;
 
 template<typename T>
@@ -863,7 +865,7 @@ struct t_document : public t_resolve
 	std::vector<std::unique_ptr<t_visual_scene>> v_library_visual_scenes;
 	t_scene v_scene;
 
-	void f_load(const std::wstring& a_source);
+	void f_load(t_reader& a_reader, const std::wstring& a_base);
 	void f_dump(std::wostream& a_out) const;
 	void f_build(gl::t_shaders& a_shaders)
 	{

@@ -2,9 +2,11 @@
 #define SDL_CORE_H
 
 #include <stdexcept>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
+#include <cassert>
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_ttf.h>
+#include <SDL_mixer.h>
 
 struct t_sdl
 {
@@ -92,6 +94,86 @@ public:
 	operator TTF_Font*() const
 	{
 		return v_p;
+	}
+};
+
+struct t_sdl_mixer
+{
+	t_sdl_mixer(int a_flags)
+	{
+		Mix_Init(a_flags);
+	}
+	~t_sdl_mixer()
+	{
+		Mix_Quit();
+	}
+};
+
+struct t_sdl_audio
+{
+	t_sdl_audio(int a_frequency, Uint16 a_format, int a_channels, int a_chunk)
+	{
+		if (Mix_OpenAudio(a_frequency, a_format, a_channels, a_chunk) != 0) throw std::runtime_error(std::string("Mix_OpenAudio Error: ") + Mix_GetError());
+	}
+	~t_sdl_audio()
+	{
+		Mix_CloseAudio();
+	}
+};
+
+class t_chunk
+{
+	Mix_Chunk* v_p = NULL;
+
+public:
+	~t_chunk()
+	{
+		if (v_p != NULL) Mix_FreeChunk(v_p);
+	}
+	void f_create(const char* a_path)
+	{
+		assert(v_p == NULL);
+		v_p = Mix_LoadWAV(a_path);
+		if (v_p == NULL) throw std::runtime_error(std::string("Mix_LoadWAV Error: ") + Mix_GetError());
+	}
+	operator Mix_Chunk*() const
+	{
+		return v_p;
+	}
+	int f_play(int a_channel = -1, int a_loops = 0)
+	{
+		int channel = Mix_PlayChannel(a_channel, v_p, a_loops);
+		if (channel == -1) throw std::runtime_error(std::string("Mix_PlayChannel Error: ") + Mix_GetError());
+		return channel;
+	}
+};
+
+class t_music
+{
+	Mix_Music* v_p = NULL;
+
+public:
+	~t_music()
+	{
+		if (v_p != NULL) Mix_FreeMusic(v_p);
+	}
+	void f_create(const char* a_path)
+	{
+		assert(v_p == NULL);
+		v_p = Mix_LoadMUS(a_path);
+		if (v_p == NULL) throw std::runtime_error(std::string("Mix_LoadMUS Error: ") + Mix_GetError());
+	}
+	operator Mix_Music*() const
+	{
+		return v_p;
+	}
+	void f_play(int a_loops)
+	{
+		if (Mix_PlayMusic(v_p, a_loops) != 0) throw std::runtime_error(std::string("Mix_PlayMusic Error: ") + Mix_GetError());
+	}
+	void f_stop()
+	{
+		Mix_HaltMusic();
 	}
 };
 

@@ -1,11 +1,12 @@
-AC_INIT([tennis-sdl], [201504])
+AC_INIT([tennis-sdl], [201507])
 AM_INIT_AUTOMAKE([foreign nostdinc dist-bzip2 no-dist-gzip])
 AC_CONFIG_SRCDIR([main.cc])
 
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0 >= 2.7])
 PKG_CHECK_MODULES([SDL2], [sdl2 >= 2.0])
-PKG_CHECK_MODULES([OPENAL], [openal >= 1.1])
-PKG_CHECK_MODULES([ALUT], [freealut >= 1.1])
+PKG_CHECK_MODULES([SDL2_IMAGE], [SDL2_image >= 2.0])
+PKG_CHECK_MODULES([SDL2_TTF], [SDL2_ttf >= 2.0])
+PKG_CHECK_MODULES([SDL2_MIXER], [SDL2_mixer >= 2.0])
 
 if test "${CXXFLAGS+set}" != set; then
 	CXXFLAGS=

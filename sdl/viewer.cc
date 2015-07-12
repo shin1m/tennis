@@ -1,11 +1,16 @@
-#include "path.h"
+#include "portable.h"
 #include "sdl_core.h"
 #include "collada.h"
 
 void f_loop(SDL_Window* a_window, const std::wstring& a_path)
 {
 	t_document document;
-	document.f_load(a_path);
+	{
+		std::unique_ptr<xmlParserInputBuffer, void (*)(xmlParserInputBufferPtr)> input(xmlParserInputBufferCreateFilename(f_convert(a_path).c_str(), XML_CHAR_ENCODING_NONE), xmlFreeParserInputBuffer);
+		t_reader reader(input.get());
+		size_t n = a_path.find_last_of(L'/');
+		document.f_load(reader, n < a_path.size() ? a_path.substr(0, n + 1) : std::wstring());
+	}
 	gl::t_shaders shaders;
 	document.f_build(shaders);
 	t_translate3f translate(0.0, 0.0, -100.0);

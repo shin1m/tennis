@@ -1,15 +1,48 @@
 #include "main.h"
 
-#include "path.h"
-#include "xml_reader.h"
-#include "sdl_core.h"
+#include <cstring>
+#include <SDL_main.h>
+
 #include "computer.h"
 
-void t_main::f_load(t_sound& a_sound, const std::wstring& a_name)
+t_main::t_main(const std::wstring& a_prefix, bool a_show_pad) : v_prefix(a_prefix), v_show_pad(a_show_pad)
 {
-	a_sound.f_create_from_file(f_convert((t_path(v_root) / L".." / a_name)).c_str());
-	a_sound.f_create();
-	a_sound.f_set(AL_BUFFER, static_cast<ALint>(static_cast<al::t_buffer&>(a_sound)));
+	v_font.f_create(f_path(L"font.ttf.png"));
+	f_load(v_sound_cursor, L"cursor.wav");
+	f_load(v_sound_select, L"select.wav");
+	std::array<float, 12> array{
+		0.0, 2.0, 0.0,
+		-1.0, 0.0, 0.0,
+		1.0, 0.0, 0.0,
+		0.0, 2.0, 0.0
+	};
+	v_triangle.f_create();
+	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_triangle);
+	gl::f_buffer_data(GL_ARRAY_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
+	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
+}
+
+std::unique_ptr<xmlParserInputBuffer, void (*)(xmlParserInputBufferPtr)> t_main::f_input(const std::wstring& a_name)
+{
+	SDL_RWops* p = SDL_RWFromFile(f_convert(f_path(a_name)).c_str(), "rb");
+	if (p == NULL) throw std::runtime_error((std::string("SDL_RWFromFile Error: ") + SDL_GetError()).c_str());
+	return std::unique_ptr<xmlParserInputBuffer, void (*)(xmlParserInputBufferPtr)>(xmlParserInputBufferCreateIO([](void* a_p, char* a_buffer, int a_length) -> int
+	{
+		auto p = static_cast<SDL_RWops*>(a_p);
+		return SDL_RWread(p, a_buffer, 1, a_length);
+	}, [](void* a_p) -> int
+	{
+		auto p = static_cast<SDL_RWops*>(a_p);
+		return SDL_RWclose(p) == 0 ? 0 : -1;
+	}, p, XML_CHAR_ENCODING_NONE), xmlFreeParserInputBuffer);
+}
+
+void t_main::f_load(t_document& a_document, const std::wstring& a_name)
+{
+	auto input = f_input(a_name);
+	t_reader reader(input.get());
+	size_t n = a_name.find_last_of(L'/');
+	a_document.f_load(reader, f_path(n == std::wstring::npos ? std::wstring() : a_name.substr(0, n + 1)));
 }
 
 void t_match::f_new_game()
@@ -118,6 +151,23 @@ const t_stage::t_state t_match::v_state_close{
 	},
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
+	},
+	[](t_stage& a_stage, size_t a_width, size_t a_height)
+	{
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		t_match& stage = static_cast<t_match&>(a_stage);
+		if (a_event.x < 0.5)
+			a_stage.f_back();
+		else
+			stage.f_new_set();
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
 	}
 };
 
@@ -183,6 +233,12 @@ void t_match::f_new_set()
 	f_transit_ready();
 }
 
+const std::vector<std::wstring> t_training::v_toss_message{
+	L"  CHANGE SIDES: START",
+	L"      POSITION: +    ",
+	L"COURCE & SWING: + & *"
+};
+
 void t_training::f_ball_ace()
 {
 	v_duration = 0.5 * 64.0;
@@ -240,7 +296,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 		if (a_player.v_state != &t_player::v_state_swing) a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
 		step(a_stage);
 	};
-}, a_player1)
+}, a_player1), v_menu(a_main)
 {
 	auto f = [this](t_state& a_state)
 	{
@@ -256,11 +312,132 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 				key_press(a_stage, a_key);
 			}
 		};
+		auto finger_up = std::move(a_state.v_finger_up);
+		a_state.v_finger_up = [this, finger_up](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+		{
+			if (a_event.x > 0.5 && a_event.y < 0.5) {
+				v_side = -v_side;
+				f_transit_ready();
+			} else {
+				finger_up(a_stage, a_event, a_width, a_height);
+			}
+		};
 	};
 	f(v_state_ready);
 	f(v_state_play);
 	v_camera0.v_position = t_vector3f(0.0, 14.0, 0.0);
 	v_camera0.v_toward = t_vector3f(0.0, -12.0, -40.0 * v_player0->v_end);
+	v_menu.v_back = [this]
+	{
+		f_exit();
+	};
+	v_menu.v_items.assign({
+		t_item{L" SERVE ", [this]
+		{
+			v_ball->f_reset(v_side, 2 * 12 * 0.0254 * v_side, 0.875, 39 * 12 * 0.0254);
+			v_mark->v_duration = 0.0;
+			v_player0->f_reset(1.0, t_player::v_state_serve_set);
+			v_player1->v_placement->v_position = t_vector3f(-9 * 12 * 0.0254 * v_side, 0.0, -39 * 12 * 0.0254);
+			v_player1->v_placement->v_valid = false;
+			v_player1->f_reset(-1.0, t_player::v_state_default);
+			f_step_things();
+		}, [this]
+		{
+			f_transit_ready();
+		}, [this]
+		{
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.625, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_message = std::vector<std::wstring>{
+				L"CHANGE SIDES: START",
+				L"    POSITION: < + >",
+				L"        TOSS:   *  ",
+				L"      COURCE: < + >",
+				L"       SWING:   *  "
+			};
+			v_duration = 0.0 * 64.0;
+		}, []
+		{
+		}, [this]
+		{
+			f_transit_select();
+		}},
+		t_item{L" STROKE", [this]
+		{
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.0 - 3.2 * v_side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss);
+		}, [this]
+		{
+			f_transit_ready();
+		}, [this]
+		{
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_message = v_toss_message;
+			v_duration = 0.5 * 64.0;
+		}, [this]
+		{
+			f_toss(v_player1->v_actions.v_swing.v_toss);
+		}, [this]
+		{
+			f_transit_select();
+		}},
+		t_item{L" VOLLEY", [this]
+		{
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.1 - 2.0 * v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss);
+		}, [this]
+		{
+			f_transit_ready();
+		}, [this]
+		{
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_message = v_toss_message;
+			v_duration = 0.5 * 64.0;
+		}, [this]
+		{
+			f_toss(v_player1->v_actions.v_swing.v_toss);
+		}, [this]
+		{
+			f_transit_select();
+		}},
+		t_item{L" SMASH ", [this]
+		{
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.4 - 0.4 * v_side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss_lob);
+		}, [this]
+		{
+			f_transit_ready();
+		}, [this]
+		{
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_message = v_toss_message;
+			v_duration = 0.5 * 64.0;
+		}, [this]
+		{
+			f_toss(v_player1->v_actions.v_swing.v_toss_lob);
+		}, [this]
+		{
+			f_transit_select();
+		}},
+		t_item{L" BACK  ", [this]
+		{
+			v_ball->f_reset(v_side, 2 * 12 * 0.0254, t_ball::c_radius + 0.01, 2 * 12 * 0.0254);
+			v_mark->v_duration = 0.0;
+			v_player0->v_placement->v_position = t_vector3f((0.1 - 2.0 * v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
+			v_player0->v_placement->v_valid = false;
+			v_player0->f_reset(1.0, t_player::v_state_default);
+			v_player1->v_placement->v_position = t_vector3f((0.1 + 2.0 * v_side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
+			v_player1->v_placement->v_valid = false;
+			v_player1->f_reset(-1.0, t_player::v_state_default);
+			f_step_things();
+		}, [this]
+		{
+			f_back();
+		}, []
+		{
+		}, []
+		{
+		}, [this]
+		{
+			f_exit();
+		}}
+	});
 	f_transit_select();
 }
 
@@ -282,6 +459,7 @@ void t_training::f_reset(float a_x, float a_y, float a_z, const t_vector3f& a_po
 	v_player1->v_placement->v_position.v_y = 0.0;
 	v_player1->v_placement->v_valid = false;
 	v_player1->f_reset(-1.0, t_player::v_state_default);
+	f_step_things();
 }
 
 void t_training::f_toss(t_player::t_swing& a_shot)
@@ -292,158 +470,14 @@ void t_training::f_toss(t_player::t_swing& a_shot)
 	v_player1->f_transit(t_player::v_state_swing);
 }
 
-const std::vector<std::wstring> t_training::v_toss_message{
-	L"  CHANGE SIDES: START",
-	L"      POSITION: +    ",
-	L"COURCE & SWING: + & *"
-};
-
-const std::vector<t_training::t_item> t_training::v_items{
-	t_item{L" SERVE ", [](t_training& a_stage)
-	{
-		a_stage.v_ball->f_reset(a_stage.v_side, 2 * 12 * 0.0254 * a_stage.v_side, 0.875, 39 * 12 * 0.0254);
-		a_stage.v_mark->v_duration = 0.0;
-		a_stage.v_player0->f_reset(1.0, t_player::v_state_serve_set);
-		a_stage.v_player1->v_placement->v_position = t_vector3f(-9 * 12 * 0.0254 * a_stage.v_side, 0.0, -39 * 12 * 0.0254);
-		a_stage.v_player1->v_placement->v_valid = false;
-		a_stage.v_player1->f_reset(-1.0, t_player::v_state_default);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_ready();
-	}, [](t_training& a_stage)
-	{
-		a_stage.v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.625, 0.0) * t_scale3f(0.125, 0.125, 1.0);
-		a_stage.v_message = std::vector<std::wstring>{
-			L"CHANGE SIDES: START",
-			L"    POSITION: < + >",
-			L"        TOSS:   *  ",
-			L"      COURCE: < + >",
-			L"       SWING:   *  "
-		};
-		a_stage.v_duration = 0.0 * 64.0;
-	}, [](t_training& a_stage)
-	{
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_select();
-	}},
-	t_item{L" STROKE", [](t_training& a_stage)
-	{
-		a_stage.f_reset(3 * 12 * 0.0254 * a_stage.v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.0 - 3.2 * a_stage.v_side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), a_stage.v_player1->v_actions.v_swing.v_toss);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_ready();
-	}, [](t_training& a_stage)
-	{
-		a_stage.v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
-		a_stage.v_message = v_toss_message;
-		a_stage.v_duration = 0.5 * 64.0;
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_toss(a_stage.v_player1->v_actions.v_swing.v_toss);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_select();
-	}},
-	t_item{L" VOLLEY", [](t_training& a_stage)
-	{
-		a_stage.f_reset(3 * 12 * 0.0254 * a_stage.v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.1 - 2.0 * a_stage.v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), a_stage.v_player1->v_actions.v_swing.v_toss);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_ready();
-	}, [](t_training& a_stage)
-	{
-		a_stage.v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
-		a_stage.v_message = v_toss_message;
-		a_stage.v_duration = 0.5 * 64.0;
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_toss(a_stage.v_player1->v_actions.v_swing.v_toss);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_select();
-	}},
-	t_item{L" SMASH ", [](t_training& a_stage)
-	{
-		a_stage.f_reset(3 * 12 * 0.0254 * a_stage.v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.4 - 0.4 * a_stage.v_side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), a_stage.v_player1->v_actions.v_swing.v_toss_lob);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_ready();
-	}, [](t_training& a_stage)
-	{
-		a_stage.v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
-		a_stage.v_message = v_toss_message;
-		a_stage.v_duration = 0.5 * 64.0;
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_toss(a_stage.v_player1->v_actions.v_swing.v_toss_lob);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_transit_select();
-	}},
-	t_item{L" BACK  ", [](t_training& a_stage)
-	{
-		a_stage.v_ball->f_reset(a_stage.v_side, 2 * 12 * 0.0254, t_ball::c_radius + 0.01, 2 * 12 * 0.0254);
-		a_stage.v_mark->v_duration = 0.0;
-		a_stage.v_player0->v_placement->v_position = t_vector3f((0.1 - 2.0 * a_stage.v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
-		a_stage.v_player0->v_placement->v_valid = false;
-		a_stage.v_player0->f_reset(1.0, t_player::v_state_default);
-		a_stage.v_player1->v_placement->v_position = t_vector3f((0.1 + 2.0 * a_stage.v_side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
-		a_stage.v_player1->v_placement->v_valid = false;
-		a_stage.v_player1->f_reset(-1.0, t_player::v_state_default);
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_back();
-	}, [](t_training& a_stage)
-	{
-	}, [](t_training& a_stage)
-	{
-	}, [](t_training& a_stage)
-	{
-		a_stage.f_exit();
-	}}
-};
-
-void t_training::f_update_select()
-{
-	v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, 0.0, 0.0) * t_scale3f(0.25, 0.25, 1.0);
-	v_message.clear();
-	for (const auto& item : v_items) v_message.push_back((v_message.size() == v_selected ? L"*" : L" ") + item.v_label);
-	f_step_things();
-}
-
 void t_training::f_back()
 {
-	v_items[v_selected].v_back(*this);
+	v_menu.f_selected().v_back();
 }
 
 void t_training::f_exit()
 {
 	v_main.v_screen = std::make_unique<t_main_screen>(v_main);
-}
-
-void t_training::f_up()
-{
-	if (v_selected <= 0) return;
-	--v_selected;
-	v_main.v_sound_cursor.f_play();
-	v_items[v_selected].v_reset(*this);
-	f_update_select();
-}
-
-void t_training::f_down()
-{
-	if (v_selected >= v_items.size() - 1) return;
-	++v_selected;
-	v_main.v_sound_cursor.f_play();
-	v_items[v_selected].v_reset(*this);
-	f_update_select();
-}
-
-void t_training::f_select()
-{
-	v_main.v_sound_select.f_play();
-	v_items[v_selected].v_do(*this);
 }
 
 const t_stage::t_state t_training::v_state_select{
@@ -453,50 +487,53 @@ const t_stage::t_state t_training::v_state_select{
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
-		switch (a_key) {
-		case SDLK_ESCAPE:
-			stage.f_exit();
-			break;
-		case SDLK_SPACE:
-		case SDLK_2:
-			stage.f_select();
-			break;
-		case SDLK_UP:
-		case SDLK_e:
-			stage.f_up();
-			break;
-		case SDLK_DOWN:
-		case SDLK_c:
-			stage.f_down();
-			break;
-		}
+		stage.v_menu.f_key_press(a_key);
 	},
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
+	},
+	[](t_stage& a_stage, size_t a_width, size_t a_height)
+	{
+		t_training& stage = static_cast<t_training&>(a_stage);
+		stage.v_menu.f_render(stage.f_transform());
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		t_training& stage = static_cast<t_training&>(a_stage);
+		stage.v_menu.f_finger_down(a_event, stage.f_transform());
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		t_training& stage = static_cast<t_training&>(a_stage);
+		stage.v_menu.f_finger_up(a_event, stage.f_transform());
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		t_training& stage = static_cast<t_training&>(a_stage);
+		stage.v_menu.f_finger_motion(a_event, stage.f_transform());
 	}
 };
 
 void t_training::f_transit_play()
 {
 	v_state = &v_state_play;
-	v_items[v_selected].v_play(*this);
+	v_menu.f_selected().v_play();
 }
 
 void t_training::f_transit_select()
 {
 	v_state = &v_state_select;
 	v_side = 1.0;
-	v_items[v_selected].v_reset(*this);
+	v_menu.f_selected().v_select();
+	v_message.clear();
 	v_duration = 0.0 * 64.0;
-	f_update_select();
 }
 
 void t_training::f_transit_ready()
 {
 	v_state = &v_state_ready;
-	v_items[v_selected].v_reset(*this);
-	v_items[v_selected].v_ready(*this);
-	f_step_things();
+	v_menu.f_selected().v_select();
+	v_menu.f_selected().v_ready();
 }
 
 void f_controller0(t_stage::t_state& a_state, t_player& a_player)
@@ -566,6 +603,81 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			key_release(a_stage, a_key);
 		}
 	};
+	const float pad_size = 1.0;
+	if (a_player.v_stage.v_main.v_show_pad) {
+		auto render = std::move(a_state.v_render);
+		a_state.v_render = [render, &a_player, pad_size](t_stage& a_stage, size_t a_width, size_t a_height)
+		{
+			auto& shader = a_stage.v_main.v_shaders.f_constant_color();
+			std::remove_reference<decltype(shader)>::type::t_uniforms uniforms;
+			uniforms.v_projection = a_stage.v_main.v_projection.v_array;
+			uniforms.v_color = t_vector4f(1.0, 1.0, 1.0, 1.0);
+			std::remove_reference<decltype(shader)>::type::t_attributes attributes;
+			attributes.v_vertices = a_stage.v_main.v_triangle;
+			float a = static_cast<float>(a_width) / a_height;
+			float size = std::min(a, pad_size);
+			t_matrix4f triangle = t_translate3f(0.0, size * 0.25, 0.0);
+			triangle *= t_scale3f(size * 0.1, size * 0.1, 1.0);
+			t_matrix4f pad = t_translate3f(size * 0.5 - a, size * 0.5 - 1.0, 0.0);
+			for (size_t i = 0; i < 8; ++i) {
+				auto m = pad * t_rotate3f(t_vector3f(0.0, 0.0, 1.0), M_PI * i / 4.0) * triangle;
+				uniforms.v_vertex = m.v_array;
+				shader(uniforms, attributes, GL_LINE_STRIP, 0, 4);
+			}
+			pad = t_translate3f(a - size * 0.5, size * 0.5 - 1.0, 0.0);
+			for (size_t i = 0; i < 4; ++i) {
+				auto m = pad * t_rotate3f(t_vector3f(0.0, 0.0, 1.0), M_PI * i / 2.0) * triangle;
+				uniforms.v_vertex = m.v_array;
+				shader(uniforms, attributes, GL_LINE_STRIP, 0, 4);
+			}
+			render(a_stage, a_width, a_height);
+		};
+	}
+	auto left_pad = [&a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		float a = static_cast<float>(a_width) / a_height;
+		float size = std::min(a, pad_size);
+		auto m = ~a_stage.v_main.v_projection;
+		auto v = f_affine(m, t_vector3f(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0));
+		auto u = v - t_vector3f(size * 0.5 - a, size * 0.5 - 1.0, 0.0);
+		a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
+		if (u.f_length() < size * 0.125) return;
+		if (u.v_x == 0.0) {
+			(u.v_y < 0.0 ? a_player.v_backward : a_player.v_forward) = true;
+		} else {
+			float a = std::fabs(u.v_y / u.v_x);
+			if (a < std::tan(M_PI * 0.375)) (u.v_x < 0.0 ? a_player.v_left : a_player.v_right) = true;
+			if (a > std::tan(M_PI * 0.125)) (u.v_y < 0.0 ? a_player.v_backward : a_player.v_forward) = true;
+		}
+	};
+	auto finger_down = std::move(a_state.v_finger_down);
+	a_state.v_finger_down = [left_pad, finger_down, &a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		if (a_event.x < 0.5) {
+			left_pad(a_stage, a_event, a_width, a_height);
+		} else {
+			float a = static_cast<float>(a_width) / a_height;
+			float size = std::min(a, pad_size);
+			auto m = ~a_stage.v_main.v_projection;
+			auto v = f_affine(m, t_vector3f(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0));
+			auto u = v - t_vector3f(a - size * 0.5, size * 0.5 - 1.0, 0.0);
+			auto shot = std::fabs(u.v_x) < std::fabs(u.v_y) ? (u.v_y < 0.0 ? &t_player::t_shots::v_slice : &t_player::t_shots::v_lob) : (u.v_x < 0.0 ? &t_player::t_shots::v_topspin : &t_player::t_shots::v_flat);
+			a_player.f_do(shot);
+		}
+		if (a_event.y < 0.5) finger_down(a_stage, a_event, a_width, a_height);
+	};
+	auto finger_up = std::move(a_state.v_finger_up);
+	a_state.v_finger_up = [finger_up, &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		if (a_event.x < 0.5) a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
+		if (a_event.y < 0.5) finger_up(a_stage, a_event, a_width, a_height);
+	};
+	auto finger_motion = std::move(a_state.v_finger_motion);
+	a_state.v_finger_motion = [left_pad, finger_motion, &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		if (a_event.x < 0.5) left_pad(a_stage, a_event, a_width, a_height);
+		if (a_event.y < 0.5) finger_motion(a_stage, a_event, a_width, a_height);
+	};
 }
 
 void f_controller1(t_stage::t_state& a_state, t_player& a_player)
@@ -624,107 +736,27 @@ void f_controller1(t_stage::t_state& a_state, t_player& a_player)
 	};
 }
 
-void t_menu::f_render(const t_matrix4f& a_viewing)
-{
-	size_t n = (v_items.size() + v_columns - 1) / v_columns;
-	auto viewing = a_viewing * t_scale3f(1.0 / n, 1.0 / n, 1.0);
-	float dx = 8.0 * 2.0 / v_columns;
-	float x = dx * 0.5 - 8.0;
-	size_t k = 0;
-	for (size_t i = 0; i < v_columns; ++i) {
-		float y = 0.0;
-		for (size_t j = 0; j < n && k < v_items.size(); ++j) {
-			const auto& item = v_items[k];
-			auto text = (k == v_selected ? L"*" : L" ") + item.v_label;
-			y -= 1.0;
-			v_main.v_text_renderer(v_main.v_text_projection, viewing * t_translate3f(x - text.size() * 0.25, y, 0.0), text);
-			++k;
-		}
-		x += dx;
-	}
-}
-
-void t_menu::f_up()
-{
-	if (v_selected <= 0) return;
-	--v_selected;
-	v_main.v_sound_cursor.f_play();
-}
-
-void t_menu::f_down()
-{
-	if (v_selected >= v_items.size() - 1) return;
-	++v_selected;
-	v_main.v_sound_cursor.f_play();
-}
-
-void t_menu::f_left()
-{
-	size_t n = (v_items.size() + v_columns - 1) / v_columns;
-	if (v_selected < n) return;
-	v_selected -= n;
-	v_main.v_sound_cursor.f_play();
-}
-
-void t_menu::f_right()
-{
-	size_t n = (v_items.size() + v_columns - 1) / v_columns;
-	if (v_selected >= v_items.size() - n) return;
-	v_selected += n;
-	v_main.v_sound_cursor.f_play();
-}
-
-void t_menu::f_select()
-{
-	v_main.v_sound_select.f_play();
-	v_items[v_selected].v_do();
-}
-
-void t_menu::f_key_press(SDL_Keycode a_key)
-{
-	switch (a_key) {
-	case SDLK_ESCAPE:
-		v_back();
-		break;
-	case SDLK_SPACE:
-	case SDLK_2:
-		f_select();
-		break;
-	case SDLK_LEFT:
-	case SDLK_s:
-		f_left();
-		break;
-	case SDLK_RIGHT:
-	case SDLK_f:
-		f_right();
-		break;
-	case SDLK_UP:
-	case SDLK_e:
-		f_up();
-		break;
-	case SDLK_DOWN:
-	case SDLK_c:
-		f_down();
-		break;
-	}
-}
-
 t_dialog::t_dialog(t_main& a_main, const std::wstring& a_image, const std::wstring& a_sound, const std::wstring& a_title) : v_main(a_main), v_title(a_title)
 {
-	v_image.f_create_from_file(t_path(v_main.v_root) / L".." / a_image, 1);
+	v_main.f_load(v_image, a_image);
 	v_main.f_load(v_sound, a_sound);
-	v_sound.f_set(AL_LOOPING, true);
-	v_sound.f_play();
+	v_sound.f_play(-1);
 }
 
 void t_dialog::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_viewing)
 {
-	float a = a_width / (a_height * v_image.v_unit);
-	a = 2.0 * (a < 1.0 ? 1.0 : a);
-	auto viewing = a_viewing * t_scale3f(a, a, 1.0) * t_translate3f(-0.5 * v_image.v_unit, -0.5, 0.0);
-	v_image(v_main.v_text_projection, viewing, std::wstring(1, L'\0'));
-	viewing = a_viewing * t_translate3f(0.0, 0.5, 0.0) * t_scale3f(1.5 / 4.0, 1.5 / 4.0, 1.0) * t_translate3f(v_title.size() * -0.25, 0.0, 0.0);
-	v_main.v_text_renderer(v_main.v_text_projection, viewing, v_title);
+	float w = static_cast<float>(a_width) / a_height;
+	float a = a_width * v_image.v_height / (a_height * v_image.v_width);
+	float s = a < 1.0 ? a : 1.0;
+	float t = a < 1.0 ? 1.0 : 1.0 / a;
+	v_image(v_main.v_projection, a_viewing, std::array<float, 20>{
+		-w, -1.0, 0.0, (1.0f - s) * 0.5f, (1.0f + t) * 0.5f,
+		w, -1.0, 0.0, (1.0f + s) * 0.5f, (1.0f + t) * 0.5f,
+		-w, 1.0, 0.0, (1.0f - s) * 0.5f, (1.0f - t) * 0.5f,
+		w, 1.0, 0.0, (1.0f + s) * 0.5f, (1.0f - t) * 0.5f
+	});
+	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.5, 0.0) * t_scale3f(1.5 / 4.0, 1.5 / 4.0, 1.0) * t_translate3f(v_title.size() * -0.25, 0.0, 0.0);
+	v_main.v_font(v_main.v_projection, viewing, v_title);
 }
 
 t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_image, const std::wstring& a_sound, const std::wstring& a_title, const std::function<void (const std::wstring&, const std::wstring&)>& a_done) : t_dialog(a_screen.v_main, a_image, a_sound, a_title), v_player0(a_screen.v_main, 2), v_player1(a_screen.v_main, 2), v_menu(&v_player0)
@@ -739,11 +771,11 @@ t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_image,
 		f_transit(v_player0, 1.0);
 	};
 	for (const auto& x : a_screen.v_players) {
-		v_player0.v_items.push_back(t_menu::t_item{std::get<0>(x), [this]
+		v_player0.v_items.push_back(t_menu_item{std::get<0>(x), []{}, [this]
 		{
 			f_transit(v_player1, -1.0);
 		}});
-		v_player1.v_items.push_back(t_menu::t_item{std::get<0>(x), [this, &a_screen, a_done]
+		v_player1.v_items.push_back(t_menu_item{std::get<0>(x), []{}, [this, &a_screen, a_done]
 		{
 			a_done(std::get<1>(a_screen.v_players[v_player0.v_selected]), std::get<1>(a_screen.v_players[v_player1.v_selected]));
 		}});
@@ -764,16 +796,16 @@ void t_stage_menu::f_render(size_t a_width, size_t a_height, const t_matrix4f& a
 	t_dialog::f_render(a_width, a_height, a_viewing);
 	auto message = v_player0.v_items[v_player0.v_selected].v_label;
 	message += v_menu == &v_player0 ? L"? vs     " : L" vs " + v_player1.v_items[v_player1.v_selected].v_label + L"?";
-	auto viewing = a_viewing * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(1.0 / 4.0, 1.0 / 4.0, 1.0) * t_translate3f(message.size() * -0.25, -0.5, 0.0);
-	v_main.v_text_renderer(v_main.v_text_projection, viewing, message);
+	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(1.5 / 8.0, 1.5 / 8.0, 1.0) * t_translate3f(message.size() * -0.25, -0.5, 0.0);
+	v_main.v_font(v_main.v_projection, viewing, message);
 	viewing = a_viewing;
 	if (v_transit) {
 		float a = 2.0 * v_direction * a_width / a_height;
 		float t = v_t / v_duration;
-		v_transit->f_render(viewing * t_translate3f(a * t, 0.0, 0.0));
+		v_transit->f_render(viewing * t_translate3f(a * t, 0.0, 0.0) * v_main.v_text_scale);
 		viewing *= t_translate3f(a * (t - 1.0), 0.0, 0.0);
 	}
-	v_menu->f_render(viewing * t_translate3f(0.0, 0.0, 0.0));
+	v_menu->f_render(f_transform(viewing));
 }
 
 void t_stage_menu::f_key_press(SDL_Keycode a_key)
@@ -781,7 +813,22 @@ void t_stage_menu::f_key_press(SDL_Keycode a_key)
 	if (!v_transit) v_menu->f_key_press(a_key);
 }
 
-void t_stage_menu::f_transit(t_menu& a_menu, float a_direction)
+void t_stage_menu::f_finger_down(const SDL_TouchFingerEvent& a_event)
+{
+	if (!v_transit) v_menu->f_finger_down(a_event, f_transform(t_matrix4f(1.0)));
+}
+
+void t_stage_menu::f_finger_up(const SDL_TouchFingerEvent& a_event)
+{
+	if (!v_transit) v_menu->f_finger_up(a_event, f_transform(t_matrix4f(1.0)));
+}
+
+void t_stage_menu::f_finger_motion(const SDL_TouchFingerEvent& a_event)
+{
+	if (!v_transit) v_menu->f_finger_motion(a_event, f_transform(t_matrix4f(1.0)));
+}
+
+void t_stage_menu::f_transit(t_menu<t_menu_item>& a_menu, float a_direction)
 {
 	v_transit = v_menu;
 	v_menu = &a_menu;
@@ -790,7 +837,7 @@ void t_stage_menu::f_transit(t_menu& a_menu, float a_direction)
 	v_t = 0.0;
 }
 
-t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"data/main-background.jpg", L"data/main-background.wav", L"TENNIS"), t_menu(a_screen.v_main)
+t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"main-background.jpg", L"main-background.wav", L"TENNIS"), t_menu<t_menu_item>(a_screen.v_main)
 {
 	v_back = []
 	{
@@ -798,40 +845,40 @@ t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"
 		event.type = SDL_QUIT;
 		SDL_PushEvent(&event);
 	};
-	v_items = std::vector<t_item>{
-		t_item{L"  1P vs COM  ", [this, &a_screen]
+	v_items = std::vector<t_menu_item>{
+		t_menu_item{L"  1P vs COM  ", []{}, [this, &a_screen]
 		{
 			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"data/main-background.jpg", L"data/main-background.wav", L"1P vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 			{
 				a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, false, f_controller0, a_player0, f_computer, a_player1);
 			}), -1.0);
 		}},
-		t_item{L"  1P vs 2P   ", [this, &a_screen]
+		t_menu_item{L"  1P vs 2P   ", []{}, [this, &a_screen]
 		{
 			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"data/main-background.jpg", L"data/main-background.wav", L"1P vs 2P", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs 2P", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 			{
 				a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, true, false, f_controller0, a_player0, f_controller1, a_player1);
 			}), -1.0);
 		}},
-		t_item{L" COM vs COM  ", [this, &a_screen]
+		t_menu_item{L" COM vs COM  ", []{}, [this, &a_screen]
 		{
 			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"data/main-background.jpg", L"data/main-background.wav", L"COM vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"COM vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 			{
 				a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, true, f_computer, a_player0, f_computer, a_player1);
 			}), -1.0);
 		}},
-		t_item{L"  TRAINING   ", [this, &a_screen]
+		t_menu_item{L"  TRAINING   ", []{}, [this, &a_screen]
 		{
 			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"data/main-background.jpg", L"data/training-background.wav", L"TRAINING", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"training-background.wav", L"TRAINING", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 			{
 				a_screen.v_main.v_screen = std::make_unique<t_training>(a_screen.v_main, f_controller0, a_player0, a_player1);
 			}), -1.0);
 		}},
-		t_item{L"    EXIT     ", v_back}
+		t_menu_item{L"    EXIT     ", []{}, v_back}
 	};
 }
 
@@ -842,26 +889,41 @@ void t_main_menu::f_step()
 void t_main_menu::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_viewing)
 {
 	t_dialog::f_render(a_width, a_height, a_viewing);
-	t_menu::f_render(a_viewing * t_translate3f(0.0, 0.125, 0.0));
+	t_menu<t_menu_item>::f_render(f_transform(a_viewing));
 }
 
 void t_main_menu::f_key_press(SDL_Keycode a_key)
 {
-	t_menu::f_key_press(a_key);
+	t_menu<t_menu_item>::f_key_press(a_key);
+}
+
+void t_main_menu::f_finger_down(const SDL_TouchFingerEvent& a_event)
+{
+	t_menu<t_menu_item>::f_finger_down(a_event, f_transform(t_matrix4f(1.0)));
+}
+
+void t_main_menu::f_finger_up(const SDL_TouchFingerEvent& a_event)
+{
+	t_menu<t_menu_item>::f_finger_up(a_event, f_transform(t_matrix4f(1.0)));
+}
+
+void t_main_menu::f_finger_motion(const SDL_TouchFingerEvent& a_event)
+{
+	t_menu<t_menu_item>::f_finger_motion(a_event, f_transform(t_matrix4f(1.0)));
 }
 
 t_main_screen::t_main_screen(t_main& a_main) : t_screen(a_main)
 {
 	{
-		auto source = t_path(a_main.v_root) / L"../data/players";
-		t_reader reader(source);
+		auto input = a_main.f_input(L"players");
+		t_reader reader(input.get());
 		reader.f_read_next();
 		reader.f_move_to_tag();
 		reader.f_check_start_element(L"players");
 		reader.f_read_next();
 		while (reader.f_is_start_element(L"player")) {
 			auto name = reader.f_get_attribute(L"name");
-			std::wstring path = source / L".." / reader.f_get_attribute(L"path");
+			auto path = reader.f_get_attribute(L"path");
 			reader.f_read_element_text();
 			v_players.emplace_back(name, path);
 		}
@@ -905,6 +967,21 @@ void t_main_screen::f_key_release(SDL_Keycode a_key)
 {
 }
 
+void t_main_screen::f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+{
+	if (!v_transit) v_dialog->f_finger_down(a_event);
+}
+
+void t_main_screen::f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+{
+	if (!v_transit) v_dialog->f_finger_up(a_event);
+}
+
+void t_main_screen::f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+{
+	if (!v_transit) v_dialog->f_finger_motion(a_event);
+}
+
 void t_main_screen::f_transit(std::unique_ptr<t_dialog>&& a_dialog, float a_direction)
 {
 	v_transit = std::move(v_dialog);
@@ -914,12 +991,9 @@ void t_main_screen::f_transit(std::unique_ptr<t_dialog>&& a_dialog, float a_dire
 	v_t = 0.0;
 }
 
-void f_loop(SDL_Window* a_window, const std::wstring& a_root)
+void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 {
-	t_main main{a_root};
-	main.v_text_renderer.f_create_from_font(t_path(a_root) / L"../font.ttf");
-	main.f_load(main.v_sound_cursor, L"data/cursor.wav");
-	main.f_load(main.v_sound_select, L"data/select.wav");
+	t_main main(a_prefix, a_show_pad);
 	main.v_screen = std::make_unique<t_main_screen>(main);
 	SDL_GL_SetSwapInterval(1);
 	int width;
@@ -930,12 +1004,29 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_root)
 		width = a_width;
 		height = a_height;
 		float w = static_cast<float>(width) / height;
-		main.v_text_projection = f_orthographic(-w, w, -1.0f, 1.0f, -1.0f, 1.0f);
+		main.v_projection = f_orthographic(-w, w, -1.0f, 1.0f, -1.0f, 1.0f);
+		main.v_text_scale = width < height ? t_scale3f(w, w, 1.0) : t_scale3f(1.0, 1.0, 1.0);
 	};
 	f_resize(width, height);
+#ifdef __ANDROID__
+	SDL_SetEventFilter([](void* a_user, SDL_Event* a_event)
+	{
+		switch (a_event->type) {
+		case SDL_APP_WILLENTERBACKGROUND:
+			Mix_PauseMusic();
+			return 0;
+		case SDL_APP_DIDENTERFOREGROUND:
+			Mix_ResumeMusic();
+			return 0;
+		default:
+			return 1;
+		}
+	}, NULL);
+#endif
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	SDL_Event event;
+	bool dragging = false;
 	while (true) {
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
@@ -959,12 +1050,44 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_root)
 			case SDL_KEYUP:
 				main.v_screen->f_key_release(event.key.keysym.sym);
 				break;
+#ifndef __ANDROID__
 			case SDL_MOUSEMOTION:
+				if (dragging) {
+					SDL_TouchFingerEvent tfinger;
+					tfinger.x = static_cast<float>(event.motion.x) / width;
+					tfinger.y = static_cast<float>(event.motion.y) / height;
+					main.v_screen->f_finger_motion(tfinger, width, height);
+				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
+				if (!dragging) {
+					dragging = true;
+					SDL_TouchFingerEvent tfinger;
+					tfinger.x = static_cast<float>(event.button.x) / width;
+					tfinger.y = static_cast<float>(event.button.y) / height;
+					main.v_screen->f_finger_down(tfinger, width, height);
+				}
 				break;
 			case SDL_MOUSEBUTTONUP:
+				if (dragging) {
+					dragging = false;
+					SDL_TouchFingerEvent tfinger;
+					tfinger.x = static_cast<float>(event.button.x) / width;
+					tfinger.y = static_cast<float>(event.button.y) / height;
+					main.v_screen->f_finger_up(tfinger, width, height);
+				}
 				break;
+#else
+			case SDL_FINGERDOWN:
+				main.v_screen->f_finger_down(event.tfinger, width, height);
+				break;
+			case SDL_FINGERUP:
+				main.v_screen->f_finger_up(event.tfinger, width, height);
+				break;
+			case SDL_FINGERMOTION:
+				main.v_screen->f_finger_motion(event.tfinger, width, height);
+				break;
+#endif
 			}
 		}
 		main.v_screen->f_render(width, height);
@@ -978,12 +1101,25 @@ int main(int argc, char* argv[])
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-	t_sdl sdl(SDL_INIT_VIDEO);
-	t_sdl_image image(IMG_INIT_PNG | IMG_INIT_JPG);
-	t_sdl_ttf ttf;
-	al::t_alut alut(NULL, NULL);
-	t_window window("Tennis", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-	t_gl_context context(window);
-	f_loop(window, f_convert(argv[0]));
-	return 0;
+	try {
+		t_sdl sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
+		t_sdl_image image(IMG_INIT_PNG | IMG_INIT_JPG);
+		t_sdl_ttf ttf;
+		t_sdl_audio audio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
+		t_window window("Tennis", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+		t_gl_context context(window);
+#ifdef __ANDROID__
+		f_loop(window, std::wstring(), true);
+#else
+		auto path = f_absolute_path(f_convert(argv[0]));
+		size_t n = path.find_last_of(v_directory_separator);
+		auto prefix = path.substr(0, n + 1) + L"data" + v_directory_separator;
+		bool show_pad = argc >= 2 && std::strcmp(argv[1], "--show-pad") == 0;
+		f_loop(window, prefix, show_pad);
+#endif
+		return EXIT_SUCCESS;
+	} catch (std::exception& e) {
+		SDL_Log("caught: %s", e.what());
+		return EXIT_FAILURE;
+	}
 }

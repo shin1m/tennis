@@ -1,19 +1,28 @@
 #ifndef XML_READER_H
 #define XML_READER_H
 
+#ifndef __ANDROID__
 #include <codecvt>
 #include <locale>
+#endif
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <libxml/xmlreader.h>
 
+#ifdef __ANDROID__
+#include "portable.h"
+#endif
+
 class t_text_reader
 {
+#ifndef __ANDROID__
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> v_convert;
+#endif
 	xmlTextReaderPtr v_reader;
 
 protected:
+#ifndef __ANDROID__
 	std::string f_convert(const std::wstring& a_string)
 	{
 		return v_convert.to_bytes(a_string);
@@ -22,6 +31,7 @@ protected:
 	{
 		return v_convert.from_bytes(a_string);
 	}
+#endif
 	const xmlChar* f_cast(const std::string& a_string)
 	{
 		return reinterpret_cast<const xmlChar*>(a_string.c_str());
@@ -53,7 +63,7 @@ protected:
 	}
 
 public:
-	t_text_reader(const std::wstring& a_uri) : v_reader(xmlNewTextReaderFilename(f_convert(a_uri).c_str()))
+	t_text_reader(xmlParserInputBufferPtr a_input, const char* a_uri = NULL) : v_reader(xmlNewTextReader(a_input, a_uri))
 	{
 	}
 	~t_text_reader()

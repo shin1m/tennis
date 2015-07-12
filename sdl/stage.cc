@@ -1,6 +1,5 @@
 #include "stage.h"
 
-#include "path.h"
 #include "main.h"
 
 void t_stage::f_ball_in()
@@ -30,14 +29,14 @@ void t_stage::f_step_things()
 
 t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<void (t_stage::t_state&, t_player&)>& a_controller0, const std::wstring& a_player0, const std::function<void (t_stage::t_state&, t_player&)>& a_controller1, const std::wstring& a_player1) : t_screen(a_main), v_dual(a_dual), v_fixed(a_fixed)
 {
-	a_main.f_load(v_sound_bounce, L"data/bounce.wav");
-	a_main.f_load(v_sound_net, L"data/net.wav");
-	a_main.f_load(v_sound_chip, L"data/chip.wav");
-	a_main.f_load(v_sound_hit, L"data/hit.wav");
-	a_main.f_load(v_sound_swing, L"data/swing.wav");
-	a_main.f_load(v_sound_ace, L"data/ace.wav");
-	a_main.f_load(v_sound_miss, L"data/miss.wav");
-	v_scene.f_load(t_path(a_main.v_root) / L"../data/court.dae");
+	a_main.f_load(v_sound_bounce, L"bounce.wav");
+	a_main.f_load(v_sound_net, L"net.wav");
+	a_main.f_load(v_sound_chip, L"chip.wav");
+	a_main.f_load(v_sound_hit, L"hit.wav");
+	a_main.f_load(v_sound_swing, L"swing.wav");
+	a_main.f_load(v_sound_ace, L"ace.wav");
+	a_main.f_load(v_sound_miss, L"miss.wav");
+	a_main.f_load(v_scene, L"court.dae");
 	v_scene.f_build(a_main.v_shaders);
 	v_ball = std::make_unique<t_ball>(*this, L"#Material-Shadow", L"#Material-Ball");
 	v_mark = std::make_unique<t_mark>(*this, L"#Material-Shadow");
@@ -66,6 +65,23 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	v_state_ready.v_key_release = [](t_stage& a_stage, SDL_Keycode a_key)
 	{
 	};
+	v_state_ready.v_render = [](t_stage& a_stage, size_t a_width, size_t a_height)
+	{
+	};
+	v_state_ready.v_finger_down = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+	};
+	v_state_ready.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		if (a_event.y > 0.5) return;
+		if (a_event.x < 0.5)
+			a_stage.f_back();
+		else
+			a_stage.f_transit_play();
+	};
+	v_state_ready.v_finger_motion = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+	};
 	v_state_play.v_step = [](t_stage& a_stage)
 	{
 		a_stage.f_step_things();
@@ -87,6 +103,23 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 		}
 	};
 	v_state_play.v_key_release = [](t_stage& a_stage, SDL_Keycode a_key)
+	{
+	};
+	v_state_play.v_render = [](t_stage& a_stage, size_t a_width, size_t a_height)
+	{
+	};
+	v_state_play.v_finger_down = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+	};
+	v_state_play.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	{
+		if (a_event.y > 0.5) return;
+		if (a_event.x < 0.5)
+			a_stage.f_back();
+		else
+			a_stage.f_next();
+	};
+	v_state_play.v_finger_motion = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 	};
 	a_controller0(v_state_play, *v_player0);
@@ -120,10 +153,11 @@ void t_stage::f_render(size_t a_width, size_t a_height)
 	glDisable(GL_DEPTH_TEST);
 	float y = v_message.size() * 0.5 - 1.0;
 	for (const auto& line : v_message) {
-		auto viewing = v_text_viewing * t_translate3f(line.size() * -0.25, y, 0.0);
-		v_main.v_text_renderer(v_main.v_text_projection, viewing, line);
+		auto viewing = static_cast<t_matrix4f>(v_main.v_text_scale) * v_text_viewing * t_translate3f(line.size() * -0.25, y, 0.0);
+		v_main.v_font(v_main.v_projection, viewing, line);
 		y -= 1.0;
 	}
+	v_state->v_render(*this, a_width, a_height);
 }
 
 void t_stage::f_key_press(SDL_Keycode a_key)
@@ -134,4 +168,19 @@ void t_stage::f_key_press(SDL_Keycode a_key)
 void t_stage::f_key_release(SDL_Keycode a_key)
 {
 	v_state->v_key_release(*this, a_key);
+}
+
+void t_stage::f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+{
+	v_state->v_finger_down(*this, a_event, a_width, a_height);
+}
+
+void t_stage::f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+{
+	v_state->v_finger_up(*this, a_event, a_width, a_height);
+}
+
+void t_stage::f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+{
+	v_state->v_finger_motion(*this, a_event, a_width, a_height);
 }

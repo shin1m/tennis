@@ -1,6 +1,5 @@
 #include "player.h"
 
-#include "xml_reader.h"
 #include "main.h"
 
 float f_reach_range(const t_vector3f& a_ball, const t_vector3f& a_velocity, const t_vector3f& a_player, float a_speed, float a_t0, float a_sign)
@@ -138,7 +137,8 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 {
 	float source_fps;
 	float fps = 64.0;
-	t_reader reader(a_source);
+	auto input = v_stage.v_main.f_input(a_source);
+	t_reader reader(input.get());
 	auto f_read_action = [&](t_action& a_action, const std::function<bool (const t_channel&)>& a_use = [](auto a_x) { return true; })
 	{
 		float start = std::stof(reader.f_get_attribute(L"start")) / source_fps;
@@ -394,7 +394,7 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 
 t_player::t_player(t_stage& a_stage, const std::wstring& a_model) : v_stage(a_stage), v_ball(*a_stage.v_ball)
 {
-	v_scene.f_load(a_model + L".dae");
+	a_stage.v_main.f_load(v_scene, a_model + L".dae");
 	v_scene.f_build(a_stage.v_main.v_shaders);
 	v_node = &dynamic_cast<t_node&>(*v_scene[L"#Armature"]);
 	v_node->v_transforms.clear();

@@ -1,5 +1,5 @@
 bin_PROGRAMS = test_xml_reader test_collada viewer gears tennis
-AM_CPPFLAGS = $(LIBXML_CFLAGS) $(SDL2_CFLAGS) $(OPENAL_CFLAGS) $(ALUT_CFLAGS) -I .
+AM_CPPFLAGS = $(LIBXML_CFLAGS) $(SDL2_CFLAGS) -I .
 AM_CXXFLAGS = -std=c++1y
 AM_LDFLAGS =
 if DEBUG
@@ -12,14 +12,14 @@ if PROFILE
 AM_CXXFLAGS += -pg
 AM_LDFLAGS += -pg
 endif
-LDADD = $(SDL2_LIBS) -lGLESv2 -lGLU -lSDL2_image -lSDL2_ttf
+LDADD = $(SDL2_LIBS) -lGLESv2 -lGLU $(SDL2_IMAGE_LIBS) $(SDL2_TTF_LIBS) $(SDL2_MIXER_LIBS)
 GL_SOURCES = \
 	xanadu/matrix \
 	xanadu/transform \
 	xanadu/tuple \
 	xanadu/vector \
-	path.h \
-	path.cc \
+	portable.h \
+	portable.cc \
 	gl/core.h \
 	gl/shaders.h \
 	gl/image.h \
@@ -35,7 +35,7 @@ test_collada_SOURCES = $(COLLADA_SOURCES) test_collada.cc
 viewer_LDADD = $(LDADD) $(LIBXML_LIBS)
 viewer_SOURCES = $(COLLADA_SOURCES) sdl_core.h viewer.cc
 gears_SOURCES = $(GL_SOURCES) sdl_core.h gears.cc
-tennis_LDADD = $(LDADD) $(LIBXML_LIBS) $(OPENAL_LIBS) $(ALUT_LIBS)
+tennis_LDADD = $(LDADD) $(LIBXML_LIBS)
 tennis_SOURCES = $(COLLADA_SOURCES) \
 	placement.h \
 	sdl_core.h \

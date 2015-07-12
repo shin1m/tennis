@@ -1,17 +1,10 @@
 #ifndef STAGE_H
 #define STAGE_H
 
-#include <SDL2/SDL.h>
 #include <gl/image.h>
-#include <al/core.h>
 
+#include "sdl_core.h"
 #include "player.h"
-
-struct t_sound : al::t_buffer, al::t_source
-{
-	using al::t_source::f_set;
-	using al::t_source::f_create;
-};
 
 struct t_main;
 
@@ -27,6 +20,9 @@ struct t_screen
 	virtual void f_render(size_t a_width, size_t a_height) = 0;
 	virtual void f_key_press(SDL_Keycode a_key) = 0;
 	virtual void f_key_release(SDL_Keycode a_key) = 0;
+	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height) = 0;
+	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height) = 0;
+	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height) = 0;
 };
 
 struct t_stage : t_screen
@@ -36,17 +32,21 @@ struct t_stage : t_screen
 		std::function<void (t_stage&)> v_step;
 		std::function<void (t_stage&, SDL_Keycode)> v_key_press;
 		std::function<void (t_stage&, SDL_Keycode)> v_key_release;
+		std::function<void (t_stage&, size_t, size_t)> v_render;
+		std::function<void (t_stage&, const SDL_TouchFingerEvent&, size_t, size_t)> v_finger_down;
+		std::function<void (t_stage&, const SDL_TouchFingerEvent&, size_t, size_t)> v_finger_up;
+		std::function<void (t_stage&, const SDL_TouchFingerEvent&, size_t, size_t)> v_finger_motion;
 	};
 
 	bool v_dual;
 	bool v_fixed;
-	t_sound v_sound_bounce;
-	t_sound v_sound_net;
-	t_sound v_sound_chip;
-	t_sound v_sound_hit;
-	t_sound v_sound_swing;
-	t_sound v_sound_ace;
-	t_sound v_sound_miss;
+	t_chunk v_sound_bounce;
+	t_chunk v_sound_net;
+	t_chunk v_sound_chip;
+	t_chunk v_sound_hit;
+	t_chunk v_sound_swing;
+	t_chunk v_sound_ace;
+	t_chunk v_sound_miss;
 	t_document v_scene;
 	t_placement v_camera0;
 	t_placement v_camera1;
@@ -99,6 +99,9 @@ struct t_stage : t_screen
 	virtual void f_render(size_t a_width, size_t a_height);
 	virtual void f_key_press(SDL_Keycode a_key);
 	virtual void f_key_release(SDL_Keycode a_key);
+	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
+	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
+	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
 };
 
 #endif
