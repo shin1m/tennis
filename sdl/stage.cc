@@ -73,7 +73,7 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	};
 	v_state_ready.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
-		if (a_event.y > 0.5) return;
+		if (a_event.y > 0.25) return;
 		if (a_event.x < 0.5)
 			a_stage.f_back();
 		else
@@ -113,7 +113,7 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	};
 	v_state_play.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
-		if (a_event.y > 0.5) return;
+		if (a_event.y > 0.25) return;
 		if (a_event.x < 0.5)
 			a_stage.f_back();
 		else

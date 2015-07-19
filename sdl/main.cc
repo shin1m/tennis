@@ -160,6 +160,7 @@ const t_stage::t_state t_match::v_state_close{
 	},
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
+		if (a_event.y > 0.25) return;
 		t_match& stage = static_cast<t_match&>(a_stage);
 		if (a_event.x < 0.5)
 			a_stage.f_back();
@@ -641,7 +642,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 		auto v = f_affine(m, t_vector3f(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0));
 		auto u = v - t_vector3f(size * 0.5 - a, size * 0.5 - 1.0, 0.0);
 		a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
-		if (u.f_length() < size * 0.125) return;
+//		if (u.f_length() < size / 16.0) return;
 		if (u.v_x == 0.0) {
 			(u.v_y < 0.0 ? a_player.v_backward : a_player.v_forward) = true;
 		} else {
