@@ -59,7 +59,7 @@ struct t_player
 	struct t_swings
 	{
 		t_shots v_stroke;
-		t_swing v_volley;
+		t_shots v_volley;
 		t_swing v_smash;
 	};
 	struct t_motion
@@ -199,15 +199,19 @@ struct t_player
 	{
 		return t_vector3f(-a_v.v_z, 0.0, a_v.v_x) * (v_ball.v_position - v_placement->v_position);
 	}
-	t_vector3f f_relative_ball(const t_swing& a_swing) const
+	t_vector3f f_relative_ball(const t_swing& a_swing, const t_vector3f& a_ball) const
 	{
 		v_placement->f_validate();
-		auto p = v_ball.v_position - v_placement->v_position;
+		auto p = a_ball - v_placement->v_position;
 		const auto& v = v_placement->v_toward;
 		float x = v.v_z * p.v_x - v.v_x * p.v_z - a_swing.v_spot[0][3];
 		float y = p.v_y - a_swing.v_spot[1][3];
 		float z = v.v_x * p.v_x + v.v_z * p.v_z - a_swing.v_spot[2][3];
 		return a_swing.v_spot[0][1] > 0.0 ? t_vector3f(-x, y, -z) : t_vector3f(x, y, z);
+	}
+	t_vector3f f_relative_ball(const t_swing& a_swing) const
+	{
+		return f_relative_ball(a_swing, v_ball.v_position);
 	}
 	void f_step()
 	{
@@ -230,7 +234,10 @@ struct t_player
 	{
 		return v_ball.v_position.v_z * v_end < 0.0 ? t_vector3f(0.0, 0.0, -v_end) : ::f_shot_direction(v_ball.v_position, v_end, v_left, v_right, v_forward, v_backward);
 	}
-	static constexpr float c_smash_height = 2.25;
+	float f_smash_height() const
+	{
+		return v_actions.v_swing.v_forehand.v_smash.v_spot[1][3] - 0.25;
+	}
 	static const t_state v_state_default;
 	static const t_state v_state_serve_set;
 	static const t_state v_state_serve_toss;

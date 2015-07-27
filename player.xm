@@ -240,7 +240,10 @@ $Player = Class() :: @{
 				x.stroke = Object();
 				reader.parse_elements(shot_swing_elements, x.stroke);
 			},
-			"volley": @(x) x.volley = read_swing(),
+			"volley": @(x) {
+				x.volley = Object();
+				reader.parse_elements(shot_swing_elements, x.volley);
+			},
 			"smash": @(x) x.smash = read_swing()
 		};
 		swing_elements = {
@@ -334,9 +337,10 @@ $Player = Class() :: @{
 		v.length() > 0.01 / 64.0 ? v : Vector3(0.0, 0.0, -$end);
 	};
 	$whichhand = @(v) Vector3(-v.z, 0.0, v.x) * ($ball.position - $placement.position);
-	$relative_ball = @(swing) {
+	$relative_ball = @(swing, ball = null) {
+		if (ball === null) ball = $ball.position;
 		$placement.validate();
-		p = $ball.position - $placement.position;
+		p = ball - $placement.position;
 		v = $placement.toward;
 		x = v.z * p.x - v.x * p.z - swing.spot[3];
 		y = p.y - swing.spot[7];
@@ -357,7 +361,7 @@ $Player = Class() :: @{
 	};
 	$do = @(shot) $state.do[$](shot);
 	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward);
-	$smash_height = 2.25;
+	$smash_height = @() $actions.swing.forehand.smash.spot[7] - 0.25;
 	$state_default = State(@{
 		v = $ball.position - $placement.position;
 		v.y = 0.0;
@@ -398,7 +402,7 @@ $Player = Class() :: @{
 			whichhand = $whichhand(v);
 			t = reach_range($ball.position, $ball.velocity, $placement.position, 0.0, 0.0, 1.0);
 			y = $ball.position.y + ($ball.velocity.y - 0.5 * G * t) * t;
-			if (y > $smash_height) {
+			if (y > $smash_height()) {
 				hand = whichhand > $smash_hand ? actions.forehand : actions.backhand;
 				action = hand.smash;
 			} else {
@@ -422,20 +426,26 @@ $Player = Class() :: @{
 		$placement.valid = false;
 		actions = $actions.swing;
 		whichhand = $whichhand($direction().normalized());
-		t = $ball.projected_time_for_y($smash_height, 1.0);
+		t = $ball.projected_time_for_y($smash_height(), 1.0);
 		if (t !== null) {
 			swing = whichhand > $smash_hand ? actions.forehand.smash : actions.backhand.smash;
-			if (t > (swing.impact - swing.start) * 60.0) {
-				$motion = Motion(swing);
-				return $transit($state_smash_swing);
+			impact = (swing.impact - swing.start) * 60.0;
+			if (t > impact) {
+				ball = $relative_ball(swing, $ball.position + $ball.velocity * impact);
+				if (math.fabs(ball.x) < 0.5) {
+					$motion = Motion(swing);
+					return $transit($state_smash_swing);
+				}
 			}
 		}
 		t = $ball.in ? 0.0 : $ball.projected_time_for_y($ball.radius, 1.0);
 		hand = whichhand > 0.0 ? actions.forehand : actions.backhand;
-		if ($ball.done)
-			$motion = Motion($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke.(shot) : hand.volley);
-		else
-			$motion = Motion(t < (hand.volley.impact - hand.volley.start) * 60.0 ? hand.stroke.(shot) : hand.volley);
+		if ($ball.done) {
+			$motion = Motion(($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke : hand.volley).(shot));
+		} else {
+			volley = hand.volley.(shot);
+			$motion = Motion(t < (volley.impact - volley.start) * 60.0 ? hand.stroke.(shot) : volley);
+		}
 		$transit($state_swing);
 	});
 	$state_serve_set = State(@{

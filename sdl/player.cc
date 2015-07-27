@@ -331,7 +331,7 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 		},
 		{L"volley", [&](t_swings& a_x)
 			{
-				f_read_swing(a_x.v_volley);
+				reader.f_parse_elements(shot_swing_elements, a_x.v_volley);
 			}
 		},
 		{L"smash", [&](t_swings& a_x)
@@ -418,8 +418,6 @@ t_player::t_player(t_stage& a_stage, const std::wstring& a_model) : v_stage(a_st
 	for (auto x : v_scene.v_scene.v_instance_visual_scene.v_scene->v_controllers) scene->v_controllers.push_back(x);
 }
 
-constexpr float t_player::c_smash_height;
-
 const t_player::t_state t_player::v_state_default{
 	[](t_player& a_player)
 	{
@@ -452,7 +450,7 @@ const t_player::t_state t_player::v_state_default{
 				float whichhand = a_player.f_whichhand(v);
 				float t = f_reach_range(a_player.v_ball.v_position, a_player.v_ball.v_velocity, a_player.v_placement->v_position, 0.0, 0.0, 1.0);
 				float y = a_player.v_ball.v_position.v_y + (a_player.v_ball.v_velocity.v_y - 0.5 * G * t) * t;
-				if (y > c_smash_height) {
+				if (y > a_player.f_smash_height()) {
 					auto& hand = whichhand > a_player.v_smash_hand ? actions.v_forehand : actions.v_backhand;
 					run_takeback(v, hand, hand.v_smash);
 				} else {
@@ -513,20 +511,26 @@ const t_player::t_state t_player::v_state_default{
 		a_player.v_placement->v_valid = false;
 		auto& actions = a_player.v_actions.v_swing;
 		float whichhand = a_player.f_whichhand(a_player.f_direction().f_normalized());
-		float t = a_player.v_ball.f_projected_time_for_y(c_smash_height, 1.0);
+		float t = a_player.v_ball.f_projected_time_for_y(a_player.f_smash_height(), 1.0);
 		if (!isnan(t)) {
 			auto& swing = whichhand > a_player.v_smash_hand ? actions.v_forehand.v_smash : actions.v_backhand.v_smash;
-			if (t > (swing.v_impact - swing.v_start) * 60.0) {
-				a_player.v_motion = std::make_unique<t_motion>(swing);
-				return a_player.f_transit(a_player.v_state_smash_swing);
+			float impact = (swing.v_impact - swing.v_start) * 60.0;
+			if (t > impact) {
+				auto ball = a_player.f_relative_ball(swing, a_player.v_ball.v_position + a_player.v_ball.v_velocity * impact);
+				if (fabs(ball.v_x) < 0.5) {
+					a_player.v_motion = std::make_unique<t_motion>(swing);
+					return a_player.f_transit(a_player.v_state_smash_swing);
+				}
 			}
 		}
 		t = a_player.v_ball.v_in ? 0.0 : a_player.v_ball.f_projected_time_for_y(t_ball::c_radius, 1.0);
 		auto& hand = whichhand > 0.0 ? actions.v_forehand : actions.v_backhand;
-		if (a_player.v_ball.v_done)
-			a_player.v_motion = std::make_unique<t_motion>(a_player.v_placement->v_position.v_z * a_player.v_end > 21 * 12 * 0.0254 ? hand.v_stroke.*a_shot : hand.v_volley);
-		else
-			a_player.v_motion = std::make_unique<t_motion>(t < (hand.v_volley.v_impact - hand.v_volley.v_start) * 60.0 ? hand.v_stroke.*a_shot : hand.v_volley);
+		if (a_player.v_ball.v_done) {
+			a_player.v_motion = std::make_unique<t_motion>((a_player.v_placement->v_position.v_z * a_player.v_end > 21 * 12 * 0.0254 ? hand.v_stroke : hand.v_volley).*a_shot);
+		} else {
+			auto& volley = hand.v_volley.*a_shot;
+			a_player.v_motion = std::make_unique<t_motion>(t < (volley.v_impact - volley.v_start) * 60.0 ? hand.v_stroke.*a_shot : volley);
+		}
 		a_player.f_transit(a_player.v_state_swing);
 	}
 };
@@ -633,7 +637,7 @@ const t_player::t_state t_player::v_state_swing{
 		auto v = a_player.f_shot_direction();
 		const auto& action = static_cast<t_swing&>(a_player.v_motion->v_action);
 		if (a_player.v_motion->v_time <= action.v_impact) {
-			a_player.v_placement->v_toward = v * 1.0;
+			a_player.v_placement->v_toward = v;
 			a_player.v_placement->v_valid = false;
 		}
 		if (fabs(a_player.v_motion->v_time - action.v_impact) < 0.5 / 60.0) {
@@ -681,7 +685,7 @@ const t_player::t_state t_player::v_state_smash_swing{
 		auto v = a_player.f_shot_direction();
 		const auto& action = static_cast<t_swing&>(a_player.v_motion->v_action);
 		if (a_player.v_motion->v_time <= action.v_impact) {
-			a_player.v_placement->v_toward = v * 1.0;
+			a_player.v_placement->v_toward = v;
 			a_player.v_placement->v_valid = false;
 		}
 		if (fabs(a_player.v_motion->v_time - action.v_impact) < 0.5 / 60.0) {

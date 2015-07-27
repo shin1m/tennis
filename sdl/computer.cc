@@ -143,7 +143,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			float whichhand = a_player.f_whichhand(v);
 			const auto& actions = a_player.v_actions.v_swing;
 			const t_player::t_swing* swing = nullptr;
-			float t = f_projected_time_for_y(position.v_y, velocity.v_y, t_player::c_smash_height, 1.0);
+			float t = f_projected_time_for_y(position.v_y, velocity.v_y, a_player.f_smash_height(), 1.0);
 			float ix;
 			float iz;
 			float t0;
@@ -162,7 +162,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			}
 			if (swing == nullptr) {
 				const auto& hand = whichhand > 0.0 ? actions.v_forehand : actions.v_backhand;
-				swing = state.v_net && !ball.v_in ? &hand.v_volley : &(hand.v_stroke.*state.v_shot);
+				swing = &((state.v_net && !ball.v_in ? hand.v_volley : hand.v_stroke).*state.v_shot);
 				ix = swing->v_spot[0][3];
 				iz = swing->v_spot[2][3];
 				if (state.v_net || ball.v_in) {

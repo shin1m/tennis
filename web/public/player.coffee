@@ -167,7 +167,7 @@ class Player
       smash: read_action e.querySelector('smash'), is_upper
     read_swing_actions = (e) ->
       stroke: read_shot e.querySelector('stroke')
-      volley: read_swing e.querySelector('volley')
+      volley: read_shot e.querySelector('volley')
       smash: read_swing e.querySelector('smash')
     request = new XMLHttpRequest
     request.addEventListener 'load', ->
@@ -224,7 +224,6 @@ class Player
         @actions = actions
         @speed = @actions.run.speed
         @actions.serve.set.play()
-        console.log @root.position
         @lefty = if @root.position.x < 0.0 then -1.0 else 1.0
         @smash_hand = -0.25 * @lefty
         @motion = null
@@ -257,8 +256,9 @@ class Player
     v = new THREE.Vector3(v.x * e, 0.0, v.z * e)
     if v.length() > 0.01 / 64.0 then v else v.set(0.0, 0.0, -@end)
   whichhand: (v) -> new THREE.Vector3(-v.z, 0.0, v.x).dot(@ball.position.clone().sub(@node.position))
-  relative_ball: (swing) ->
-    p = @node.worldToLocal @ball.position.clone()
+  relative_ball: (swing, ball = null) ->
+    ball = @ball.position.clone() unless ball
+    p = @node.worldToLocal ball
     x = p.x - swing.spot.elements[12]
     y = p.y - swing.spot.elements[13]
     z = p.z - swing.spot.elements[14]
@@ -288,7 +288,7 @@ class Player
       new THREE.Vector3(0.0, 0.0, -@end)
     else
       shot_direction @ball.position, @end, @left, @right, @forward, @backward
-  smash_height: 2.25
+  smash_height: -> @actions.swing.forehand.smash.spot.elements[13] - 0.25
   state_default: State ->
     v = @ball.position.clone().setY(0.0)
     @node.lookAt v
@@ -325,7 +325,7 @@ class Player
       whichhand = @whichhand(v)
       t = reach_range(@ball.position, @ball.velocity, @node.position, 0.0, 0.0, 1.0)
       y = @ball.position.y + (@ball.velocity.y - 0.5 * G * t) * t
-      if y > @smash_height
+      if y > @smash_height()
         hand = if whichhand > @smash_hand then actions.forehand else actions.backhand
         action = hand.smash
       else
@@ -344,18 +344,22 @@ class Player
     @node.lookAt @shot_direction().add(@node.position)
     actions = @actions.swing
     whichhand = @whichhand @direction().normalize()
-    t = @ball.projected_time_for_y @smash_height, 1.0
+    t = @ball.projected_time_for_y @smash_height(), 1.0
     if t
       swing = if whichhand > @smash_hand then actions.forehand.smash else actions.backhand.smash
-      if t > (swing.impact - swing.start) * 60.0
-        @set_motion new Motion swing
-        return @transit @state_smash_swing
+      impact = (swing.impact - swing.start) * 60.0
+      if t > impact
+        ball = @relative_ball(swing, @ball.velocity.clone().multiplyScalar(impact).add(@ball.position))
+        if Math.abs(ball.x) < 0.5
+          @set_motion new Motion swing
+          return @transit @state_smash_swing
     t = if @ball.in then 0.0 else @ball.projected_time_for_y @ball.radius, 1.0
     hand = if whichhand > 0.0 then actions.forehand else actions.backhand
     if @ball.done
-      @set_motion new Motion if @node.position.z * @end > 21 * 12 * 0.0254 then hand.stroke[shot] else hand.volley
+      @set_motion new Motion (if @node.position.z * @end > 21 * 12 * 0.0254 then hand.stroke else hand.volley)[shot]
     else
-      @set_motion new Motion if t < (hand.volley.impact - hand.volley.start) * 60.0 then hand.stroke[shot] else hand.volley
+      volley = hand.volley[shot]
+      @set_motion new Motion if t < (volley.impact - volley.start) * 60.0 then hand.stroke[shot] else volley
     @transit @state_swing
   state_serve_set: State ->
     @set_motion new Motion @actions.serve.set

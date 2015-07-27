@@ -114,7 +114,7 @@ exports.controller = (controller, player) ->
       v = player.direction().normalize()
       whichhand = player.whichhand(v)
       actions = player.actions.swing
-      t = projected_time_for_y(position.y, velocity.y, Player::smash_height, 1.0)
+      t = projected_time_for_y(position.y, velocity.y, player.smash_height(), 1.0)
       if t != null
         d = new THREE.Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t).sub(player.node.position).length()
         if d < 0.5 || d / player.speed <= t
@@ -128,7 +128,7 @@ exports.controller = (controller, player) ->
           t -= 2.0
       unless swing
         hand = if whichhand > 0.0 then actions.forehand else actions.backhand
-        swing = if net && !ball.in then hand.volley else hand.stroke[shot]
+        swing = (if net && !ball.in then hand.volley else hand.stroke)[shot]
         ix = swing.spot.elements[12]
         iz = swing.spot.elements[14]
         if net || ball.in

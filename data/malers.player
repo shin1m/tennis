@@ -67,7 +67,12 @@
 				<lob start="730" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
 				<slice start="658" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
 			</stroke>
-			<volley start="130" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+			<volley>
+				<flat start="130" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+				<topspin start="130" duration="32" impact="8" speed="16.0" spin="0.0 0.0 0.0" />
+				<lob start="130" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+				<slice start="130" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
+			</volley>
 			<smash start="202" duration="32" impact="10" speed="24.0" spin="0.0 0.0 0.0" />
 		</forehand>
 		<backhand>
@@ -77,7 +82,12 @@
 				<lob start="766" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
 				<slice start="694" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
 			</stroke>
-			<volley start="166" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+			<volley>
+				<flat start="166" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+				<topspin start="166" duration="32" impact="8" speed="16.0" spin="0.0 0.0 0.0" />
+				<lob start="166" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+				<slice start="166" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
+			</volley>
 			<smash start="238" duration="32" impact="10" speed="18.0" spin="0.0 0.0 0.0" />
 		</backhand>
 		<toss start="274" duration="32" impact="8" speed="18.0" spin="0.0 0.0 0.0" />

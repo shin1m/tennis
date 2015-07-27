@@ -129,7 +129,7 @@ $__get_at = @(stage) @(controller, player) {
 			v.normalize();
 			whichhand = player.whichhand(v);
 			actions = player.actions.swing;
-			t = projected_time_for_y(position.y, velocity.y, Player.smash_height, 1.0);
+			t = projected_time_for_y(position.y, velocity.y, player.smash_height(), 1.0);
 			if (t !== null) {
 				d = (Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t) - player.placement.position).length();
 				if (d < 0.5 || d / player.speed <= t) {
@@ -145,7 +145,7 @@ $__get_at = @(stage) @(controller, player) {
 			}
 			if (swing === null) {
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand;
-				swing = net && !ball.in ? hand.volley : hand.stroke.(shot);
+				swing = (net && !ball.in ? hand.volley : hand.stroke).(shot);
 				ix = swing.spot[3];
 				iz = swing.spot[11];
 				if (net || ball.in) {
