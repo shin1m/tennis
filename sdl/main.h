@@ -279,6 +279,7 @@ struct t_stage_menu : t_dialog
 {
 	t_menu<t_menu_item> v_player0;
 	t_menu<t_menu_item> v_player1;
+	t_menu<t_menu_item> v_ready;
 	t_menu<t_menu_item>* v_menu;
 	t_menu<t_menu_item>* v_transit = nullptr;
 	float v_direction;

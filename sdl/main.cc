@@ -760,7 +760,7 @@ void t_dialog::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_vie
 	v_main.v_font(v_main.v_projection, viewing, v_title);
 }
 
-t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_image, const std::wstring& a_sound, const std::wstring& a_title, const std::function<void (const std::wstring&, const std::wstring&)>& a_done) : t_dialog(a_screen.v_main, a_image, a_sound, a_title), v_player0(a_screen.v_main, 2), v_player1(a_screen.v_main, 2), v_menu(&v_player0)
+t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_image, const std::wstring& a_sound, const std::wstring& a_title, const std::function<void (const std::wstring&, const std::wstring&)>& a_done) : t_dialog(a_screen.v_main, a_image, a_sound, a_title), v_player0(a_screen.v_main, 2), v_player1(a_screen.v_main, 2), v_ready(a_screen.v_main), v_menu(&v_player0)
 {
 	v_player0.v_back = [this, &a_screen]
 	{
@@ -776,11 +776,21 @@ t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_image,
 		{
 			f_transit(v_player1, -1.0);
 		}});
-		v_player1.v_items.push_back(t_menu_item{std::get<0>(x), []{}, [this, &a_screen, a_done]
+		v_player1.v_items.push_back(t_menu_item{std::get<0>(x), []{}, [this]
 		{
-			a_done(std::get<1>(a_screen.v_players[v_player0.v_selected]), std::get<1>(a_screen.v_players[v_player1.v_selected]));
+			f_transit(v_ready, -1.0);
 		}});
 	}
+	v_ready.v_back = [this]
+	{
+		f_transit(v_player1, 1.0);
+	};
+	v_ready.v_items = std::vector<t_menu_item>{
+		t_menu_item{L"START", []{}, [this, &a_screen, a_done]
+		{
+			a_done(std::get<1>(a_screen.v_players[v_player0.v_selected]), std::get<1>(a_screen.v_players[v_player1.v_selected]));
+		}}
+	};
 }
 
 void t_stage_menu::f_step()
@@ -796,7 +806,9 @@ void t_stage_menu::f_render(size_t a_width, size_t a_height, const t_matrix4f& a
 {
 	t_dialog::f_render(a_width, a_height, a_viewing);
 	auto message = v_player0.v_items[v_player0.v_selected].v_label;
-	message += v_menu == &v_player0 ? L"? vs     " : L" vs " + v_player1.v_items[v_player1.v_selected].v_label + L"?";
+	if (v_menu == &v_player0) message += L'?';
+	message += L" vs " + v_player1.v_items[v_player1.v_selected].v_label;
+	if (v_menu == &v_player1) message += L'?';
 	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(1.5 / 8.0, 1.5 / 8.0, 1.0) * t_translate3f(message.size() * -0.25, -0.5, 0.0);
 	v_main.v_font(v_main.v_projection, viewing, message);
 	viewing = a_viewing;
