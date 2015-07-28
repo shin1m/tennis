@@ -20,11 +20,12 @@ Mark = ball.Mark;
 Player = player.Player;
 
 $Stage = Class() :: @{
-	$State = @(step, key_press, key_release) {
+	$State = @(step, key_press, key_release, render) {
 		o = Object();
 		o.step = step;
 		o.key_press = key_press;
 		o.key_release = key_release;
+		o.render = render;
 		o;
 	};
 
@@ -84,7 +85,7 @@ $Stage = Class() :: @{
 		}, {
 			xraft.Key.RETURN: @() $transit_play(),
 			xraft.Key.ESCAPE: @() $back()
-		}, {});
+		}, {}, @(width, height) {});
 		$state_play = $State(@{
 			$step_things();
 			if (!$ball.done) return;
@@ -93,7 +94,7 @@ $Stage = Class() :: @{
 		}, {
 			xraft.Key.RETURN: @() $next(),
 			xraft.Key.ESCAPE: @() $back()
-		}, {});
+		}, {}, @(width, height) {});
 		controller0[$]($state_play, $player0);
 		controller1[$]($state_play, $player1);
 	};
@@ -132,12 +133,14 @@ if (print_time) print("\tclear: " + (time.now() - t0));
 		}
 t0 = time.now();
 		gl.disable(gl.DEPTH_TEST);
+		viewing = $main.text_scale * $text_viewing;
 		y = $message.size() * 0.5 - 1.0;
 		$message.each(@(line) {
-			viewing = Matrix4($text_viewing).translate(line.size() * -0.25, y, 0.0).bytes;
-			$main.text_renderer($main.text_projection, viewing, line);
+			v = Matrix4(viewing).translate(line.size() * -0.25, y, 0.0).bytes;
+			$main.font($main.projection, v, line);
 			:y = y - 1.0;
 		}[$]);
+		$state.render[$](width, height);
 if (print_time) print("\ttext: " + (time.now() - t0));
 	};
 	$key_press = @(modifier, key, ascii) $state.key_press.has(key) && $state.key_press[key][$]();

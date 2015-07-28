@@ -25,6 +25,74 @@ Vector3 = glmatrix.Vector3;
 Posture = placement.Posture;
 Player = player.Player;
 
+Menu = Class() :: @{
+	$Item = @(label, select, do) {
+		o = Object();
+		o.label = label;
+		o.select = select;
+		o.do = do;
+		o;
+	};
+
+	$__initialize = @(main, columns = 1) {
+		$main = main;
+		$columns = columns;
+		$selected = 0;
+	};
+	$render = @(viewing) {
+		n = ($items.size() + $columns - 1) / $columns;
+		scale = 1.0 / (n < 4 ? 4 : n);
+		viewing = Matrix4(viewing).scale(scale, scale, 1.0);
+		dx = 4.0 * 2.0 / $columns;
+		x = dx * 0.5 - 4.0;
+		y = 0.0;
+		i = 0;
+		$items.each(@(item) {
+			text = (i == $selected ? "*" : " ") + item.label;
+			:y = y - 1.0;
+			viewing = Matrix4(:viewing).translate(x - text.size() * 0.25, y, 0.0).bytes;
+			$main.font($main.projection, viewing, text);
+			:i = i + 1;
+			if (i % n != 0) return;
+			:x = x + dx;
+			:y = 0.0;
+		}[$]);
+	};
+	$select = @(i) {
+		$selected = i;
+		$main.sound_cursor.play();
+		$items[$selected].select();
+	};
+	$up = @() $selected > 0 && $select($selected - 1);
+	$down = @() $selected < $items.size() - 1 && $select($selected + 1);
+	$left = @{
+		n = ($items.size() + $columns - 1) / $columns;
+		if ($selected >= n) $select($selected - n);
+	};
+	$right = @{
+		n = ($items.size() + $columns - 1) / $columns;
+		if ($selected < $items.size() - n) $select($selected + n);
+	};
+	$do = @{
+		$main.sound_select.play();
+		$items[$selected].do();
+	};
+	$keys = keys = {
+		xraft.Key.ESCAPE: @() $back(),
+		xraft.Key.SPACE: $do,
+		xraft.Key.D2: $do,
+		xraft.Key.LEFT: $left,
+		xraft.Key.RIGHT: $right,
+		xraft.Key.UP: $up,
+		xraft.Key.DOWN: $down,
+		xraft.Key.S: $left,
+		xraft.Key.F: $right,
+		xraft.Key.E: $up,
+		xraft.Key.C: $down
+	};
+	$key_press = @(key) keys.has(key) && keys[key][$]();
+};
+
 MainScreen = null;
 
 Match = Class(stage.Stage) :: @{
@@ -100,7 +168,7 @@ Match = Class(stage.Stage) :: @{
 	}, {
 		xraft.Key.RETURN: @() $new_set(),
 		xraft.Key.ESCAPE: @() $back()
-	}, {});
+	}, {}, @(width, height) {});
 	$transit_close = @{
 		$state = state_close;
 		$message = [
@@ -157,6 +225,14 @@ Match = Class(stage.Stage) :: @{
 };
 
 Training = Class(stage.Stage) :: @{
+	Item = @(label, select, do, ready, play, back) {
+		o = Menu.Item(label, select, do);
+		o.ready = ready;
+		o.play = play;
+		o.back = back;
+		o;
+	};
+
 	$ball_ace = @() $duration = 0.5 * 64.0;
 	$ball_let = @{
 		$mark.mark($ball);
@@ -206,9 +282,71 @@ Training = Class(stage.Stage) :: @{
 			$state_ready.key_press[key] = value;
 			$state_play.key_press[key] = value;
 		}[$]);
-		$selected = 0;
 		$camera0.position = Vector3(0.0, 14.0, 0.0);
 		$camera0.toward = Vector3(0.0, -12.0, -40.0 * $player0.end);
+		$menu = Menu(main);
+		$menu.back = $exit;
+		toss_message = [
+			"  CHANGE SIDES: START",
+			"      POSITION: +    ",
+			"COURCE & SWING: + & *"
+		];
+		$menu.items = '(
+			Item(" SERVE ", @{
+				$ball.reset($side, 2 * 12 * 0.0254 * $side, 0.875, 39 * 12 * 0.0254);
+				$mark.duration = 0.0;
+				$player0.reset(1.0, Player.state_serve_set);
+				$player1.placement.position = Vector3(-9 * 12 * 0.0254 * $side, 0.0, -39 * 12 * 0.0254);
+				$player1.placement.valid = false;
+				$player1.reset(-1.0, Player.state_default);
+				$step_things();
+			}[$], (@() $transit_ready())[$], @{
+				$text_viewing = Matrix4().translate(0.0, -0.625, 0.0).scale(0.125, 0.125, 1.0);
+				$message = [
+					"CHANGE SIDES: START",
+					"    POSITION: < + >",
+					"        TOSS:   *  ",
+					"      COURCE: < + >",
+					"       SWING:   *  "
+				];
+				$duration = 0.0 * 64.0;
+			}[$], @{}, (@() $transit_select())[$]),
+			Item(" STROKE", @{
+				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss);
+			}[$], (@() $transit_ready())[$], @{
+				$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+				$message = toss_message;
+				$duration = 0.5 * 64.0;
+			}[$], (@() $toss('toss))[$], (@() $transit_select())[$]),
+			Item(" VOLLEY", @{
+				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss);
+			}[$], (@() $transit_ready())[$], @{
+				$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+				$message = toss_message;
+				$duration = 0.5 * 64.0;
+			}[$], (@() $toss('toss))[$], (@() $transit_select())[$]),
+			Item(" SMASH ", @{
+				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob);
+			}[$], (@() $transit_ready())[$], @{
+				$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+				$message = toss_message;
+				$duration = 0.5 * 64.0;
+			}[$], (@() $toss('toss_lob))[$], (@() $transit_select())[$]),
+			Item(" BACK  ", @{
+				$ball.reset($side, 2 * 12 * 0.0254, $ball.radius + 0.01, 2 * 12 * 0.0254);
+				$mark.duration = 0.0;
+				$player0.placement.position = Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
+				$player0.placement.valid = false;
+				$player0.reset(1.0, Player.state_default);
+				$player1.placement.position = Vector3((0.1 + 2.0 * $side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
+				$player1.placement.valid = false;
+				$player1.reset(-1.0, Player.state_default);
+				$step_things();
+			}[$], (@() $back())[$], @{}, @{}, (@() $exit())[$])
+		);
+		keys = {};
+		Menu.keys.each(@(key, value) keys[key] = @() value[$menu]());
+		$state_select = $State(@{}, keys, {}, @(width, height) $menu.render(Matrix4($main.text_scale).translate(0.0, 0.5, 0.0)));
 		$transit_select();
 	};
 	$next = @() $ball.done && $transit_ready();
@@ -222,6 +360,7 @@ Training = Class(stage.Stage) :: @{
 		$player1.placement.position.y = 0.0;
 		$player1.placement.valid = false;
 		$player1.reset(-1.0, Player.state_default);
+		$step_things();
 	};
 	$toss = @(shot) {
 		$player1.placement.toward = $player1.shot_direction();
@@ -229,125 +368,24 @@ Training = Class(stage.Stage) :: @{
 		$player1.motion = Player.Motion($player1.actions.swing.(shot));
 		$player1.transit(Player.state_swing);
 	};
-	toss_message = [
-		"  CHANGE SIDES: START",
-		"      POSITION: +    ",
-		"COURCE & SWING: + & *"
-	];
-	Item = @(label, reset, do, ready, play, back) {
-		o = Object();
-		o.label = label;
-		o.reset = reset;
-		o.do = do;
-		o.ready = ready;
-		o.play = play;
-		o.back = back;
-		o;
-	};
-	items = '(
-		Item(" SERVE ", @{
-			$ball.reset($side, 2 * 12 * 0.0254 * $side, 0.875, 39 * 12 * 0.0254);
-			$mark.duration = 0.0;
-			$player0.reset(1.0, Player.state_serve_set);
-			$player1.placement.position = Vector3(-9 * 12 * 0.0254 * $side, 0.0, -39 * 12 * 0.0254);
-			$player1.placement.valid = false;
-			$player1.reset(-1.0, Player.state_default);
-		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.625, 0.0).scale(0.125, 0.125, 1.0);
-			$message = [
-				"CHANGE SIDES: START",
-				"    POSITION: < + >",
-				"        TOSS:   *  ",
-				"      COURCE: < + >",
-				"       SWING:   *  "
-			];
-			$duration = 0.0 * 64.0;
-		}, @{}, @() $transit_select()),
-		Item(" STROKE", @{
-			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss);
-		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
-			$message = toss_message;
-			$duration = 0.5 * 64.0;
-		}, @() $toss('toss), @() $transit_select()),
-		Item(" VOLLEY", @{
-			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss);
-		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
-			$message = toss_message;
-			$duration = 0.5 * 64.0;
-		}, @() $toss('toss), @() $transit_select()),
-		Item(" SMASH ", @{
-			$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob);
-		}, @() $transit_ready(), @{
-			$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
-			$message = toss_message;
-			$duration = 0.5 * 64.0;
-		}, @() $toss('toss_lob), @() $transit_select()),
-		Item(" BACK  ", @{
-			$ball.reset($side, 2 * 12 * 0.0254, $ball.radius + 0.01, 2 * 12 * 0.0254);
-			$mark.duration = 0.0;
-			$player0.placement.position = Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
-			$player0.placement.valid = false;
-			$player0.reset(1.0, Player.state_default);
-			$player1.placement.position = Vector3((0.1 + 2.0 * $side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
-			$player1.placement.valid = false;
-			$player1.reset(-1.0, Player.state_default);
-		}, @() $back(), @{}, @{}, @() $exit())
-	);
-	$update_select = @{
-		$text_viewing = Matrix4().translate(0.0, 0.0, 0.0).scale(0.25, 0.25, 1.0);
-		$message = [];
-		items.each(@(item) {
-			$message.push(($message.size() == $selected ? "*" : " ") + item.label);
-		}[$]);
-		$step_things();
-	};
-	$back = @() items[$selected].back[$]();
+	$back = @() $menu.items[$menu.selected].back();
 	$exit = @() $main.screen__(MainScreen($main));
-	$up = @{
-		if ($selected <= 0) return;
-		$selected = $selected - 1;
-		$main.sound_cursor.play();
-		items[$selected].reset[$]();
-		$update_select();
-	};
-	$down = @{
-		if ($selected >= items.size() - 1) return;
-		$selected = $selected + 1;
-		$main.sound_cursor.play();
-		items[$selected].reset[$]();
-		$update_select();
-	};
-	$select = @{
-		$main.sound_select.play();
-		items[$selected].do[$]();
-	};
-	state_select = $State(@{}, {
-		xraft.Key.ESCAPE: $exit,
-		xraft.Key.SPACE: $select,
-		xraft.Key.D2: $select,
-		xraft.Key.UP: $up,
-		xraft.Key.DOWN: $down,
-		xraft.Key.E: $up,
-		xraft.Key.C: $down
-	}, {});
 	$transit_play = @{
 		$state = $state_play;
-		items[$selected].play[$]();
+		$menu.items[$menu.selected].play();
 	};
 	$transit_select = @{
-		$state = state_select;
+		$state = $state_select;
 		$side = 1.0;
-		items[$selected].reset[$]();
+		$menu.items[$menu.selected].select();
+		$message = [];
 		$duration = 0.0 * 64.0;
-		$update_select();
 	};
 	$transit_ready = @{
 		$state = $state_ready;
-		items[$selected].reset[$]();
-		items[$selected].ready[$]();
-		$step_things();
+		selected = $menu.items[$menu.selected];
+		selected.select();
+		selected.ready();
 	};
 };
 
@@ -402,83 +440,10 @@ controller1 = @(controller, player) {
 	}.each(@(key, value) controller.key_release[key] = value);
 };
 
-Menu = Class() :: @{
-	$Item = @(label, do) {
-		o = Object();
-		o.label = label;
-		o.do = do;
-		o;
-	};
-
-	$__initialize = @(main, columns = 1) {
-		$main = main;
-		$columns = columns;
-		$selected = 0;
-	};
-	$render = @(viewing) {
-		n = ($items.size() + $columns - 1) / $columns;
-		viewing = Matrix4(viewing).scale(1.0 / n, 1.0 / n, 1.0);
-		dx = 8.0 * 2.0 / $columns;
-		x = dx * 0.5 - 8.0;
-		y = 0.0;
-		i = 0;
-		$items.each(@(item) {
-			text = (i == $selected ? "*" : " ") + item.label;
-			:y = y - 1.0;
-			viewing = Matrix4(:viewing).translate(x - text.size() * 0.25, y, 0.0).bytes;
-			$main.text_renderer($main.text_projection, viewing, text);
-			:i = i + 1;
-			if (i % n != 0) return;
-			:x = x + dx;
-			:y = 0.0;
-		}[$]);
-	};
-	$up = @{
-		if ($selected <= 0) return;
-		$selected = $selected - 1;
-		$main.sound_cursor.play();
-	};
-	$down = @{
-		if ($selected >= $items.size() - 1) return;
-		$selected = $selected + 1;
-		$main.sound_cursor.play();
-	};
-	$left = @{
-		n = ($items.size() + $columns - 1) / $columns;
-		if ($selected < n) return;
-		$selected = $selected - n;
-		$main.sound_cursor.play();
-	};
-	$right = @{
-		n = ($items.size() + $columns - 1) / $columns;
-		if ($selected >= $items.size() - n) return;
-		$selected = $selected + n;
-		$main.sound_cursor.play();
-	};
-	$select = @{
-		$main.sound_select.play();
-		$items[$selected].do();
-	};
-	keys = {
-		xraft.Key.ESCAPE: @() $back(),
-		xraft.Key.SPACE: $select,
-		xraft.Key.D2: $select,
-		xraft.Key.LEFT: $left,
-		xraft.Key.RIGHT: $right,
-		xraft.Key.UP: $up,
-		xraft.Key.DOWN: $down,
-		xraft.Key.S: $left,
-		xraft.Key.F: $right,
-		xraft.Key.E: $up,
-		xraft.Key.C: $down
-	};
-	$key_press = @(key) keys.has(key) && keys[key][$]();
-};
-
 Dialog = Class() :: @{
 	$__initialize = @(main, image, sound, title) {
 		$main = main;
-		$image = glimage.Renderer.from_file((io.Path(system.script) / ".." / image).__string(), 1);
+		$image = glimage.Image((io.Path(system.script) / ".." / image).__string());
 		$sound = main.load_sound(sound);
 		$sound.setb(al.LOOPING, true);
 		$sound.play();
@@ -489,12 +454,35 @@ Dialog = Class() :: @{
 		$image.destroy();
 	};
 	$render = @(width, height, viewing) {
-		a = width / (height * $image.unit);
-		a = 2.0 * (a < 1.0 ? 1.0 : a);
-		v = Matrix4(viewing).scale(a, a, 1.0).translate(-0.5 * $image.unit, -0.5, 0.0).bytes;
-		$image($main.text_projection, v, String.from_code(0));
-		v = Matrix4(viewing).translate(0.0, 0.5, 0.0).scale(1.5 / 4.0, 1.5 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes;
-		$main.text_renderer($main.text_projection, v, $title);
+		w = Float(width) / height;
+		a = width * $image.height / (height * $image.width);
+		s = a < 1.0 ? a : 1.0;
+		t = a < 1.0 ? 1.0 : 1.0 / a;
+		bytes = Bytes(20 * gl.Float32Array.BYTES_PER_ELEMENT);
+		array = gl.Float32Array(bytes);
+		array[0] = -w;
+		array[1] = -1.0;
+		array[2] = 0.0;
+		array[3] = (1.0 - s) * 0.5;
+		array[4] = (1.0 + t) * 0.5;
+		array[5] = w;
+		array[6] = -1.0;
+		array[7] = 0.0;
+		array[8] = (1.0 + s) * 0.5;
+		array[9] = (1.0 + t) * 0.5;
+		array[10] = -w;
+		array[11] = 1.0;
+		array[12] = 0.0;
+		array[13] = (1.0 - s) * 0.5;
+		array[14] = (1.0 - t) * 0.5;
+		array[15] = w;
+		array[16] = 1.0;
+		array[17] = 0.0;
+		array[18] = (1.0 + s) * 0.5;
+		array[19] = (1.0 - t) * 0.5;
+		$image($main.projection, viewing.bytes, bytes);
+		v = (viewing * $main.text_scale).translate(0.0, 0.5, 0.0).scale(1.5 / 4.0, 1.5 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes;
+		$main.font($main.projection, v, $title);
 	};
 };
 
@@ -513,9 +501,12 @@ StageMenu = Class(Dialog) :: @{
 		$player1.back = (@() $transit($player0, 1.0))[$];
 		$player1.items = [];
 		screen.players.each(@(x) {
-			$player0.items.push(Menu.Item(x.name, (@() $transit($player1, -1.0))[$]));
-			$player1.items.push(Menu.Item(x.name, (@() done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]));
+			$player0.items.push(Menu.Item(x.name, @{}, (@() $transit($player1, -1.0))[$]));
+			$player1.items.push(Menu.Item(x.name, @{}, (@() $transit($ready, -1.0))[$]));
 		}[$]);
+		$ready = Menu(screen.main);
+		$ready.back = (@() $transit($player1, 1.0))[$];
+		$ready.items = '(Menu.Item("START", @{}, (@() done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]));
 		$menu = $player0;
 		$transit_from = null;
 	};
@@ -528,16 +519,19 @@ StageMenu = Class(Dialog) :: @{
 	};
 	$render = @(width, height, viewing) {
 		:$^render[$](width, height, viewing);
-		message = $player0.items[$player0.selected].label + ($menu === $player0 ? "? vs     " : " vs " + $player1.items[$player1.selected].label + "?");
-		v = Matrix4(viewing).translate(0.0, 0.25, 0.0).scale(1.0 / 4.0, 1.0 / 4.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes;
-		$main.text_renderer($main.text_projection, v, message);
+		message = $player0.items[$player0.selected].label;
+		if ($menu === $player0) message = message + "?";
+		message = message + " vs " + $player1.items[$player1.selected].label;
+		if ($menu === $player1) message = message + "?";
+		v = (viewing * $main.text_scale).translate(0.0, 0.25, 0.0).scale(1.5 / 8.0, 1.5 / 8.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes;
+		$main.font($main.projection, v, message);
 		if ($transit_from !== null) {
 			a = 2.0 * $direction * width / height;
 			t = $t / $duration;
-			$transit_from.render(Matrix4(viewing).translate(a * t, 0.0, 0.0));
+			$transit_from.render(Matrix4(viewing).translate(a * t, 0.0, 0.0) * $main.text_scale);
 			viewing = Matrix4(viewing).translate(a * (t - 1.0), 0.0, 0.0);
 		}
-		$menu.render(Matrix4(viewing).translate(0.0, 0.0, 0.0));
+		$menu.render(viewing * $main.text_scale);
 	};
 	$key_press = @(key) $transit_from === null && $menu.key_press(key);
 	$transit = @(menu, direction) {
@@ -555,37 +549,37 @@ MainMenu = Class(Dialog) :: @{
 		$menu = Menu(screen.main);
 		$menu.back = @() xraft.application().exit();
 		$menu.items = '(
-			Menu.Item("  1P vs COM  ", @{
+			Menu.Item("  1P vs COM  ", @{}, @{
 				$sound.stop();
 				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/main-background.wav", "1P vs COM", @(player0, player1) {
 					$main.screen__(Match($main, false, false, controller0, player0.path, computer, player1.path));
 				}[$]), -1.0);
 			}[$]),
-			Menu.Item("  1P vs 2P   ", @{
+			Menu.Item("  1P vs 2P   ", @{}, @{
 				$sound.stop();
 				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/main-background.wav", "1P vs 2P", @(player0, player1) {
 					$main.screen__(Match($main, true, false, controller0, player0.path, controller1, player1.path));
 				}[$]), -1.0);
 			}[$]),
-			Menu.Item(" COM vs COM  ", @{
+			Menu.Item(" COM vs COM  ", @{}, @{
 				$sound.stop();
 				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/main-background.wav", "COM vs COM", @(player0, player1) {
 					$main.screen__(Match($main, false, true, computer, player0.path, computer, player1.path));
 				}[$]), -1.0);
 			}[$]),
-			Menu.Item("  TRAINING   ", @{
+			Menu.Item("  TRAINING   ", @{}, @{
 				$sound.stop();
 				screen.transit(StageMenu(screen, "data/main-background.jpg", "data/training-background.wav", "TRAINING", @(player0, player1) {
 					$main.screen__(Training($main, controller0, player0.path, player1.path));
 				}[$]), -1.0);
 			}[$]),
-			Menu.Item("    EXIT     ", $menu.back)
+			Menu.Item("    EXIT     ", @{}, $menu.back)
 		);
 	};
 	$step = @{};
 	$render = @(width, height, viewing) {
 		:$^render[$](width, height, viewing);
-		$menu.render(Matrix4(viewing).translate(0.0, 0.125, 0.0));
+		$menu.render((viewing * $main.text_scale).translate(0.0, 0.125, 0.0));
 	};
 	$key_press = @(key) $menu.key_press(key);
 };
@@ -662,7 +656,7 @@ Game = Class(xraft.GLWidget) :: @{
 	$on_create = @{
 		$glcontext.make_current($);
 		$shaders = glshaders();
-		$text_renderer = glimage.Renderer.from_font();
+		$font = glimage.Font();
 		gl.enable(gl.CULL_FACE);
 		$on_move();
 		$screen = MainScreen($);
@@ -670,8 +664,11 @@ Game = Class(xraft.GLWidget) :: @{
 	};
 	$on_move = @{
 		extent = $geometry();
-		w = Float(extent.width()) / extent.height();
-		$text_projection = Matrix4().orthographic(-w, w, -1.0, 1.0, -1.0, 1.0).bytes;
+		width = extent.width();
+		height = extent.height();
+		w = Float(width) / height;
+		$projection = Matrix4().orthographic(-w, w, -1.0, 1.0, -1.0, 1.0).bytes;
+		$text_scale = width < height ? Matrix4().scale(w, w, 1.0) : Matrix4().scale(1.0, 1.0, 1.0);
 	};
 	$on_paint = @(g) {
 t0 = time.now();
