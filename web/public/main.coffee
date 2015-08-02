@@ -237,7 +237,7 @@ class Training extends Stage
       play: -> @toss 'toss'
     smash:
       reset: ->
-        @reset 3 * 12 * 0.0254 * @side, 1.0, -39 * 12 * 0.0254, new THREE.Vector3((0.4 - 0.4 * @side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), 'toss_lob'
+        @reset 3 * 12 * 0.0254 * @side, 1.0, -39 * 12 * 0.0254, new THREE.Vector3((0.4 - 0.4 * @side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), 'toss_lob'
         @set_instruction toss_message
         @duration = 0.5 * 64.0
       play: -> @toss 'toss_lob'

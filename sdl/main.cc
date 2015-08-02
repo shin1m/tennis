@@ -400,7 +400,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 		}},
 		t_item{L" SMASH ", [this]
 		{
-			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.4 - 0.4 * v_side) * 12 * 0.0254, 0.0, 11.5 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss_lob);
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.4 - 0.4 * v_side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss_lob);
 		}, [this]
 		{
 			f_transit_ready();
