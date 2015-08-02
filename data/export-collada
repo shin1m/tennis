@@ -3,10 +3,10 @@
 DATA=$(cd $(dirname $0); pwd)
 EXTRA=$DATA/../extra
 
-#blender -b $DATA/male.blend -P $DATA/export-collada.py || exit -1
-#blender -b $DATA/malel.blend -P $DATA/export-collada.py || exit -1
+blender -b $DATA/male.blend -P $DATA/export-collada.py || exit -1
+blender -b $DATA/malel.blend -P $DATA/export-collada.py || exit -1
 blender -b $EXTRA/miku.blend -P $DATA/export-collada.py || exit -1
-#blender -b $EXTRA/rin.blend -P $DATA/export-collada.py || exit -1
-#blender -b $EXTRA/ren.blend -P $DATA/export-collada.py || exit -1
-#blender -b $EXTRA/haku.blend -P $DATA/export-collada.py || exit -1
-#blender -b $EXTRA/naruto.blend -P $DATA/export-collada.py || exit -1
+blender -b $EXTRA/rin.blend -P $DATA/export-collada.py || exit -1
+blender -b $EXTRA/ren.blend -P $DATA/export-collada.py || exit -1
+blender -b $EXTRA/haku.blend -P $DATA/export-collada.py || exit -1
+blender -b $EXTRA/naruto.blend -P $DATA/export-collada.py || exit -1
