@@ -338,6 +338,11 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 			{
 				f_read_swing(a_x.v_smash);
 			}
+		},
+		{L"reach_volley", [&](t_swings& a_x)
+			{
+				f_read_swing(a_x.v_reach_volley);
+			}
 		}
 	};
 	const std::map<std::wstring, std::function<void()>> swing_elements{
@@ -529,7 +534,17 @@ const t_player::t_state t_player::v_state_default{
 			a_player.v_motion = std::make_unique<t_motion>((a_player.v_placement->v_position.v_z * a_player.v_end > 21 * 12 * 0.0254 ? hand.v_stroke : hand.v_volley).*a_shot);
 		} else {
 			auto& volley = hand.v_volley.*a_shot;
-			a_player.v_motion = std::make_unique<t_motion>(t < (volley.v_impact - volley.v_start) * 60.0 ? hand.v_stroke.*a_shot : volley);
+			float impact = (volley.v_impact - volley.v_start) * 60.0;
+			if (t < impact) {
+				a_player.v_motion = std::make_unique<t_motion>(hand.v_stroke.*a_shot);
+			} else {
+				auto ball = a_player.f_relative_ball(volley, a_player.v_ball.v_position + a_player.v_ball.v_velocity * impact);
+				if (ball.v_x < -0.5 || (whichhand > 0.0 ? ball.v_z > 0.5 : ball.v_z < -0.5)) {
+					a_player.v_motion = std::make_unique<t_motion>(hand.v_reach_volley);
+					return a_player.f_transit(a_player.v_state_reach_volley_swing);
+				}
+				a_player.v_motion = std::make_unique<t_motion>(volley);
+			}
 		}
 		a_player.f_transit(a_player.v_state_swing);
 	}
@@ -627,6 +642,40 @@ const t_player::t_state t_player::v_state_serve_swing{
 	}
 };
 
+void t_player::f_swing_impact(const t_vector3f& a_v)
+{
+	const auto& action = static_cast<t_swing&>(v_motion->v_action);
+	if (fabs(v_motion->v_time - action.v_impact) < 0.5 / 60.0) {
+		auto ball = f_relative_ball(action);
+		if (fabs(ball.v_x) < 0.5 && ball.v_y < 1.0 && fabs(ball.v_z) < 1.0) {
+			float d = a_v.f_length();
+			float n = -d * v_ball.v_position.v_z / a_v.v_z;
+			float b = v_ball.v_position.v_y * (d - n) / d;
+			float a = d / (60 * 12 * 0.0254);
+			float speed = action.v_speed * (a > 1.25 ? 1.25 : a < 0.85 ? 0.85 : a);
+			const auto& spin = action.v_spin;
+			float dd = v_ball.v_position.v_z * v_end;
+			d = dd + (d - dd) * pow(2.0, -spin.v_x * ((spin.v_x > 0.0 ? 12.0 : 8.0) / 64.0));
+			float nh = (36 + 42) * 0.5 * 0.0254 + t_ball::c_radius;
+			if (b < nh) {
+				float vm = sqrt(G * (d - n) * n * 0.5 / (nh - b));
+				if (vm < speed) speed = vm;
+			}
+			d -= ball.v_x * 2.0;
+			speed -= ball.v_x * 0.125;
+			float dx = a_v.v_x + a_v.v_z * ball.v_z * 0.0625;
+			float dz = a_v.v_z - a_v.v_x * ball.v_z * 0.0625;
+			v_ball.f_impact(dx, dz, speed, G * d / (2.0 * speed) - v_ball.v_position.v_y * speed / d, spin);
+			v_ball.f_hit(this);
+			v_stage.v_sound_hit.f_play();
+		}
+	}
+	(*v_motion)();
+	if (v_motion->v_time < action.v_end) return;
+	action.f_merge(*this);
+	f_transit(v_state_default);
+}
+
 const t_player::t_state t_player::v_state_swing{
 	[](t_player& a_player)
 	{
@@ -640,35 +689,7 @@ const t_player::t_state t_player::v_state_swing{
 			a_player.v_placement->v_toward = v;
 			a_player.v_placement->v_valid = false;
 		}
-		if (fabs(a_player.v_motion->v_time - action.v_impact) < 0.5 / 60.0) {
-			auto ball = a_player.f_relative_ball(action);
-			if (fabs(ball.v_x) < 0.5 && fabs(ball.v_z) < 1.0) {
-				float d = v.f_length();
-				float n = -d * a_player.v_ball.v_position.v_z / v.v_z;
-				float b = a_player.v_ball.v_position.v_y * (d - n) / d;
-				float a = d / (60 * 12 * 0.0254);
-				float speed = action.v_speed * (a > 1.25 ? 1.25 : a < 0.85 ? 0.85 : a);
-				const auto& spin = action.v_spin;
-				float dd = a_player.v_ball.v_position.v_z * a_player.v_end;
-				d = dd + (d - dd) * pow(2.0, -spin.v_x * ((spin.v_x > 0.0 ? 12.0 : 8.0) / 64.0));
-				float nh = (36 + 42) * 0.5 * 0.0254 + t_ball::c_radius;
-				if (b < nh) {
-					float vm = sqrt(G * (d - n) * n * 0.5 / (nh - b));
-					if (vm < speed) speed = vm;
-				}
-				d -= ball.v_x * 2.0;
-				speed -= ball.v_x * 0.125;
-				float dx = v.v_x + v.v_z * ball.v_z * 0.0625;
-				float dz = v.v_z - v.v_x * ball.v_z * 0.0625;
-				a_player.v_ball.f_impact(dx, dz, speed, G * d / (2.0 * speed) - a_player.v_ball.v_position.v_y * speed / d, spin);
-				a_player.v_ball.f_hit(&a_player);
-				a_player.v_stage.v_sound_hit.f_play();
-			}
-		}
-		(*a_player.v_motion)();
-		if (a_player.v_motion->v_time < action.v_end) return;
-		action.f_merge(a_player);
-		a_player.f_transit(a_player.v_state_default);
+		a_player.f_swing_impact(v);
 	},
 	[](t_player& a_player, t_swing t_shots::* a_shot)
 	{
@@ -704,6 +725,26 @@ const t_player::t_state t_player::v_state_smash_swing{
 		if (a_player.v_motion->v_time < action.v_end) return;
 		action.f_merge(a_player);
 		a_player.f_transit(a_player.v_state_default);
+	},
+	[](t_player& a_player, t_swing t_shots::* a_shot)
+	{
+	}
+};
+
+const t_player::t_state t_player::v_state_reach_volley_swing{
+	[](t_player& a_player)
+	{
+		const auto& action = static_cast<t_swing&>(a_player.v_motion->v_action);
+		float impact = (action.v_impact - a_player.v_motion->v_time) * 60.0;
+		float vx = a_player.v_ball.v_position.v_x + a_player.v_ball.v_velocity.v_x * impact - a_player.v_placement->v_position.v_x;
+		float vz = a_player.v_ball.v_position.v_z + a_player.v_ball.v_velocity.v_z * impact - a_player.v_placement->v_position.v_z;
+		a_player.v_placement->v_toward = t_vector3f(vx, 0.0, vz);
+		a_player.v_placement->v_valid = false;
+		a_player.v_stage.v_sound_swing.f_play();
+	},
+	[](t_player& a_player)
+	{
+		a_player.f_swing_impact(a_player.f_shot_direction());
 	},
 	[](t_player& a_player, t_swing t_shots::* a_shot)
 	{

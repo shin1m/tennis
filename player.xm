@@ -244,7 +244,8 @@ $Player = Class() :: @{
 				x.volley = Object();
 				reader.parse_elements(shot_swing_elements, x.volley);
 			},
-			"smash": @(x) x.smash = read_swing()
+			"smash": @(x) x.smash = read_swing(),
+			"reach_volley": @(x) x.reach_volley = read_swing()
 		};
 		swing_elements = {
 			"forehand": @(x) {
@@ -444,7 +445,17 @@ $Player = Class() :: @{
 			$motion = Motion(($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke : hand.volley).(shot));
 		} else {
 			volley = hand.volley.(shot);
-			$motion = Motion(t < (volley.impact - volley.start) * 60.0 ? hand.stroke.(shot) : volley);
+			impact = (volley.impact - volley.start) * 60.0;
+			if (t < impact) {
+				$motion = Motion(hand.stroke.(shot));
+			} else {
+				ball = $relative_ball(volley, $ball.position + $ball.velocity * impact);
+				if (ball.x < -0.5 || (whichhand > 0.0 ? ball.z > 0.5 : ball.z < -0.5)) {
+					$motion = Motion(hand.reach_volley);
+					return $transit($state_reach_volley_swing);
+				}
+				$motion = Motion(volley);
+			}
 		}
 		$transit($state_swing);
 	});
@@ -514,18 +525,11 @@ $Player = Class() :: @{
 		$motion.action.merge($);
 		$transit($state_default);
 	}, @(shot) {});
-	$state_swing = State(@{
-		$stage.sound_swing.play();
-	}, @{
-		v = $shot_direction();
-		if ($motion.time <= $motion.action.impact) {
-			$placement.toward = v * 1.0;
-			$placement.valid = false;
-		}
+	$swing_impact = @(v) {
 		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 60.0) {
 			ball = $relative_ball($motion.action);
 			#print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
-			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.z) < 1.0) {
+			if (math.fabs(ball.x) < 0.5 && ball.y < 1.0 && math.fabs(ball.z) < 1.0) {
 				d = v.length();
 				n = -d * $ball.position.z / v.z;
 				b = $ball.position.y * (d - n) / d;
@@ -552,6 +556,16 @@ $Player = Class() :: @{
 		if ($motion.time < $motion.end) return;
 		$motion.action.merge($);
 		$transit($state_default);
+	};
+	$state_swing = State(@{
+		$stage.sound_swing.play();
+	}, @{
+		v = $shot_direction();
+		if ($motion.time <= $motion.action.impact) {
+			$placement.toward = v * 1.0;
+			$placement.valid = false;
+		}
+		$swing_impact(v);
 	}, @(shot) {});
 	$state_smash_swing = State(@{
 		$stage.sound_swing.play();
@@ -578,5 +592,15 @@ $Player = Class() :: @{
 		if ($motion.time < $motion.end) return;
 		$motion.action.merge($);
 		$transit($state_default);
+	}, @(shot) {});
+	$state_reach_volley_swing = State(@{
+		impact = ($motion.action.impact - $motion.time) * 60.0;
+		vx = $ball.position.x + $ball.velocity.x * impact - $placement.position.x;
+		vz = $ball.position.z + $ball.velocity.z * impact - $placement.position.z;
+		$placement.toward = Vector3(vx, 0.0, vz);
+		$placement.valid = false;
+		$stage.sound_swing.play();
+	}, @{
+		$swing_impact($shot_direction());
 	}, @(shot) {});
 };

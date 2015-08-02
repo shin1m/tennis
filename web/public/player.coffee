@@ -169,6 +169,7 @@ class Player
       stroke: read_shot e.querySelector('stroke')
       volley: read_shot e.querySelector('volley')
       smash: read_swing e.querySelector('smash')
+      reach_volley: read_swing e.querySelector('reach_volley')
     request = new XMLHttpRequest
     request.addEventListener 'load', ->
       xml = @responseXML ? new DOMParser().parseFromString(@responseText, 'application/xml')
@@ -359,7 +360,15 @@ class Player
       @set_motion new Motion (if @node.position.z * @end > 21 * 12 * 0.0254 then hand.stroke else hand.volley)[shot]
     else
       volley = hand.volley[shot]
-      @set_motion new Motion if t < (volley.impact - volley.start) * 60.0 then hand.stroke[shot] else volley
+      impact = (volley.impact - volley.start) * 60.0
+      if t < impact
+        @set_motion new Motion hand.stroke[shot]
+      else
+        ball = @relative_ball(volley, @ball.velocity.clone().multiplyScalar(impact).add(@ball.position))
+        if ball.x < -0.5 || (if whichhand > 0.0 then ball.z > 0.5 else ball.z < -0.5)
+          @set_motion new Motion hand.reach_volley
+          return @transit @state_reach_volley_swing
+        @set_motion new Motion volley
     @transit @state_swing
   state_serve_set: State ->
     @set_motion new Motion @actions.serve.set
@@ -414,15 +423,10 @@ class Player
     @motion.action.merge @
     @transit @state_default
   , (shot) ->
-  state_swing: State ->
-    @stage.sound_swing.play()
-  , ->
-    v = @shot_direction()
-    if @motion.time() <= @motion.action.impact
-      @node.lookAt @node.position.clone().add(v)
+  swing_impact: (v) ->
     if Math.abs(@motion.time() - @motion.action.impact) < 0.5 / 60.0
       ball = @relative_ball @motion.action
-      if Math.abs(ball.x) < 0.5 && Math.abs(ball.z) < 1.0
+      if Math.abs(ball.x) < 0.5 && ball.y < 1.0 && Math.abs(ball.z) < 1.0
         d = v.length()
         n = -d * @ball.position.z / v.z
         b = @ball.position.y * (d - n) / d
@@ -445,6 +449,13 @@ class Player
     return if @motion.playing()
     @motion.action.merge @
     @transit @state_default
+  state_swing: State ->
+    @stage.sound_swing.play()
+  , ->
+    v = @shot_direction()
+    if @motion.time() <= @motion.action.impact
+      @node.lookAt @node.position.clone().add(v)
+    @swing_impact v
   , (shot) ->
   state_smash_swing: State ->
     @stage.sound_swing.play()
@@ -465,5 +476,14 @@ class Player
     return if @motion.playing()
     @motion.action.merge @
     @transit @state_default
+  , (shot) ->
+  state_reach_volley_swing: State ->
+    impact = (@motion.action.impact - @motion.time()) * 60.0
+    vx = @ball.position.x + @ball.velocity.x * impact
+    vz = @ball.position.z + @ball.velocity.z * impact
+    @node.lookAt new THREE.Vector3(vx, 0.0, vz)
+    @stage.sound_swing.play()
+  , ->
+    @swing_impact @shot_direction()
   , (shot) ->
 exports.Player = Player
