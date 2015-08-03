@@ -522,6 +522,7 @@ $Player = Class() :: @{
 		}
 		$motion();
 		if ($motion.time < $motion.end) return;
+		if (!$ball.done && $ball.hitter === null) $ball.emit_serve_air();
 		$motion.action.merge($);
 		$transit($state_default);
 	}, @(shot) {});

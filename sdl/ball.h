@@ -47,20 +47,28 @@ struct t_ball
 	void f_netin_part(float a_x0, float a_y0, float a_x1, float a_y1);
 	void f_netin();
 	void f_emit_ace();
+	void f_emit_miss();
 	void f_emit_out();
+	void f_emit_serve_air();
 	void f_emit_bounce();
 	void f_wall();
 	void f_step();
-	void f_set(t_player* a_hitter, const std::array<float, 3>& a_target)
+	void f_set(t_player* a_hitter)
 	{
 		v_hitter = a_hitter;
-		v_target = a_target;
 		v_in = v_net = false;
 	}
 	void f_reset(float a_side, float a_x, float a_y, float a_z);
 	void f_hit(t_player* a_hitter)
 	{
-		if (!v_done) f_set(a_hitter, v_rally);
+		if (v_done) return;
+		if (v_target == v_rally) {
+			f_set(a_hitter);
+		} else {
+			v_target = v_rally;
+			v_hitter = a_hitter;
+			f_emit_miss();
+		}
 	}
 	bool f_serving() const
 	{

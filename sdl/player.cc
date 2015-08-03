@@ -634,6 +634,7 @@ const t_player::t_state t_player::v_state_serve_swing{
 		}
 		(*a_player.v_motion)();
 		if (a_player.v_motion->v_time < action.v_end) return;
+		if (!a_player.v_ball.v_done && a_player.v_ball.v_hitter == nullptr) a_player.v_ball.f_emit_serve_air();
 		action.f_merge(a_player);
 		a_player.f_transit(a_player.v_state_default);
 	},

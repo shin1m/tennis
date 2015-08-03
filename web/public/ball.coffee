@@ -69,9 +69,15 @@ class Ball
   emit_ace: ->
     @done = true
     @stage.ball_ace()
+  emit_miss: ->
+    @done = true
+    @stage.ball_miss()
   emit_out: ->
     @done = true
     @stage.ball_out()
+  emit_serve_air: ->
+    @done = true
+    @stage.ball_serve_air()
   emit_bounce: -> @stage.ball_bounce()
   wall: ->
     return if @done
@@ -79,6 +85,7 @@ class Ball
       @emit_ace()
     else
       @emit_out()
+  rally = [-(13 * 12 + 6) * 0.0254, (13 * 12 + 6) * 0.0254, -39 * 12 * 0.0254]
   step: ->
     last = @position.clone()
     @position.add @velocity
@@ -93,14 +100,12 @@ class Ball
         if @in
           @emit_ace()
         else if @hitter == null
-          @done = true
-          @stage.ball_serve_air()
+          @emit_serve_air()
         else
           x = @hitter.end * @position.x
           z = @hitter.end * @position.z
           if z > 0.0
-            @done = true
-            @stage.ball_miss()
+            @emit_miss()
           else if x < @target[0] || x > @target[1] || z < @target[2]
             @emit_out()
           else
@@ -110,6 +115,7 @@ class Ball
               @stage.ball_let()
             else
               @stage.ball_in()
+              @target = rally
       @emit_bounce() if @velocity.y > 1.0 / 64.0
     if @position.x - radius <= -30 * 12 * 0.0254
       @position.x = radius - 30 * 12 * 0.0254
@@ -135,10 +141,8 @@ class Ball
       @netin() if last.z > radius && @position.z <= radius
     else
       @netin() if last.z < -radius && @position.z >= -radius
-  rally = [-(13 * 12 + 6) * 0.0254, (13 * 12 + 6) * 0.0254, -39 * 12 * 0.0254]
-  set: (hitter, target) ->
+  set: (hitter) ->
     @hitter = hitter
-    @target = target
     @in = @net = false
   reset: (side, x, y, z) ->
     @position.set x, y, z
@@ -147,12 +151,20 @@ class Ball
     @done = false
     x0 = 1 * 0.0254 * side
     x1 = -(13 * 12 + 6) * 0.0254 * side
-    @set null, [
+    @target = [
       if x0 < x1 then x0 else x1
       if x0 < x1 then x1 else x0
       -21 * 12 * 0.0254
     ]
-  hit: (hitter) -> @set hitter, rally unless @done
+    @set null
+  hit: (hitter) ->
+    return if @done
+    if @target == rally
+      @set hitter
+    else
+      @target = rally
+      @hitter = hitter
+      @emit_miss()
   serving: -> @target != rally
   impact: (dx, dz, speed, vy, spin) ->
     dl = 1.0 / Math.sqrt(dx * dx + dz * dz)

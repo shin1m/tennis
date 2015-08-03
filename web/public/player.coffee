@@ -420,6 +420,7 @@ class Player
         @ball.hitter = @
         @stage.sound_hit.play()
     return if @motion.playing()
+    @ball.emit_serve_air() if !@ball.done && @ball.hitter == null
     @motion.action.merge @
     @transit @state_default
   , (shot) ->

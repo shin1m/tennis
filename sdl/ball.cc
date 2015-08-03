@@ -150,10 +150,22 @@ void t_ball::f_emit_ace()
 	v_stage.f_ball_ace();
 }
 
+void t_ball::f_emit_miss()
+{
+	v_done = true;
+	v_stage.f_ball_miss();
+}
+
 void t_ball::f_emit_out()
 {
 	v_done = true;
 	v_stage.f_ball_out();
+}
+
+void t_ball::f_emit_serve_air()
+{
+	v_done = true;
+	v_stage.f_ball_serve_air();
 }
 
 void t_ball::f_emit_bounce()
@@ -186,14 +198,12 @@ void t_ball::f_step()
 			if (v_in) {
 				f_emit_ace();
 			} else if (v_hitter == nullptr) {
-				v_done = true;
-				v_stage.f_ball_serve_air();
+				f_emit_serve_air();
 			} else {
 				float x = v_hitter->v_end * v_position.v_x;
 				float z = v_hitter->v_end * v_position.v_z;
 				if (z > 0.0) {
-					v_done = true;
-					v_stage.f_ball_miss();
+					f_emit_miss();
 				} else if (x < v_target[0] || x > v_target[1] || z < v_target[2]) {
 					f_emit_out();
 				} else {
@@ -203,6 +213,7 @@ void t_ball::f_step()
 						v_stage.f_ball_let();
 					} else {
 						v_stage.f_ball_in();
+						v_target = v_rally;
 					}
 				}
 			}
@@ -246,7 +257,8 @@ void t_ball::f_reset(float a_side, float a_x, float a_y, float a_z)
 	v_done = false;
 	float x0 = 1 * 0.0254 * a_side;
 	float x1 = -(13 * 12 + 6) * 0.0254 * a_side;
-	f_set(nullptr, std::array<float, 3>{x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254});
+	v_target = std::array<float, 3>({x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254});
+	f_set(nullptr);
 }
 
 void t_ball::f_calculate_bounce(t_vector3f& a_velocity, t_vector3f& a_spin)
