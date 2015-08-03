@@ -74,8 +74,8 @@
 				<slice start="166" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
 			</volley>
 			<smash start="238" duration="32" impact="10" speed="18.0" spin="0.0 0.0 0.0" />
-			<!-- <reach_volley start="982" duration="64" impact="8" speed="12.0" spin="0.0 0.0 0.0" /> -->
-			<reach_volley start="1126" duration="64" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+			<!-- <reach_volley start="982" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" /> -->
+			<reach_volley start="1126" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 		</forehand>
 		<backhand>
 			<stroke>
@@ -91,8 +91,8 @@
 				<slice start="130" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
 			</volley>
 			<smash start="202" duration="32" impact="10" speed="24.0" spin="0.0 0.0 0.0" />
-			<!-- <reach_volley start="910" duration="64" impact="8" speed="12.0" spin="0.0 0.0 0.0" /> -->
-			<reach_volley start="1054" duration="64" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+			<!-- <reach_volley start="910" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" /> -->
+			<reach_volley start="1054" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 		</backhand>
 		<toss start="274" duration="32" impact="8" speed="18.0" spin="0.0 0.0 0.0" />
 		<toss_lob start="274" duration="32" impact="8" speed="11.0" spin="0.0 0.0 0.0" />
