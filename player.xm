@@ -291,10 +291,10 @@ $Player = Class() :: @{
 		}
 	};
 
-	$__initialize = @(stage, model) {
+	$__initialize = @(stage, model, scene) {
 		$stage = stage;
 		$ball = stage.ball;
-		$scene = collada.load(model + ".dae");
+		$scene = scene;
 		$scene.build(stage.main.shaders);
 		$node = $scene.ids["Armature"];
 		$node.transforms.clear();

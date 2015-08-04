@@ -584,6 +584,16 @@ Material = Class() :: @{
 };
 
 Matrix = Class(Matrix4) :: @{
+	$own = @{
+		:$^own[$]();
+		$bytes.own();
+		$v.own();
+	};
+	$share = @{
+		:$^share[$]();
+		$bytes.share();
+		$v.share();
+	};
 	$__string = @() "Matrix(" + :$^__string[$]() + ")";
 	#$__call = @(x) x.multiply($);
 	$__call = @(x) {

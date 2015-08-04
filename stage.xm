@@ -61,6 +61,18 @@ $Stage = Class() :: @{
 		$main = main;
 		$dual = dual;
 		$fixed = fixed;
+		t0 = Thread(@{
+			:scene = collada.load((io.Path(system.script) / "../data/court.dae").__string());
+			scene.share();
+		});
+		t1 = Thread(@{
+			:p0 = collada.load(player0 + ".dae");
+			p0.share();
+		});
+		t2 = Thread(@{
+			:p1 = collada.load(player1 + ".dae");
+			p1.share();
+		});
 		$sound_bounce = main.load_sound("data/bounce.wav");
 		$sound_net = main.load_sound("data/net.wav");
 		$sound_chip = main.load_sound("data/chip.wav");
@@ -69,14 +81,20 @@ $Stage = Class() :: @{
 		$sound_ace = main.load_sound("data/ace.wav");
 		$sound_miss = main.load_sound("data/miss.wav");
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0);
-		$scene = collada.load((io.Path(system.script) / "../data/court.dae").__string());
+		t0.join();
+		scene.own();
+		$scene = scene;
 		$scene.build(main.shaders);
 		$camera0 = Placement();
 		$camera1 = Placement();
 		$ball = Ball($, main.shaders, "#Material-Shadow", "#Material-Ball");
 		$mark = Mark($, main.shaders, "#Material-Shadow");
-		$player0 = Player($, player0);
-		$player1 = Player($, player1);
+		t1.join();
+		p0.own();
+		$player0 = Player($, player0, p0);
+		t2.join();
+		p1.own();
+		$player1 = Player($, player1, p1);
 		$player0.opponent = $player1;
 		$player1.opponent = $player0;
 		$state_ready = $State(@{
