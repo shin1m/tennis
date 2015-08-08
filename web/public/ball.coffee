@@ -144,18 +144,18 @@ class Ball
   set: (hitter) ->
     @hitter = hitter
     @in = @net = false
-  reset: (side, x, y, z) ->
+  reset: (side, x, y, z, serving = true) ->
     @position.set x, y, z
     @velocity.set 0.0, 0.0, 0.0
     @spin.set 0.0, 0.0, 0.0
     @done = false
     x0 = 1 * 0.0254 * side
     x1 = -(13 * 12 + 6) * 0.0254 * side
-    @target = [
+    @target = if serving then [
       if x0 < x1 then x0 else x1
       if x0 < x1 then x1 else x0
       -21 * 12 * 0.0254
-    ]
+    ] else rally
     @set null
   hit: (hitter) ->
     return if @done

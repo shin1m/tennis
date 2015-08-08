@@ -244,14 +244,14 @@ $Ball = Class() :: @{
 		$hitter = hitter;
 		$in = $net = false;
 	};
-	$reset = @(side, x, y, z) {
+	$reset = @(side, x, y, z, serving = true) {
 		$position = Vector3(x, y, z);
 		$velocity = Vector3(0.0, 0.0, 0.0);
 		$spin = Vector3(0.0, 0.0, 0.0);
 		$done = false;
 		x0 = 1 * 0.0254 * side;
 		x1 = -(13 * 12 + 6) * 0.0254 * side;
-		$target = '(x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254);
+		$target = serving ? '(x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254) : rally;
 		$set(null);
 	};
 	$hit = @(hitter) {

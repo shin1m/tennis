@@ -58,7 +58,7 @@ struct t_ball
 		v_hitter = a_hitter;
 		v_in = v_net = false;
 	}
-	void f_reset(float a_side, float a_x, float a_y, float a_z);
+	void f_reset(float a_side, float a_x, float a_y, float a_z, bool a_serving = true);
 	void f_hit(t_player* a_hitter)
 	{
 		if (v_done) return;

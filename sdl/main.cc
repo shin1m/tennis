@@ -449,7 +449,7 @@ void t_training::f_next()
 
 void t_training::f_reset(float a_x, float a_y, float a_z, const t_vector3f& a_position, const t_player::t_swing& a_shot)
 {
-	v_ball->f_reset(v_side, a_x, a_y, a_z);
+	v_ball->f_reset(v_side, a_x, a_y, a_z, false);
 	v_mark->v_duration = 0.0;
 	v_player0->v_placement->v_position = a_position;
 	v_player0->v_placement->v_valid = false;

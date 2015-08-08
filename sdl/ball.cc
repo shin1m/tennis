@@ -249,7 +249,7 @@ void t_ball::f_step()
 	}
 }
 
-void t_ball::f_reset(float a_side, float a_x, float a_y, float a_z)
+void t_ball::f_reset(float a_side, float a_x, float a_y, float a_z, bool a_serving)
 {
 	v_position = t_vector3f(a_x, a_y, a_z);
 	v_velocity = t_vector3f(0.0, 0.0, 0.0);
@@ -257,7 +257,7 @@ void t_ball::f_reset(float a_side, float a_x, float a_y, float a_z)
 	v_done = false;
 	float x0 = 1 * 0.0254 * a_side;
 	float x1 = -(13 * 12 + 6) * 0.0254 * a_side;
-	v_target = std::array<float, 3>({x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254});
+	v_target = a_serving ? std::array<float, 3>({x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254}) : v_rally;
 	f_set(nullptr);
 }
 

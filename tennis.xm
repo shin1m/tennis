@@ -351,7 +351,7 @@ Training = Class(stage.Stage) :: @{
 	};
 	$next = @() $ball.done && $transit_ready();
 	$reset = @(x, y, z, position, shot) {
-		$ball.reset($side, x, y, z);
+		$ball.reset($side, x, y, z, false);
 		$mark.duration = 0.0;
 		$player0.placement.position = position;
 		$player0.placement.valid = false;
