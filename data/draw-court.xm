@@ -1,8 +1,10 @@
 cairo = Module("cairo");
 
 cairo.main(@{
-	image = cairo.ImageSurface(cairo.Format.ARGB32, 1024, 2048);
+	#image = cairo.ImageSurface(cairo.Format.ARGB32, 1024, 2048);
+	image = cairo.ImageSurface(cairo.Format.ARGB32, 512, 1024);
 	context = cairo.Context(image);
+	context.scale(0.5, 0.5);
 	context.set_source_rgb(0.125, 0.75, 0.375);
 	context.rectangle(0, 0, 60 * 12, 120 * 12);
 	context.fill();
@@ -23,8 +25,8 @@ cairo.main(@{
 	context.rectangle((12 + 18) * 12 - 1, (21 + 78) * 12 - 6, 2, 6);
 	context.fill();
 	context.set_source_rgb(0.0, 0.0, 0.0);
-	for (i = 0; i < 3 * 4 + 2; i = i + 1) context.rectangle(9 * 12, 125 * 12 + i * 3, 42 * 12, 1);
-	for (i = 0; i < 42 * 4; i = i + 1) context.rectangle(9 * 12 + i * 3, 125 * 12, 1, 3 * 12 + 6);
+	for (i = 0; i < 3 * 3 + 2; i = i + 1) context.rectangle(9 * 12, 125 * 12 + i * 4, 42 * 12, 0.875);
+	for (i = 0; i < 42 * 3; i = i + 1) context.rectangle(9 * 12 + i * 4, 125 * 12, 0.875, 3 * 12 + 6);
 	context.fill();
 	context.set_source_rgb(1.0, 1.0, 1.0);
 	context.rectangle(9 * 12, 125 * 12, 42 * 12, 2);
