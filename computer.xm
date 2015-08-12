@@ -180,7 +180,7 @@ $__get_at = @(stage) @(controller, player) {
 				player.backward = backward;
 				player.do(shot);
 				reset_decision();
-				:net = player.placement.position.z * player.end < 22 * 12 * 0.0254;
+				:net = player.placement.position.z * player.end < 26 * 12 * 0.0254;
 			} else {
 				reset_move();
 				point = Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t);

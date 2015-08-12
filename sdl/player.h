@@ -42,6 +42,7 @@ struct t_player
 		t_swing v_topspin;
 		t_swing v_lob;
 		t_swing v_slice;
+		t_swing v_reach;
 	};
 	struct t_readies
 	{
@@ -61,7 +62,6 @@ struct t_player
 		t_shots v_stroke;
 		t_shots v_volley;
 		t_swing v_smash;
-		t_swing v_reach_volley;
 	};
 	struct t_motion
 	{
@@ -246,7 +246,7 @@ struct t_player
 	void f_swing_impact(const t_vector3f& a_v);
 	static const t_state v_state_swing;
 	static const t_state v_state_smash_swing;
-	static const t_state v_state_reach_volley_swing;
+	static const t_state v_state_reach_swing;
 };
 
 #endif

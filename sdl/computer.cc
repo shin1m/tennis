@@ -197,7 +197,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 				a_player.v_backward = state.v_backward;
 				a_player.f_do(state.v_shot);
 				state.f_reset_decision();
-				state.v_net = a_player.v_placement->v_position.v_z * a_player.v_end < 22 * 12 * 0.0254;
+				state.v_net = a_player.v_placement->v_position.v_z * a_player.v_end < 26 * 12 * 0.0254;
 			} else {
 				f_reset_move();
 				point = t_vector3f(position.v_x + velocity.v_x * t, 0.0, position.v_z + velocity.v_z * t);

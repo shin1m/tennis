@@ -184,6 +184,11 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 			{
 				f_read_swing(a_x.v_slice);
 			}
+		},
+		{L"reach", [&](t_shots& a_x)
+			{
+				f_read_swing(a_x.v_reach);
+			}
 		}
 	};
 	const std::map<std::wstring, std::function<void()>> serve_elements{
@@ -337,11 +342,6 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 		{L"smash", [&](t_swings& a_x)
 			{
 				f_read_swing(a_x.v_smash);
-			}
-		},
-		{L"reach_volley", [&](t_swings& a_x)
-			{
-				f_read_swing(a_x.v_reach_volley);
 			}
 		}
 	};
@@ -533,18 +533,20 @@ const t_player::t_state t_player::v_state_default{
 		if (a_player.v_ball.v_done) {
 			a_player.v_motion = std::make_unique<t_motion>((a_player.v_placement->v_position.v_z * a_player.v_end > 21 * 12 * 0.0254 ? hand.v_stroke : hand.v_volley).*a_shot);
 		} else {
-			auto& volley = hand.v_volley.*a_shot;
-			float impact = (volley.v_impact - volley.v_start) * 60.0;
+			auto* shots = &hand.v_volley;
+			auto* swing = &(shots->*a_shot);
+			float impact = (swing->v_impact - swing->v_start) * 60.0;
 			if (t < impact) {
-				a_player.v_motion = std::make_unique<t_motion>(hand.v_stroke.*a_shot);
-			} else {
-				auto ball = a_player.f_relative_ball(volley, a_player.v_ball.v_position + a_player.v_ball.v_velocity * impact);
-				if (ball.v_x < -0.5 || (whichhand > 0.0 ? ball.v_z > 0.5 : ball.v_z < -0.5)) {
-					a_player.v_motion = std::make_unique<t_motion>(hand.v_reach_volley);
-					return a_player.f_transit(a_player.v_state_reach_volley_swing);
-				}
-				a_player.v_motion = std::make_unique<t_motion>(volley);
+				shots = &hand.v_stroke;
+				swing = &(shots->*a_shot);
+				impact = (swing->v_impact - swing->v_start) * 60.0;
 			}
+			auto ball = a_player.f_relative_ball(*swing, a_player.v_ball.v_position + a_player.v_ball.v_velocity * impact);
+			if (ball.v_x < -0.5 || (whichhand > 0.0 ? ball.v_z > 0.5 : ball.v_z < -0.5)) {
+				a_player.v_motion = std::make_unique<t_motion>(shots->v_reach);
+				return a_player.f_transit(a_player.v_state_reach_swing);
+			}
+			a_player.v_motion = std::make_unique<t_motion>(*swing);
 		}
 		a_player.f_transit(a_player.v_state_swing);
 	}
@@ -732,7 +734,7 @@ const t_player::t_state t_player::v_state_smash_swing{
 	}
 };
 
-const t_player::t_state t_player::v_state_reach_volley_swing{
+const t_player::t_state t_player::v_state_reach_swing{
 	[](t_player& a_player)
 	{
 		const auto& action = static_cast<t_swing&>(a_player.v_motion->v_action);

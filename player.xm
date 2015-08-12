@@ -178,7 +178,8 @@ $Player = Class() :: @{
 			"flat": @(x) x.flat = read_swing(),
 			"topspin": @(x) x.topspin = read_swing(),
 			"lob": @(x) x.lob = read_swing(),
-			"slice": @(x) x.slice = read_swing()
+			"slice": @(x) x.slice = read_swing(),
+			"reach": @(x) x.reach = read_swing()
 		};
 		serve_elements = {
 			"set": @(x) x.set = read_action(),
@@ -244,8 +245,7 @@ $Player = Class() :: @{
 				x.volley = Object();
 				reader.parse_elements(shot_swing_elements, x.volley);
 			},
-			"smash": @(x) x.smash = read_swing(),
-			"reach_volley": @(x) x.reach_volley = read_swing()
+			"smash": @(x) x.smash = read_swing()
 		};
 		swing_elements = {
 			"forehand": @(x) {
@@ -444,18 +444,20 @@ $Player = Class() :: @{
 		if ($ball.done) {
 			$motion = Motion(($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke : hand.volley).(shot));
 		} else {
-			volley = hand.volley.(shot);
-			impact = (volley.impact - volley.start) * 60.0;
+			shots = hand.volley;
+			swing = shots.(shot);
+			impact = (swing.impact - swing.start) * 60.0;
 			if (t < impact) {
-				$motion = Motion(hand.stroke.(shot));
-			} else {
-				ball = $relative_ball(volley, $ball.position + $ball.velocity * impact);
-				if (ball.x < -0.5 || (whichhand > 0.0 ? ball.z > 0.5 : ball.z < -0.5)) {
-					$motion = Motion(hand.reach_volley);
-					return $transit($state_reach_volley_swing);
-				}
-				$motion = Motion(volley);
+				shots = hand.stroke;
+				swing = shots.(shot);
+				impact = (swing.impact - swing.start) * 60.0;
 			}
+			ball = $relative_ball(swing, $ball.position + $ball.velocity * impact);
+			if (ball.x < -0.5 || (whichhand > 0.0 ? ball.z > 0.5 : ball.z < -0.5)) {
+				$motion = Motion(shots.reach);
+				return $transit($state_reach_swing);
+			}
+			$motion = Motion(swing);
 		}
 		$transit($state_swing);
 	});
@@ -594,7 +596,7 @@ $Player = Class() :: @{
 		$motion.action.merge($);
 		$transit($state_default);
 	}, @(shot) {});
-	$state_reach_volley_swing = State(@{
+	$state_reach_swing = State(@{
 		impact = ($motion.action.impact - $motion.time) * 60.0;
 		vx = $ball.position.x + $ball.velocity.x * impact - $placement.position.x;
 		vz = $ball.position.z + $ball.velocity.z * impact - $placement.position.z;

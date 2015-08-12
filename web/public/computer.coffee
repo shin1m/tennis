@@ -159,7 +159,7 @@ exports.controller = (controller, player) ->
         player.backward = backward
         player.perform shot
         reset_decision()
-        net = player.node.position.z * player.end < 22 * 12 * 0.0254
+        net = player.node.position.z * player.end < 26 * 12 * 0.0254
       else
         reset_move()
         point = new THREE.Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t)

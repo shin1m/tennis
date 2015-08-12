@@ -142,6 +142,10 @@ class Player
       topspin: read_swing e.querySelector('topspin')
       lob: read_swing e.querySelector('lob')
       slice: read_swing e.querySelector('slice')
+    read_shot_with_reach = (e) ->
+      shots = read_shot e
+      shots.reach = read_swing e.querySelector('reach')
+      shots
     read_ready_action = (e) ->
       stroke: read_run e.querySelector('stroke'), is_not_root
       volley: read_run e.querySelector('volley'), is_not_root
@@ -166,10 +170,9 @@ class Player
       volley: read_action e.querySelector('volley'), is_upper
       smash: read_action e.querySelector('smash'), is_upper
     read_swing_actions = (e) ->
-      stroke: read_shot e.querySelector('stroke')
-      volley: read_shot e.querySelector('volley')
+      stroke: read_shot_with_reach e.querySelector('stroke')
+      volley: read_shot_with_reach e.querySelector('volley')
       smash: read_swing e.querySelector('smash')
-      reach_volley: read_swing e.querySelector('reach_volley')
     request = new XMLHttpRequest
     request.addEventListener 'load', ->
       xml = @responseXML ? new DOMParser().parseFromString(@responseText, 'application/xml')
@@ -343,6 +346,7 @@ class Player
       @node.position.add(d)
   , (shot) ->
     @node.lookAt @shot_direction().add(@node.position)
+    @node.updateMatrixWorld false
     actions = @actions.swing
     whichhand = @whichhand @direction().normalize()
     t = @ball.projected_time_for_y @smash_height(), 1.0
@@ -359,16 +363,18 @@ class Player
     if @ball.done
       @set_motion new Motion (if @node.position.z * @end > 21 * 12 * 0.0254 then hand.stroke else hand.volley)[shot]
     else
-      volley = hand.volley[shot]
-      impact = (volley.impact - volley.start) * 60.0
+      shots = hand.volley
+      swing = shots[shot]
+      impact = (swing.impact - swing.start) * 60.0
       if t < impact
-        @set_motion new Motion hand.stroke[shot]
-      else
-        ball = @relative_ball(volley, @ball.velocity.clone().multiplyScalar(impact).add(@ball.position))
-        if ball.x < -0.5 || (if whichhand > 0.0 then ball.z > 0.5 else ball.z < -0.5)
-          @set_motion new Motion hand.reach_volley
-          return @transit @state_reach_volley_swing
-        @set_motion new Motion volley
+        shots = hand.stroke
+        swing = shots[shot]
+        impact = (swing.impact - swing.start) * 60.0
+      ball = @relative_ball(swing, @ball.velocity.clone().multiplyScalar(impact).add(@ball.position))
+      if ball.x < -0.5 || (if whichhand > 0.0 then ball.z > 0.5 else ball.z < -0.5)
+        @set_motion new Motion shots.reach
+        return @transit @state_reach_swing
+      @set_motion new Motion swing
     @transit @state_swing
   state_serve_set: State ->
     @set_motion new Motion @actions.serve.set
@@ -409,6 +415,7 @@ class Player
     @stage.sound_swing.play()
   , ->
     if Math.abs(@motion.time() - @motion.action.impact) < 0.5 / 60.0
+      @node.updateMatrixWorld false
       ball = @relative_ball @motion.action
       if Math.abs(ball.y) < 0.3
         d = 58 * 12 * 0.0254 + ball.y * 10.0
@@ -426,6 +433,7 @@ class Player
   , (shot) ->
   swing_impact: (v) ->
     if Math.abs(@motion.time() - @motion.action.impact) < 0.5 / 60.0
+      @node.updateMatrixWorld false
       ball = @relative_ball @motion.action
       if Math.abs(ball.x) < 0.5 && ball.y < 1.0 && Math.abs(ball.z) < 1.0
         d = v.length()
@@ -465,6 +473,7 @@ class Player
     if @motion.time() <= @motion.action.impact
       @node.lookAt @node.position.clone().add(v)
     if Math.abs(@motion.time() - @motion.action.impact) < 0.5 / 60.0
+      @node.updateMatrixWorld false
       ball = @relative_ball @motion.action
       if Math.abs(ball.x) < 0.5 && Math.abs(ball.y) < 0.5 && Math.abs(ball.z) < 1.0
         d = v.length() + (ball.y - ball.z) * 2.0
@@ -478,7 +487,7 @@ class Player
     @motion.action.merge @
     @transit @state_default
   , (shot) ->
-  state_reach_volley_swing: State ->
+  state_reach_swing: State ->
     impact = (@motion.action.impact - @motion.time()) * 60.0
     vx = @ball.position.x + @ball.velocity.x * impact
     vz = @ball.position.z + @ball.velocity.z * impact
