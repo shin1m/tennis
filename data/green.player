@@ -5,15 +5,15 @@
 		<toss start="4" duration="8" />
 		<swing>
 			<flat start="16" duration="32" impact="10" speed="32.0" spin="0.0 0.0 0.0" />
-			<topspin start="16" duration="32" impact="10" speed="24.0" spin="-4.0 0.0 0.0" />
-			<lob start="16" duration="32" impact="10" speed="20.0" spin="-2.0 -2.0 0.0" />
-			<slice start="16" duration="32" impact="10" speed="28.0" spin="0.0 -4.0 0.0" />
+			<topspin start="16" duration="32" impact="10" speed="28.0" spin="-4.0 0.0 0.0" />
+			<lob start="16" duration="32" impact="10" speed="24.0" spin="-2.0 -2.0 0.0" />
+			<slice start="16" duration="32" impact="10" speed="30.0" spin="0.0 -4.0 0.0" />
 		</swing>
 	</serve>
 	<ready>
 		<default start="52" duration="0" />
 		<forehand>
-			<stroke start="802" duration="0" />
+			<stroke start="398" duration="0" />
 			<volley start="406" duration="0" />
 			<smash start="414" duration="0" />
 		</forehand>
@@ -39,7 +39,7 @@
 				<backward_left start="530" duration="24" />
 				<backward_right start="446" duration="24" />
 			</lowers>
-			<stroke start="802" duration="0" />
+			<stroke start="398" duration="0" />
 			<volley start="406" duration="0" />
 			<smash start="414" duration="0" />
 		</forehand>
@@ -62,37 +62,35 @@
 	<swing>
 		<forehand>
 			<stroke>
-				<flat start="802" duration="32" impact="8" speed="20.0" spin="0.0 0.0 0.0" />
-				<topspin start="838" duration="32" impact="8" speed="18.0" spin="-4.0 0.0 0.0" />
-				<lob start="874" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
-				<slice start="694" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
-				<reach start="1270" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
+				<flat start="94" duration="32" impact="8" speed="18.0" spin="0.0 0.0 0.0" />
+				<topspin start="622" duration="32" impact="8" speed="18.0" spin="-2.0 0.0 0.0" />
+				<lob start="766" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
+				<slice start="694" duration="32" impact="8" speed="16.0" spin="2.0 0.0 0.0" />
+				<reach start="1318" duration="96" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 			</stroke>
 			<volley>
-				<flat start="166" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+				<flat start="166" duration="32" impact="8" speed="18.0" spin="1.0 0.0 0.0" />
 				<topspin start="166" duration="32" impact="8" speed="16.0" spin="0.0 0.0 0.0" />
 				<lob start="166" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
-				<slice start="166" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
-				<!-- <reach start="982" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" /> -->
-				<reach start="1126" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
+				<slice start="166" duration="32" impact="8" speed="14.0" spin="1.0 0.0 0.0" />
+				<reach start="1046" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 			</volley>
 			<smash start="238" duration="32" impact="10" speed="18.0" spin="0.0 0.0 0.0" />
 		</forehand>
 		<backhand>
 			<stroke>
-				<flat start="58" duration="32" impact="8" speed="20.0" spin="0.0 0.0 0.0" />
-				<topspin start="586" duration="32" impact="8" speed="18.0" spin="-4.0 0.0 0.0" />
+				<flat start="58" duration="32" impact="8" speed="18.0" spin="0.0 0.0 0.0" />
+				<topspin start="586" duration="32" impact="8" speed="18.0" spin="-2.0 0.0 0.0" />
 				<lob start="730" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
-				<slice start="658" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
-				<reach start="1198" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
+				<slice start="658" duration="32" impact="8" speed="16.0" spin="2.0 0.0 0.0" />
+				<reach start="1182" duration="96" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 			</stroke>
 			<volley>
-				<flat start="130" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
+				<flat start="130" duration="32" impact="8" speed="18.0" spin="1.0 0.0 0.0" />
 				<topspin start="130" duration="32" impact="8" speed="16.0" spin="0.0 0.0 0.0" />
 				<lob start="130" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
-				<slice start="130" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
-				<!-- <reach start="910" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" /> -->
-				<reach start="1054" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
+				<slice start="130" duration="32" impact="8" speed="14.0" spin="1.0 0.0 0.0" />
+				<reach start="910" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 			</volley>
 			<smash start="202" duration="32" impact="10" speed="24.0" spin="0.0 0.0 0.0" />
 		</backhand>

@@ -3,7 +3,10 @@
 DATA=$(cd $(dirname $0); pwd)
 EXTRA=$DATA/../extra
 
-blender -b $DATA/malel.blend -P $DATA/import-flip-actions.py || exit -1
+blender -b $DATA/blue.blend -P $DATA/import-actions.py || exit -1
+blender -b $DATA/red.blend -P $DATA/import-actions.py || exit -1
+blender -b $DATA/green.blend -P $DATA/import-flip-actions.py || exit -1
+blender -b $DATA/yellow.blend -P $DATA/import-flip-actions.py || exit -1
 blender -b $EXTRA/miku.blend -P $DATA/import-actions.py || exit -1
 blender -b $EXTRA/rin.blend -P $DATA/import-actions.py || exit -1
 blender -b $EXTRA/ren.blend -P $DATA/import-flip-actions.py || exit -1
