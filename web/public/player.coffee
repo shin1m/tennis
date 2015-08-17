@@ -371,7 +371,7 @@ class Player
         swing = shots[shot]
         impact = (swing.impact - swing.start) * 60.0
       ball = @relative_ball(swing, @ball.velocity.clone().multiplyScalar(impact).add(@ball.position))
-      if ball.x < -0.5 || (if whichhand > 0.0 then ball.z > 0.5 else ball.z < -0.5)
+      if ball.x < -0.5 || (if whichhand > 0.0 then ball.z > 1.0 else ball.z < -1.0)
         @set_motion new Motion shots.reach
         return @transit @state_reach_swing
       @set_motion new Motion swing
@@ -475,7 +475,7 @@ class Player
     if Math.abs(@motion.time() - @motion.action.impact) < 0.5 / 60.0
       @node.updateMatrixWorld false
       ball = @relative_ball @motion.action
-      if Math.abs(ball.x) < 0.5 && Math.abs(ball.y) < 0.5 && Math.abs(ball.z) < 1.0
+      if Math.abs(ball.x) < 0.5 && Math.abs(ball.y) < 1.0 && Math.abs(ball.z) < 1.0
         d = v.length() + (ball.y - ball.z) * 2.0
         speed = @motion.action.speed + ball.y * 0.125
         dx = v.x + v.z * ball.x * 0.0625

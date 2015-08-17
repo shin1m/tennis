@@ -453,7 +453,7 @@ $Player = Class() :: @{
 				impact = (swing.impact - swing.start) * 60.0;
 			}
 			ball = $relative_ball(swing, $ball.position + $ball.velocity * impact);
-			if (ball.x < -0.5 || (whichhand > 0.0 ? ball.z > 0.5 : ball.z < -0.5)) {
+			if (ball.x < -0.5 || (whichhand > 0.0 ? ball.z > 1.0 : ball.z < -1.0)) {
 				$motion = Motion(shots.reach);
 				return $transit($state_reach_swing);
 			}
@@ -581,7 +581,7 @@ $Player = Class() :: @{
 		if (math.fabs($motion.time - $motion.action.impact) < 0.5 / 60.0) {
 			ball = $relative_ball($motion.action);
 			#print("x: " + ball.x + ", y: " + ball.y + ", z: " + ball.z);
-			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.y) < 0.5 && math.fabs(ball.z) < 1.0) {
+			if (math.fabs(ball.x) < 0.5 && math.fabs(ball.y) < 1.0 && math.fabs(ball.z) < 1.0) {
 				d = v.length() + (ball.y - ball.z) * 2.0;
 				speed = $motion.action.speed + ball.y * 0.125;
 				dx = v.x + v.z * ball.x * 0.0625;

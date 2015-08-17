@@ -542,7 +542,7 @@ const t_player::t_state t_player::v_state_default{
 				impact = (swing->v_impact - swing->v_start) * 60.0;
 			}
 			auto ball = a_player.f_relative_ball(*swing, a_player.v_ball.v_position + a_player.v_ball.v_velocity * impact);
-			if (ball.v_x < -0.5 || (whichhand > 0.0 ? ball.v_z > 0.5 : ball.v_z < -0.5)) {
+			if (ball.v_x < -0.5 || (whichhand > 0.0 ? ball.v_z > 1.0 : ball.v_z < -1.0)) {
 				a_player.v_motion = std::make_unique<t_motion>(shots->v_reach);
 				return a_player.f_transit(a_player.v_state_reach_swing);
 			}
@@ -714,7 +714,7 @@ const t_player::t_state t_player::v_state_smash_swing{
 		}
 		if (fabs(a_player.v_motion->v_time - action.v_impact) < 0.5 / 60.0) {
 			auto ball = a_player.f_relative_ball(action);
-			if (fabs(ball.v_x) < 0.5 && fabs(ball.v_y) < 0.5 && fabs(ball.v_z) < 1.0) {
+			if (fabs(ball.v_x) < 0.5 && fabs(ball.v_y) < 1.0 && fabs(ball.v_z) < 1.0) {
 				float d = v.f_length() + (ball.v_y - ball.v_z) * 2.0;
 				float speed = action.v_speed + ball.v_y * 0.125;
 				float dx = v.v_x + v.v_z * ball.v_x * 0.0625;
