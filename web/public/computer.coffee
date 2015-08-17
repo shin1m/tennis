@@ -26,7 +26,6 @@ exports.controller = (controller, player) ->
       reset_move()
       reset_decision()
       net = false
-      return super__step.call @
     else if ball.hitter == null
       if player == @server
         if player.state == Player::state_serve_set
@@ -116,16 +115,16 @@ exports.controller = (controller, player) ->
       actions = player.actions.swing
       t = projected_time_for_y(position.y, velocity.y, player.smash_height(), 1.0)
       if t != null
+        hand = if whichhand > player.smash_hand then actions.forehand else actions.backhand
+        smash = hand.smash
         d = new THREE.Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t).sub(player.node.position).length()
-        if d < 0.5 || d / player.speed <= t
-          hand = if whichhand > player.smash_hand then actions.forehand else actions.backhand
-          swing = hand.smash
+        if d / player.speed + (smash.impact - smash.start) * 60.0 <= t
+          swing = smash
           ix = swing.spot.elements[12]
           iz = swing.spot.elements[14]
           t0 = 0.0
           t = projected_time_for_y(position.y, velocity.y, swing.spot.elements[13], 1.0)
           t = velocity.y / G if t == null
-          t -= 2.0
       unless swing
         hand = if whichhand > 0.0 then actions.forehand else actions.backhand
         swing = (if net && !ball.in then hand.volley else hand.stroke)[shot]
@@ -141,6 +140,8 @@ exports.controller = (controller, player) ->
         if net && !ball.in
           point = new THREE.Vector3(v.z, 0.0, -v.x).multiplyScalar(ix).add(v.multiplyScalar(iz)).add(player.node.position)
           t = reach_range(position, velocity, point, player.speed, 0.0, -1.0) + 1.0
+          tt = projected_time_for_y(position.y, velocity.y, swing.spot.elements[13] + 1.0, 1.0)
+          t = tt if tt != null && tt > t
         else
           t = projected_time_for_y(position.y, velocity.y, 1.25, -1.0)
           t = velocity.y / G if t == null

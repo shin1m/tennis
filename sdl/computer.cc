@@ -42,8 +42,6 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			f_reset_move();
 			state.f_reset_decision();
 			state.v_net = false;
-			step(stage);
-			return;
 		} else if (ball.v_hitter == nullptr) {
 			if (&a_player == stage.v_server) {
 				if (a_player.v_state == &t_player::v_state_serve_set) {
@@ -148,16 +146,16 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			float iz;
 			float t0;
 			if (!isnan(t)) {
+				const auto& hand = whichhand > a_player.v_smash_hand ? actions.v_forehand : actions.v_backhand;
+				const auto& smash = hand.v_smash;
 				float d = (t_vector3f(position.v_x + velocity.v_x * t, 0.0, position.v_z + velocity.v_z * t) - a_player.v_placement->v_position).f_length();
-				if (d < 0.5 || d / a_player.v_actions.v_run.v_speed <= t) {
-					const auto& hand = whichhand > a_player.v_smash_hand ? actions.v_forehand : actions.v_backhand;
-					swing = &hand.v_smash;
+				if (d / a_player.v_actions.v_run.v_speed + (smash.v_impact - smash.v_start) * 60.0 <= t) {
+					swing = &smash;
 					ix = swing->v_spot[0][3];
 					iz = swing->v_spot[2][3];
 					t0 = 0.0;
 					t = f_projected_time_for_y(position.v_y, velocity.v_y, swing->v_spot[1][3], 1.0);
 					if (isnan(t)) t = velocity.v_y / G;
-					t -= 2.0;
 				}
 			}
 			if (swing == nullptr) {
@@ -177,6 +175,8 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 				if (state.v_net && !ball.v_in) {
 					auto point = a_player.v_placement->v_position - t_vector3f(-v.v_z, 0.0, v.v_x) * ix + v * iz;
 					t = f_reach_range(position, velocity, point, a_player.v_actions.v_run.v_speed, 0.0, -1.0) + 1.0;
+					float tt = f_projected_time_for_y(position.v_y, velocity.v_y, swing->v_spot[1][3] + 1.0, 1.0);
+					if (!isnan(tt) && tt > t) t = tt;
 				} else {
 					t = f_projected_time_for_y(position.v_y, velocity.v_y, 1.25, -1.0);
 					if (isnan(t)) t = velocity.v_y / G;

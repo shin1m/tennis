@@ -31,7 +31,6 @@ $__get_at = @(stage) @(controller, player) {
 			reset_move();
 			reset_decision();
 			:net = false;
-			return super__step();
 		} else if (ball.hitter === null) {
 			if (player === stage.server) {
 				if (player.state === Player.state_serve_set) {
@@ -131,16 +130,16 @@ $__get_at = @(stage) @(controller, player) {
 			actions = player.actions.swing;
 			t = projected_time_for_y(position.y, velocity.y, player.smash_height(), 1.0);
 			if (t !== null) {
+				hand = whichhand > player.smash_hand ? actions.forehand : actions.backhand;
+				smash = hand.smash;
 				d = (Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t) - player.placement.position).length();
-				if (d < 0.5 || d / player.speed <= t) {
-					hand = whichhand > player.smash_hand ? actions.forehand : actions.backhand;
-					swing = hand.smash;
+				if (d / player.speed + (smash.impact - smash.start) * 60.0 <= t) {
+					swing = smash;
 					ix = swing.spot[3];
 					iz = swing.spot[11];
 					t0 = 0.0;
 					t = projected_time_for_y(position.y, velocity.y, swing.spot[7], 1.0);
 					if (t === null) t = velocity.y / G;
-					t = t - 2.0;
 				}
 			}
 			if (swing === null) {
@@ -159,6 +158,8 @@ $__get_at = @(stage) @(controller, player) {
 				if (net && !ball.in) {
 					point = player.placement.position - Vector3(-v.z, 0.0, v.x) * ix + v * iz;
 					t = reach_range(position, velocity, point, player.speed, 0.0, -1.0) + 1.0;
+					tt = projected_time_for_y(position.y, velocity.y, swing.spot[7] + 1.0, 1.0);
+					if (tt !== null && tt > t) t = tt;
 				} else {
 					t = projected_time_for_y(position.y, velocity.y, 1.25, -1.0);
 					if (t === null) t = velocity.y / G;
