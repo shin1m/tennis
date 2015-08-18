@@ -4,10 +4,10 @@
 		<set start="4" duration="0" />
 		<toss start="4" duration="8" />
 		<swing>
-			<flat start="16" duration="32" impact="10" speed="32.0" spin="0.0 0.0 0.0" />
+			<flat start="16" duration="32" impact="10" speed="28.0" spin="0.0 0.0 0.0" />
 			<topspin start="16" duration="32" impact="10" speed="24.0" spin="-4.0 0.0 0.0" />
 			<lob start="16" duration="32" impact="10" speed="20.0" spin="-2.0 -2.0 0.0" />
-			<slice start="16" duration="32" impact="10" speed="28.0" spin="0.0 -4.0 0.0" />
+			<slice start="16" duration="32" impact="10" speed="26.0" spin="0.0 -4.0 0.0" />
 		</swing>
 	</serve>
 	<ready>
@@ -62,15 +62,15 @@
 	<swing>
 		<forehand>
 			<stroke>
-				<flat start="802" duration="32" impact="8" speed="20.0" spin="0.0 0.0 0.0" />
-				<topspin start="838" duration="32" impact="8" speed="18.0" spin="-4.0 0.0 0.0" />
-				<lob start="874" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
-				<slice start="694" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
+				<flat start="802" duration="32" impact="8" speed="20.0" spin="-2.0 0.0 0.0" />
+				<topspin start="838" duration="32" impact="8" speed="18.0" spin="-6.0 0.0 0.0" />
+				<lob start="874" duration="32" impact="8" speed="12.0" spin="-2.0 0.0 0.0" />
+				<slice start="694" duration="32" impact="8" speed="16.0" spin="2.0 0.0 0.0" />
 				<reach start="1318" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 			</stroke>
 			<volley>
-				<flat start="166" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
-				<topspin start="166" duration="32" impact="8" speed="16.0" spin="0.0 0.0 0.0" />
+				<flat start="166" duration="32" impact="8" speed="14.0" spin="1.0 0.0 0.0" />
+				<topspin start="166" duration="32" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 				<lob start="166" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
 				<slice start="166" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
 				<reach start="1046" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
@@ -79,15 +79,15 @@
 		</forehand>
 		<backhand>
 			<stroke>
-				<flat start="58" duration="32" impact="8" speed="20.0" spin="0.0 0.0 0.0" />
-				<topspin start="586" duration="32" impact="8" speed="18.0" spin="-4.0 0.0 0.0" />
-				<lob start="730" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
-				<slice start="658" duration="32" impact="8" speed="16.0" spin="4.0 0.0 0.0" />
+				<flat start="58" duration="32" impact="8" speed="20.0" spin="-2.0 0.0 0.0" />
+				<topspin start="586" duration="32" impact="8" speed="18.0" spin="-6.0 0.0 0.0" />
+				<lob start="730" duration="32" impact="8" speed="12.0" spin="-2.0 0.0 0.0" />
+				<slice start="658" duration="32" impact="8" speed="16.0" spin="2.0 0.0 0.0" />
 				<reach start="1182" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 			</stroke>
 			<volley>
-				<flat start="130" duration="32" impact="8" speed="16.0" spin="1.0 0.0 0.0" />
-				<topspin start="130" duration="32" impact="8" speed="16.0" spin="0.0 0.0 0.0" />
+				<flat start="130" duration="32" impact="8" speed="14.0" spin="1.0 0.0 0.0" />
+				<topspin start="130" duration="32" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
 				<lob start="130" duration="32" impact="8" speed="12.0" spin="0.0 0.0 0.0" />
 				<slice start="130" duration="32" impact="8" speed="12.0" spin="1.0 0.0 0.0" />
 				<reach start="910" duration="64" impact="8" speed="14.0" spin="0.0 0.0 0.0" />
