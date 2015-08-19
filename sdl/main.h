@@ -28,10 +28,7 @@ struct t_main
 	}
 	std::unique_ptr<xmlParserInputBuffer, void (*)(xmlParserInputBufferPtr)> f_input(const std::wstring& a_name);
 	void f_load(t_document& a_document, const std::wstring& a_name);
-	void f_load(gl::t_image& a_image, const std::wstring& a_name)
-	{
-		a_image.f_create(f_path(a_name));
-	}
+	void f_load(gl::t_image& a_image, const std::wstring& a_name);
 	template<typename T>
 	void f_load(T& a_sound, const std::wstring& a_name)
 	{

@@ -37,7 +37,6 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	a_main.f_load(v_sound_ace, L"ace.wav");
 	a_main.f_load(v_sound_miss, L"miss.wav");
 	a_main.f_load(v_scene, L"court.dae");
-	v_scene.f_build(a_main.v_shaders);
 	v_ball = std::make_unique<t_ball>(*this, L"#Material-Shadow", L"#Material-Ball");
 	v_mark = std::make_unique<t_mark>(*this, L"#Material-Shadow");
 	v_player0 = std::make_unique<t_player>(*this, a_player0);

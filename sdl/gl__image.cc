@@ -28,7 +28,7 @@ void f_load_rgba(const std::wstring& a_path, size_t& a_width, size_t& a_height, 
 	if (!error.empty()) throw std::runtime_error(error);
 }
 
-void t_image::f_create(const std::wstring& a_path)
+void t_image::f_create(const std::wstring& a_path, GLint a_format)
 {
 	size_t width;
 	size_t height;
@@ -81,7 +81,7 @@ void t_image::f_create(const std::wstring& a_path)
 	v_texture.f_create();
 	f_active_texture(GL_TEXTURE0);
 	f_bind_texture(GL_TEXTURE_2D, v_texture);
-	f_tex_image2d(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+	f_tex_image2d(GL_TEXTURE_2D, 0, a_format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 	f_tex_parameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	f_tex_parameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	f_bind_texture(GL_TEXTURE_2D, 0);

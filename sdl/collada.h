@@ -75,6 +75,8 @@ protected:
 	std::map<std::wstring, t_unique*> v_ids;
 
 public:
+	GLint v_texture_format = GL_RGBA;
+
 	t_unique* operator[](const std::wstring& a_id) const
 	{
 		return v_ids.at(a_id.substr(1));
@@ -850,7 +852,7 @@ struct t_scene
 	}
 };
 
-struct t_document : public t_resolve
+struct t_document : t_resolve
 {
 	t_instance_material_fallback v_instance_material_fallback;
 	std::wstring v_version;

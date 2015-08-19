@@ -43,6 +43,13 @@ void t_main::f_load(t_document& a_document, const std::wstring& a_name)
 	t_reader reader(input.get());
 	size_t n = a_name.find_last_of(L'/');
 	a_document.f_load(reader, f_path(n == std::wstring::npos ? std::wstring() : a_name.substr(0, n + 1)));
+	a_document.v_texture_format = GL_RGB5_A1;
+	a_document.f_build(v_shaders);
+}
+
+void t_main::f_load(gl::t_image& a_image, const std::wstring& a_name)
+{
+	a_image.f_create(f_path(a_name), GL_RGB5_A1);
 }
 
 void t_match::f_new_game()

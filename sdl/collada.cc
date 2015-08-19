@@ -287,7 +287,7 @@ void t_sampler2d::f_build(const t_resolve& a_resolve, const std::map<std::wstrin
 	v_texture.f_create();
 	gl::f_active_texture(GL_TEXTURE0);
 	gl::f_bind_texture(GL_TEXTURE_2D, v_texture);
-	gl::f_tex_image2d(GL_TEXTURE_2D, 0, GL_RGBA, from->v_width, from->v_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, from->v_data.data());
+	gl::f_tex_image2d(GL_TEXTURE_2D, 0, a_resolve.v_texture_format, from->v_width, from->v_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, from->v_data.data());
 	GLint filter = f_filter(v_minfilter);
 	if (filter == GL_NONE) filter = GL_NEAREST_MIPMAP_LINEAR;
 	switch (filter) {

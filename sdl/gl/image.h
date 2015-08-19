@@ -23,7 +23,7 @@ struct t_image
 	t_texture v_texture;
 	t_buffer v_vertices;
 
-	void f_create(const std::wstring& a_path);
+	void f_create(const std::wstring& a_path, GLint a_format = GL_RGBA);
 	template<typename T_array>
 	void operator()(const t_matrix4f& a_projection, const t_matrix4f& a_vertex, const T_array& a_array);
 };

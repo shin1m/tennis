@@ -400,7 +400,6 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 t_player::t_player(t_stage& a_stage, const std::wstring& a_model) : v_stage(a_stage), v_ball(*a_stage.v_ball)
 {
 	a_stage.v_main.f_load(v_scene, a_model + L".dae");
-	v_scene.f_build(a_stage.v_main.v_shaders);
 	v_node = &dynamic_cast<t_node&>(*v_scene[L"#Armature"]);
 	v_node->v_transforms.clear();
 	auto placement = std::make_unique<t_placement>();
