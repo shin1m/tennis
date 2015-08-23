@@ -22,7 +22,7 @@ Matrix = @(N) Class() :: @{
 	}();
 	Icopy = I.copy;
 	LU = Class() :: @{
-		Row = Class() :: @{
+		Column = Class() :: @{
 			$__initialize = @(bytes, i) {
 				$i = i;
 				$w = 0.0;
@@ -54,20 +54,20 @@ Matrix = @(N) Class() :: @{
 
 		$__initialize = @{
 			bytes = Bytes(NNBPE);
-			rows = [];
-			for (i = 0; i < N; i = i + 1) rows.push(Row(bytes, i));
-			$rows = rows;
+			columns = [];
+			for (i = 0; i < N; i = i + 1) columns.push(Column(bytes, i));
+			$columns = columns;
 		};
 		$initialize = @(x) {
-			for (i = 0; i < N; i = i + 1) if (!$rows[i].initialize(x, i)) return false;
+			for (i = 0; i < N; i = i + 1) if (!$columns[i].initialize(x, i)) return false;
 			true;
 		};
 		$pivot = @(i) {
-			rows = $rows;
-			d = rows[i].pivot(i);
+			columns = $columns;
+			d = columns[i].pivot(i);
 			p = i;
 			for (j = i + 1; j < N; j = j + 1) {
-				d0 = rows[j].pivot(i);
+				d0 = columns[j].pivot(i);
 				if (d0 <= d) continue;
 				d = d0;
 				p = j;
@@ -75,36 +75,36 @@ Matrix = @(N) Class() :: @{
 			p;
 		};
 		$erase = @(i, d) {
-			rows = $rows;
-			ds = rows[i].m;
-			for (j = i + 1; j < N; j = j + 1) rows[j].erase(d, i, ds);
+			columns = $columns;
+			ds = columns[i].m;
+			for (j = i + 1; j < N; j = j + 1) columns[j].erase(d, i, ds);
 		};
 		$decompose = @(x) {
 			if (!$initialize(x)) return false;
 			for (i = 0; i < N - 1; i = i + 1) {
 				p = $pivot(i);
 				if (p != i) {
-					t = $rows[i];
-					$rows[i] = $rows[p];
-					$rows[p] = t;
+					t = $columns[i];
+					$columns[i] = $columns[p];
+					$columns[p] = t;
 				}
-				d = $rows[i].m[i];
+				d = $columns[i].m[i];
 				if (d == 0.0) return false;
 				$erase(i, d);
 			}
-			$rows[N - 1].m[N - 1] != 0.0;
+			$columns[N - 1].m[N - 1] != 0.0;
 		};
 		$backsubstitute = @(x) {
 			for (j = 0; j < N; j = j + 1) {
 				for (i = 0; i < N; i = i + 1) {
-					ds = $rows[i].m;
-					d = $rows[i].i == j ? 1.0 : 0.0;
+					ds = $columns[i].m;
+					d = $columns[i].i == j ? 1.0 : 0.0;
 					for (k = 0; k < i; k = k + 1) d = d - ds[k] * x[k * N + j];
 					x[i * N + j] = d;
 				}
 				while (true) {
 					i = i - 1;
-					ds = $rows[i].m;
+					ds = $columns[i].m;
 					d = x[i * N + j];
 					for (k = i + 1; k < N; k = k + 1) d = d - ds[k] * x[k * N + j];
 					x[i * N + j] = d / ds[i];
@@ -118,17 +118,17 @@ Matrix = @(N) Class() :: @{
 			for (i = 0; i < N - 1; i = i + 1) {
 				p = $pivot(i);
 				if (p != i) {
-					t = $rows[i];
-					$rows[i] = $rows[p];
-					$rows[p] = t;
+					t = $columns[i];
+					$columns[i] = $columns[p];
+					$columns[p] = t;
 					determinant = -determinant;
 				}
-				d = $rows[i].m[i];
+				d = $columns[i].m[i];
 				if (d == 0.0) return 0.0;
 				determinant = determinant * d;
 				$erase(i, d);
 			}
-			determinant * $rows[N - 1].m[N - 1];
+			determinant * $columns[N - 1].m[N - 1];
 		};
 	};
 
@@ -164,8 +164,8 @@ Matrix = @(N) Class() :: @{
 		s = "";
 		for (i = 0; i < N; i = i + 1) {
 			r = i * N;
-			t = "[";
-			for (j = 0; j < N; j = j + 1) t = t + " " + v[r + j];
+			t = "[" + v[r];
+			for (j = 1; j < N; j = j + 1) t = t + " " + v[r + j];
 			s = s + t + "]\n";
 		}
 		s;
@@ -200,11 +200,11 @@ Matrix = @(N) Class() :: @{
 	$__subtract = @(value) :$($).subtract(value);
 	multiply = @(v, v0, v1) {
 		for (i = 0; i < N; i = i + 1) {
-			r = i * N;
 			for (j = 0; j < N; j = j + 1) {
-				d = 0.0;
-				for (k = 0; k < N; k = k + 1) d = d + v0[r + k] * v1[k * N + j];
-				v[r + j] = d;
+				c = j * N;
+				d = v0[i] * v1[c];
+				for (k = 1; k < N; k = k + 1) d = d + v0[k * N + i] * v1[c + k];
+				v[c + i] = d;
 			}
 		}
 	};
@@ -244,9 +244,9 @@ Matrix = @(N) Class() :: @{
 		v = $v;
 		n = N - 1;
 		for (i = 0; i < n; i = i + 1) {
-			r = i * N;
+			c = i * N;
 			for (j = i + 1; j < N; j = j + 1) {
-				i0 = r + j;
+				i0 = c + j;
 				i1 = j * N + i;
 				t = v[i0];
 				v[i0] = v[i1];
@@ -401,9 +401,9 @@ Matrix3.__multiply = @(value) {
 	if (value.: === Vector3) {
 		v = $v;
 		Vector3(
-			v[0] * value.x + v[1] * value.y + v[2] * value.z,
-			v[3] * value.x + v[4] * value.y + v[5] * value.z,
-			v[6] * value.x + v[7] * value.y + v[8] * value.z
+			v[0] * value.x + v[3] * value.y + v[6] * value.z,
+			v[1] * value.x + v[4] * value.y + v[7] * value.z,
+			v[2] * value.x + v[5] * value.y + v[8] * value.z
 		);
 	} else {
 		Matrix3__multiply[$](value);
@@ -415,17 +415,17 @@ Matrix4.__multiply = @(value) {
 	if (value.: === Vector3) {
 		v = $v;
 		Vector3(
-			v[0] * value.x + v[1] * value.y + v[2] * value.z + v[3],
-			v[4] * value.x + v[5] * value.y + v[6] * value.z + v[7],
-			v[8] * value.x + v[9] * value.y + v[10] * value.z + v[11]
+			v[0] * value.x + v[4] * value.y + v[8] * value.z + v[12],
+			v[1] * value.x + v[5] * value.y + v[9] * value.z + v[13],
+			v[2] * value.x + v[6] * value.y + v[10] * value.z + v[14]
 		);
 	} else if (value.: === Vector4) {
 		v = $v;
 		Vector4(
-			v[0] * value.x + v[1] * value.y + v[2] * value.z + v[3] * value.w,
-			v[4] * value.x + v[5] * value.y + v[6] * value.z + v[7] * value.w,
-			v[8] * value.x + v[9] * value.y + v[10] * value.z + v[11] * value.w,
-			v[12] * value.x + v[13] * value.y + v[14] * value.z + v[15] * value.w
+			v[0] * value.x + v[4] * value.y + v[8] * value.z + v[12] * value.w,
+			v[1] * value.x + v[5] * value.y + v[9] * value.z + v[13] * value.w,
+			v[2] * value.x + v[6] * value.y + v[10] * value.z + v[14] * value.w,
+			v[3] * value.x + v[7] * value.y + v[11] * value.z + v[15] * value.w
 		);
 	} else {
 		Matrix4__multiply[$](value);
@@ -434,22 +434,22 @@ Matrix4.__multiply = @(value) {
 
 Matrix4.translate = @(x, y, z) {
 	v = $v;
-	v[3] = v[0] * x + v[1] * y + v[2] * z + v[3];
-	v[7] = v[4] * x + v[5] * y + v[6] * z + v[7];
-	v[11] = v[8] * x + v[9] * y + v[10] * z + v[11];
+	v[12] = v[0] * x + v[4] * y + v[8] * z + v[12];
+	v[13] = v[1] * x + v[5] * y + v[9] * z + v[13];
+	v[14] = v[2] * x + v[6] * y + v[10] * z + v[14];
 	$;
 };
 
 Matrix4.scale = @(x, y, z) {
 	v = $v;
 	v[0] = v[0] * x;
-	v[1] = v[1] * y;
-	v[2] = v[2] * z;
-	v[4] = v[4] * x;
+	v[1] = v[1] * x;
+	v[2] = v[2] * x;
+	v[4] = v[4] * y;
 	v[5] = v[5] * y;
-	v[6] = v[6] * z;
-	v[8] = v[8] * x;
-	v[9] = v[9] * y;
+	v[6] = v[6] * y;
+	v[8] = v[8] * z;
+	v[9] = v[9] * z;
 	v[10] = v[10] * z;
 	$;
 };
@@ -469,13 +469,13 @@ Matrix4.rotate = @(axis, angle) {
 	m = Matrix4();
 	v = m.v;
 	v[0] = d0 * x * x + c;
-	v[1] = d0 * xy - s * z;
-	v[2] = d0 * zx + s * y;
-	v[4] = d0 * xy + s * z;
+	v[1] = d0 * xy + s * z;
+	v[2] = d0 * zx - s * y;
+	v[4] = d0 * xy - s * z;
 	v[5] = d0 * y * y + c;
-	v[6] = d0 * yz - s * x;
-	v[8] = d0 * zx - s * y;
-	v[9] = d0 * yz + s * x;
+	v[6] = d0 * yz + s * x;
+	v[8] = d0 * zx + s * y;
+	v[9] = d0 * yz - s * x;
 	v[10] = d0 * z * z + c;
 	$multiply(m);
 };
@@ -484,12 +484,12 @@ Matrix4.frustum = @(left, right, bottom, top, near, far) {
 	m = Matrix4(0.0);
 	v = m.v;
 	v[0] = 2.0 * near / (right - left);
-	v[2] = (right + left) / (right - left);
 	v[5] = 2.0 * near / (top - bottom);
-	v[6] = (top + bottom) / (top - bottom);
+	v[8] = (right + left) / (right - left);
+	v[9] = (top + bottom) / (top - bottom);
 	v[10] = -(far + near) / (far - near);
-	v[11] = -2.0 * far * near / (far - near);
-	v[14] = -1.0;
+	v[11] = -1.0;
+	v[14] = -2.0 * far * near / (far - near);
 	$multiply(m);
 };
 
@@ -497,11 +497,11 @@ Matrix4.orthographic = @(left, right, bottom, top, near, far) {
 	m = Matrix4();
 	v = m.v;
 	v[0] = 2.0 / (right - left);
-	v[3] = -(right + left) / (right - left);
 	v[5] = 2.0 / (top - bottom);
-	v[7] = -(top + bottom) / (top - bottom);
 	v[10] = -2.0 / (far - near);
-	v[11] = -(far + near) / (far - near);
+	v[12] = -(right + left) / (right - left);
+	v[13] = -(top + bottom) / (top - bottom);
+	v[14] = -(far + near) / (far - near);
 	$multiply(m);
 };
 
@@ -559,24 +559,24 @@ if ($ === Module("__main")) {
 
 	m = Matrix3();
 	m.v[0] = 0.0;
-	m.v[1] = 1.0;
-	m.v[3] = -1.0;
+	m.v[1] = -1.0;
+	m.v[3] = 1.0;
 	m.v[4] = 0.0;
 	m.invert();
 	print(m);
 	m1 = Matrix3();
 	m1.v[0] = 0.0;
-	m1.v[1] = -1.0;
-	m1.v[3] = 1.0;
+	m1.v[1] = 1.0;
+	m1.v[3] = -1.0;
 	m1.v[4] = 0.0;
 	assert(m.equals(m1, 0.0001));
 
 	m = Matrix3();
-	m.v[2] = 2.0;
+	m.v[6] = 2.0;
 	m.transpose();
 	print(m);
 	m1 = Matrix3();
-	m1.v[6] = 2.0;
+	m1.v[2] = 2.0;
 	assert(m == m1);
 
 	m = Matrix4().translate(1.0, 2.0, -3.0);
@@ -610,8 +610,8 @@ if ($ === Module("__main")) {
 	m1.v[0] = 0.5;
 	m1.v[5] = 1.0;
 	m1.v[10] = -3.0;
-	m1.v[11] = -4.0;
-	m1.v[14] = -1.0;
+	m1.v[11] = -1.0;
+	m1.v[14] = -4.0;
 	assert(m.equals(m1, 0.0001));
 	v = m * Vector4(10.0, 20.0, -30.0, 1.0);
 	print(v);

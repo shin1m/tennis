@@ -17,7 +17,7 @@ class t_matrix
 {
 	struct t_lu
 	{
-		struct t_row
+		struct t_column
 		{
 			T w;
 			T m[N];
@@ -46,23 +46,23 @@ class t_matrix
 			}
 		};
 
-		t_row rows[N];
+		t_column columns[N];
 		size_t is[N];
 
 		bool f_initialize(const t_matrix<N, T>& x)
 		{
 			for (size_t i = 0; i < N; ++i) {
-				if (!rows[i].f_initialize(x[i])) return false;
+				if (!columns[i].f_initialize(x[i])) return false;
 				is[i] = i;
 			}
 			return true;
 		}
 		size_t f_pivot(size_t i) const
 		{
-			T d = rows[is[i]].f_pivot(i);
+			T d = columns[is[i]].f_pivot(i);
 			size_t p = i;
 			for (size_t j = i + 1; j < N; ++j) {
-				T d0 = rows[is[j]].f_pivot(i);
+				T d0 = columns[is[j]].f_pivot(i);
 				if (d0 <= d) continue;
 				d = d0;
 				p = j;
@@ -71,8 +71,8 @@ class t_matrix
 		}
 		void f_erase(size_t i, T d)
 		{
-			const T* ds = rows[is[i]].m;
-			for (size_t j = i + 1; j < N; ++j) rows[is[j]].f_erase(d, i, ds);
+			const T* ds = columns[is[i]].m;
+			for (size_t j = i + 1; j < N; ++j) columns[is[j]].f_erase(d, i, ds);
 		}
 		bool f_decompose(const t_matrix<N, T>& x)
 		{
@@ -80,24 +80,24 @@ class t_matrix
 			for (size_t i = 0; i < N - 1; ++i) {
 				size_t p = f_pivot(i);
 				if (p != i) std::swap(is[i], is[p]);
-				T d = rows[is[i]].m[i];
+				T d = columns[is[i]].m[i];
 				if (d == 0.0) return false;
 				f_erase(i, d);
 			}
-			return rows[is[N - 1]].m[N - 1] != 0.0;
+			return columns[is[N - 1]].m[N - 1] != 0.0;
 		}
 		void f_backsubstitute(t_matrix<N, T>& x) const
 		{
 			for (size_t j = 0; j < N; ++j) {
 				size_t i;
 				for (i = 0; i < N; ++i) {
-					const T* ds = rows[is[i]].m;
+					const T* ds = columns[is[i]].m;
 					T d = is[i] == j ? 1.0 : 0.0;
 					for (size_t k = 0; k < i; ++k) d -= ds[k] * x[k][j];
 					x[i][j] = d;
 				}
 				do {
-					const T* ds = rows[is[--i]].m;
+					const T* ds = columns[is[--i]].m;
 					T d = x[i][j];
 					for (size_t k = i + 1; k < N; ++k) d -= ds[k] * x[k][j];
 					x[i][j] = d / ds[i];
@@ -114,12 +114,12 @@ class t_matrix
 					std::swap(is[i], is[p]);
 					determinant = -determinant;
 				}
-				T d = rows[is[i]].m[i];
+				T d = columns[is[i]].m[i];
 				if (d == 0.0) return 0.0;
 				determinant *= d;
 				f_erase(i, d);
 			}
-			return determinant * rows[is[N - 1]].m[N - 1];
+			return determinant * columns[is[N - 1]].m[N - 1];
 		}
 	};
 
@@ -132,9 +132,7 @@ public:
 		T v[N][N];
 	};
 
-	t_matrix()
-	{
-	}
+	t_matrix() = default;
 	t_matrix(const t_matrix<N, T>& a_value)
 	{
 		for (size_t i = 0; i < N * N; ++i) v_array[i] = a_value.v_array[i];
@@ -241,10 +239,10 @@ public:
 	{
 		for (size_t i = 0; i < N; ++i) {
 			T ds[N];
-			for (size_t j = 0; j < N; ++j) ds[j] = v[i][j];
+			for (size_t j = 0; j < N; ++j) ds[j] = v[j][i];
 			for (size_t j = 0; j < N; ++j) {
-				v[i][j] = ds[0] * a_value[0][j];
-				for (size_t k = 1; k < N; ++k) v[i][j] += ds[k] * a_value[k][j];
+				v[j][i] = ds[0] * a_value[j][0];
+				for (size_t k = 1; k < N; ++k) v[j][i] += ds[k] * a_value[j][k];
 			}
 		}
 		return *this;
@@ -253,10 +251,10 @@ public:
 	{
 		for (size_t i = 0; i < N - 1; ++i) {
 			T ds[N - 1];
-			for (size_t j = 0; j < N - 1; ++j) ds[j] = v[i][j];
+			for (size_t j = 0; j < N - 1; ++j) ds[j] = v[j][i];
 			for (size_t j = 0; j < N - 1; ++j) {
-				v[i][j] = ds[0] * a_value[0][j];
-				for (size_t k = 1; k < N - 1; ++k) v[i][j] += ds[k] * a_value[k][j];
+				v[j][i] = ds[0] * a_value[j][0];
+				for (size_t k = 1; k < N - 1; ++k) v[j][i] += ds[k] * a_value[j][k];
 			}
 		}
 		return *this;
@@ -369,8 +367,8 @@ inline U f_transform(const t_matrix<N, T>& a_value0, const U& a_value1)
 {
 	U x;
 	for (size_t i = 0; i < N; ++i) {
-		x[i] = a_value0[i][0] * a_value1[0];
-		for (size_t j = 1; j < N; ++j) x[i] += a_value0[i][j] * a_value1[j];
+		x[i] = a_value0[0][i] * a_value1[0];
+		for (size_t j = 1; j < N; ++j) x[i] += a_value0[j][i] * a_value1[j];
 	}
 	return x;
 }
@@ -380,8 +378,8 @@ inline U f_transform(const U& a_value0, const t_matrix<N, T>& a_value1)
 {
 	U x;
 	for (size_t i = 0; i < N; ++i) {
-		x[i] = a_value0[0] * a_value1[0][i];
-		for (size_t j = 1; j < N; ++j) x[i] += a_value0[j] * a_value1[j][i];
+		x[i] = a_value0[0] * a_value1[i][0];
+		for (size_t j = 1; j < N; ++j) x[i] += a_value0[j] * a_value1[i][j];
 	}
 	return x;
 }

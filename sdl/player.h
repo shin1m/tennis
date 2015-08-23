@@ -187,7 +187,7 @@ struct t_player
 	{
 		v_placement->f_validate();
 		const auto& m = static_cast<t_matrix_transform&>(*v_root->v_transforms[1]);
-		return f_affine(*v_placement, f_affine(static_cast<t_matrix_transform&>(*v_root->v_transforms[0]), t_vector3f(m[0][3], m[1][3], m[2][3])));
+		return f_affine(*v_placement, f_affine(static_cast<t_matrix_transform&>(*v_root->v_transforms[0]), t_vector3f(m[3][0], m[3][1], m[3][2])));
 	}
 	t_vector3f f_direction() const
 	{
@@ -205,10 +205,10 @@ struct t_player
 		v_placement->f_validate();
 		auto p = a_ball - v_placement->v_position;
 		const auto& v = v_placement->v_toward;
-		float x = v.v_z * p.v_x - v.v_x * p.v_z - a_swing.v_spot[0][3];
-		float y = p.v_y - a_swing.v_spot[1][3];
-		float z = v.v_x * p.v_x + v.v_z * p.v_z - a_swing.v_spot[2][3];
-		return a_swing.v_spot[0][1] > 0.0 ? t_vector3f(-x, y, -z) : t_vector3f(x, y, z);
+		float x = v.v_z * p.v_x - v.v_x * p.v_z - a_swing.v_spot[3][0];
+		float y = p.v_y - a_swing.v_spot[3][1];
+		float z = v.v_x * p.v_x + v.v_z * p.v_z - a_swing.v_spot[3][2];
+		return a_swing.v_spot[1][0] > 0.0 ? t_vector3f(-x, y, -z) : t_vector3f(x, y, z);
 	}
 	t_vector3f f_relative_ball(const t_swing& a_swing) const
 	{
@@ -237,7 +237,7 @@ struct t_player
 	}
 	float f_smash_height() const
 	{
-		return v_actions.v_swing.v_forehand.v_smash.v_spot[1][3] - 0.25;
+		return v_actions.v_swing.v_forehand.v_smash.v_spot[3][1] - 0.25;
 	}
 	static const t_state v_state_default;
 	static const t_state v_state_serve_set;

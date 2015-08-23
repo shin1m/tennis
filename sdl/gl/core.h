@@ -85,15 +85,6 @@ public:
 
 class t_uniform_location
 {
-	template<size_t A_N>
-	static void f_transpose(const GLfloat* a_values, GLsizei a_count, GLfloat* a_p)
-	{
-		for (; a_count > 0; --a_count) {
-			for (size_t i = 0; i < A_N; ++i) for (size_t j = 0; j < A_N; ++j) *a_p++ = a_values[j * A_N + i];
-			a_values += A_N * A_N;
-		}
-	}
-
 	GLint v_id;
 
 public:
@@ -184,79 +175,19 @@ public:
 		glUniform4iv(v_id, a_count, a_values);
 		f_check();
 	}
-	void f_matrix2(bool a_transpose, const GLfloat* a_values)
+	void f_matrix2(const GLfloat* a_values, GLsizei a_count = 1)
 	{
-		if (a_transpose) {
-			GLfloat values[] = {
-				a_values[0], a_values[2],
-				a_values[1], a_values[3]
-			};
-			glUniformMatrix2fv(v_id, 1, GL_FALSE, values);
-		} else {
-			glUniformMatrix2fv(v_id, 1, GL_FALSE, a_values);
-		}
+		glUniformMatrix2fv(v_id, a_count, GL_FALSE, a_values);
 		f_check();
 	}
-	void f_matrix2(bool a_transpose, const GLfloat* a_values, GLsizei a_count)
+	void f_matrix3(const GLfloat* a_values, GLsizei a_count = 1)
 	{
-		if (a_transpose) {
-			std::vector<GLfloat> values(a_count * 4);
-			f_transpose<2>(a_values, a_count, values.data());
-			glUniformMatrix2fv(v_id, a_count, GL_FALSE, values.data());
-		} else {
-			glUniformMatrix2fv(v_id, a_count, GL_FALSE, a_values);
-		}
+		glUniformMatrix3fv(v_id, a_count, GL_FALSE, a_values);
 		f_check();
 	}
-	void f_matrix3(bool a_transpose, const GLfloat* a_values)
+	void f_matrix4(const GLfloat* a_values, GLsizei a_count = 1)
 	{
-		if (a_transpose) {
-			GLfloat values[] = {
-				a_values[0], a_values[3], a_values[6],
-				a_values[1], a_values[4], a_values[7],
-				a_values[2], a_values[5], a_values[8]
-			};
-			glUniformMatrix3fv(v_id, 1, GL_FALSE, values);
-		} else {
-			glUniformMatrix3fv(v_id, 1, GL_FALSE, a_values);
-		}
-		f_check();
-	}
-	void f_matrix3(bool a_transpose, const GLfloat* a_values, GLsizei a_count)
-	{
-		if (a_transpose) {
-			std::vector<GLfloat> values(a_count * 9);
-			f_transpose<3>(a_values, a_count, values.data());
-			glUniformMatrix3fv(v_id, a_count, GL_FALSE, values.data());
-		} else {
-			glUniformMatrix3fv(v_id, a_count, GL_FALSE, a_values);
-		}
-		f_check();
-	}
-	void f_matrix4(bool a_transpose, const GLfloat* a_values)
-	{
-		if (a_transpose) {
-			GLfloat values[] = {
-				a_values[0], a_values[4], a_values[8], a_values[12],
-				a_values[1], a_values[5], a_values[9], a_values[13],
-				a_values[2], a_values[6], a_values[10], a_values[14],
-				a_values[3], a_values[7], a_values[11], a_values[15]
-			};
-			glUniformMatrix4fv(v_id, 1, GL_FALSE, values);
-		} else {
-			glUniformMatrix4fv(v_id, 1, GL_FALSE, a_values);
-		}
-		f_check();
-	}
-	void f_matrix4(bool a_transpose, const GLfloat* a_values, GLsizei a_count)
-	{
-		if (a_transpose) {
-			std::vector<GLfloat> values(a_count * 16);
-			f_transpose<4>(a_values, a_count, values.data());
-			glUniformMatrix4fv(v_id, a_count, GL_FALSE, values.data());
-		} else {
-			glUniformMatrix4fv(v_id, a_count, GL_FALSE, a_values);
-		}
+		glUniformMatrix4fv(v_id, a_count, GL_FALSE, a_values);
 		f_check();
 	}
 };

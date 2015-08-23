@@ -65,7 +65,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 							state.v_shot = &t_player::t_shots::v_flat;
 					}
 					const auto& swing = a_player.v_actions.v_serve.v_swing.*state.v_shot;
-					float t = ball.f_projected_time_for_y(swing.v_spot[1][3], 1.0);
+					float t = ball.f_projected_time_for_y(swing.v_spot[3][1], 1.0);
 					float dt = stage.v_second ? 0.0 : 1.0;
 					if (f_random() % 2 == 0) dt += 1.0;
 					if (t < (swing.v_impact - swing.v_start) * 60.0 + dt) {
@@ -151,18 +151,18 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 				float d = (t_vector3f(position.v_x + velocity.v_x * t, 0.0, position.v_z + velocity.v_z * t) - a_player.v_placement->v_position).f_length();
 				if (d / a_player.v_actions.v_run.v_speed + (smash.v_impact - smash.v_start) * 60.0 <= t) {
 					swing = &smash;
-					ix = swing->v_spot[0][3];
-					iz = swing->v_spot[2][3];
+					ix = swing->v_spot[3][0];
+					iz = swing->v_spot[3][2];
 					t0 = 0.0;
-					t = f_projected_time_for_y(position.v_y, velocity.v_y, swing->v_spot[1][3], 1.0);
+					t = f_projected_time_for_y(position.v_y, velocity.v_y, swing->v_spot[3][1], 1.0);
 					if (isnan(t)) t = velocity.v_y / G;
 				}
 			}
 			if (swing == nullptr) {
 				const auto& hand = whichhand > 0.0 ? actions.v_forehand : actions.v_backhand;
 				swing = &((state.v_net && !ball.v_in ? hand.v_volley : hand.v_stroke).*state.v_shot);
-				ix = swing->v_spot[0][3];
-				iz = swing->v_spot[2][3];
+				ix = swing->v_spot[3][0];
+				iz = swing->v_spot[3][2];
 				if (state.v_net || ball.v_in) {
 					t0 = 0.0;
 				} else {
@@ -175,7 +175,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 				if (state.v_net && !ball.v_in) {
 					auto point = a_player.v_placement->v_position - t_vector3f(-v.v_z, 0.0, v.v_x) * ix + v * iz;
 					t = f_reach_range(position, velocity, point, a_player.v_actions.v_run.v_speed, 0.0, -1.0) + 1.0;
-					float tt = f_projected_time_for_y(position.v_y, velocity.v_y, swing->v_spot[1][3] + 1.0, 1.0);
+					float tt = f_projected_time_for_y(position.v_y, velocity.v_y, swing->v_spot[3][1] + 1.0, 1.0);
 					if (!isnan(tt) && tt > t) t = tt;
 				} else {
 					t = f_projected_time_for_y(position.v_y, velocity.v_y, 1.25, -1.0);

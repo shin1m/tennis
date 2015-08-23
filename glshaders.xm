@@ -32,8 +32,8 @@ MeshShader = Class() :: @{
 		$vertex = $program.get_attrib_location("vertex");
 	};
 	$call = @(uniforms, attributes, mode, offset, count) {
-		$projection.matrix4fv(true, uniforms.projection);
-		$vertex_matrix.matrix4fv(true, uniforms.vertex);
+		$projection.matrix4fv(false, uniforms.projection);
+		$vertex_matrix.matrix4fv(false, uniforms.vertex);
 		gl.enable_vertex_attrib_array($vertex);
 		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.vertices);
 		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, 0, 0);
@@ -61,7 +61,7 @@ WithNormal = @{
 			gl.enable_vertex_attrib_array($normal);
 			gl.bind_buffer(gl.ARRAY_BUFFER, attributes.normals);
 			gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, 0, 0);
-			$normal_matrix.matrix3fv(true, uniforms.normal);
+			$normal_matrix.matrix3fv(false, uniforms.normal);
 		}
 		super__call[$](uniforms, attributes, mode, offset, count);
 		gl.disable_vertex_attrib_array($normal);
@@ -181,8 +181,8 @@ SkinShader = @(n) Class() :: @{
 		}
 	};
 	$call = @(uniforms, attributes, mode, offset, count) {
-		$projection.matrix4fv(true, uniforms.projection);
-		$vertex_matrices.matrix4fv(true, uniforms.vertices);
+		$projection.matrix4fv(false, uniforms.projection);
+		$vertex_matrices.matrix4fv(false, uniforms.vertices);
 		gl.enable_vertex_attrib_array($vertex);
 		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.vertices);
 		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, 0, 0);

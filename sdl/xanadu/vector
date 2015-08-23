@@ -10,9 +10,7 @@ template<typename T>
 class t_vector2 : public t_tuple2<T>
 {
 public:
-	t_vector2()
-	{
-	}
+	t_vector2() = default;
 	t_vector2(const t_tuple2<T>& a_tuple) : t_tuple2<T>(a_tuple)
 	{
 	}
@@ -99,9 +97,7 @@ template<typename T>
 class t_vector3 : public t_tuple3<T>
 {
 public:
-	t_vector3()
-	{
-	}
+	t_vector3() = default;
 	t_vector3(const t_tuple3<T>& a_tuple) : t_tuple3<T>(a_tuple)
 	{
 	}
@@ -192,9 +188,7 @@ template<typename T>
 class t_vector4 : public t_tuple4<T>
 {
 public:
-	t_vector4()
-	{
-	}
+	t_vector4() = default;
 	t_vector4(const t_tuple4<T>& a_tuple) : t_tuple4<T>(a_tuple)
 	{
 	}

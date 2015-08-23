@@ -175,8 +175,8 @@ void t_font::f_create(const std::wstring& a_path)
 void t_font::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_vertex, const std::wstring& a_text)
 {
 	f_use_program(v_program);
-	v_projection.f_matrix4(true, a_projection.v_array);
-	v_vertex_matrix.f_matrix4(true, a_vertex.v_array);
+	v_projection.f_matrix4(a_projection.v_array);
+	v_vertex_matrix.f_matrix4(a_vertex.v_array);
 	f_enable_vertex_attrib_array(v_vertex);
 	f_bind_buffer(GL_ARRAY_BUFFER, v_vertices);
 	f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, 0, 0);

@@ -172,7 +172,9 @@ struct t_accessor_of<t_matrix<4, T>> : public t_accessor
 	{
 		const T* p = &v_array[v_source->v_offset + a_i * v_source->v_stride];
 		t_matrix<4, T> m;
-		std::copy(p, p + 16, m.v_array);
+		for (size_t i = 0; i < 4; ++i)
+			for (size_t j = 0; j < 4; ++j)
+				m[j][i] = p[i * 4 + j];
 		return m;
 	}
 };

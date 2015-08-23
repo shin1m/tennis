@@ -401,7 +401,7 @@ public:
 		auto ndotlp = normal_front * light_position;
 		if (ndotlp > 0.0) color += t_vector4f(ndotlp, ndotlp, ndotlp, 0.0); // ambient + diffuse
 		v_face_uniform_color.f_uniform(color.v_x * v_color.v_x, color.v_y * v_color.v_y, color.v_z * v_color.v_z, color.v_w * v_color.v_w); // color * (ambient + diffuse)
-		v_face_uniform_mvp.f_matrix4(true, mvp.v_array);
+		v_face_uniform_mvp.f_matrix4(mvp.v_array);
 		glBindBuffer(GL_ARRAY_BUFFER, v_front_vertices);
 		glVertexAttribPointer(v_face_attribute_vertex, 3, GL_FLOAT, false, 0, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, v_front_vertices_count);
@@ -430,8 +430,8 @@ public:
 		glEnableVertexAttribArray(v_outward_attribute_vertex);
 		glEnableVertexAttribArray(v_outward_attribute_normal);
 		v_outward_uniform_color.f_uniform(v_color.v_x, v_color.v_y, v_color.v_z, v_color.v_w);
-		v_outward_uniform_nm.f_matrix3(true, nm.v_array);
-		v_outward_uniform_mvp.f_matrix4(true, mvp.v_array);
+		v_outward_uniform_nm.f_matrix3(nm.v_array);
+		v_outward_uniform_mvp.f_matrix4(mvp.v_array);
 		glBindBuffer(GL_ARRAY_BUFFER, v_outward_vertices);
 		glVertexAttribPointer(v_outward_attribute_vertex, 3, GL_FLOAT, false, 0, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, v_outward_normals);
@@ -445,8 +445,8 @@ public:
 		glEnableVertexAttribArray(v_cylinder_attribute_vertex);
 		glEnableVertexAttribArray(v_cylinder_attribute_normal);
 		v_cylinder_uniform_color.f_uniform(v_color.v_x, v_color.v_y, v_color.v_z, v_color.v_w);
-		v_cylinder_uniform_nm.f_matrix3(true, nm.v_array);
-		v_cylinder_uniform_mvp.f_matrix4(true, mvp.v_array);
+		v_cylinder_uniform_nm.f_matrix3(nm.v_array);
+		v_cylinder_uniform_mvp.f_matrix4(mvp.v_array);
 		glBindBuffer(GL_ARRAY_BUFFER, v_cylinder_vertices);
 		glVertexAttribPointer(v_cylinder_attribute_vertex, 3, GL_FLOAT, false, 0, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, v_cylinder_normals);

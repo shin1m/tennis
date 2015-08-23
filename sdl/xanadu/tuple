@@ -44,9 +44,7 @@ public:
 		};
 	};
 
-	t_tuple2()
-	{
-	}
+	t_tuple2() = default;
 	t_tuple2(const t_tuple2<T>& a_tuple) : v_x(a_tuple.v_x), v_y(a_tuple.v_y)
 	{
 	}
@@ -146,9 +144,7 @@ public:
 		};
 	};
 
-	t_tuple3()
-	{
-	}
+	t_tuple3() = default;
 	t_tuple3(const t_tuple3<T>& a_tuple) : v_x(a_tuple.v_x), v_y(a_tuple.v_y), v_z(a_tuple.v_z)
 	{
 	}
@@ -263,9 +259,7 @@ public:
 		};
 	};
 
-	t_tuple4()
-	{
-	}
+	t_tuple4() = default;
 	t_tuple4(const t_tuple4<T>& a_tuple) : v_x(a_tuple.v_x), v_y(a_tuple.v_y), v_z(a_tuple.v_z), v_w(a_tuple.v_w)
 	{
 	}

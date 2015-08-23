@@ -67,8 +67,8 @@ void t_player::t_swing::f_initialize(t_document& a_scene, t_node* a_skeleton, fl
 		std::map<std::wstring, t_matrix4f*> joints{{L"Root", &root}};
 		std::vector<std::map<std::wstring, t_matrix4f*>*> js{&joints};
 		a_skeleton->f_render(t_matrix4f(1.0), t_matrix4f(1.0), js);
-		v_end_position = t_vector3f(root[0][3], 0.0, root[2][3]);
-		v_end_toward = t_vector3f(root[0][2], 0.0, root[2][2]);
+		v_end_position = t_vector3f(root[3][0], 0.0, root[3][2]);
+		v_end_toward = t_vector3f(root[2][0], 0.0, root[2][2]);
 	}
 }
 
@@ -93,7 +93,7 @@ void t_player::t_run::f_initialize(t_document& a_scene, t_node* a_skeleton, floa
 	std::map<std::wstring, t_matrix4f*> joints{{L"Root", &root}};
 	std::vector<std::map<std::wstring, t_matrix4f*>*> js{&joints};
 	a_skeleton->f_render(t_matrix4f(1.0), t_matrix4f(1.0), js);
-	v_toward = t_vector3f(root[0][2], 0.0, root[2][2]);
+	v_toward = t_vector3f(root[2][0], 0.0, root[2][2]);
 }
 
 void t_player::t_motion::operator()()
@@ -414,7 +414,7 @@ t_player::t_player(t_stage& a_stage, const std::wstring& a_model) : v_stage(a_st
 	v_root->v_transforms.insert(v_root->v_transforms.begin(), std::move(zup));
 	f_load(v_scene, v_root, a_model + L".player");
 	v_actions.v_serve.v_set.f_rewind();
-	v_lefty = dynamic_cast<t_matrix_transform&>(*v_root->v_transforms[1])[0][3] < 0.0 ? -1.0 : 1.0;
+	v_lefty = dynamic_cast<t_matrix_transform&>(*v_root->v_transforms[1])[3][0] < 0.0 ? -1.0 : 1.0;
 	v_smash_hand = -0.25 * v_lefty;
 	f_reset(1.0, v_state_default);
 	auto scene = a_stage.v_scene.v_scene.v_instance_visual_scene.v_scene;

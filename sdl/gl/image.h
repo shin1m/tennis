@@ -49,8 +49,8 @@ template<typename T_array>
 void t_image::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_vertex, const T_array& a_array)
 {
 	f_use_program(v_program);
-	v_projection.f_matrix4(true, a_projection.v_array);
-	v_vertex_matrix.f_matrix4(true, a_vertex.v_array);
+	v_projection.f_matrix4(a_projection.v_array);
+	v_vertex_matrix.f_matrix4(a_vertex.v_array);
 	f_bind_buffer(GL_ARRAY_BUFFER, v_vertices);
 	f_buffer_data(GL_ARRAY_BUFFER, a_array.size() * sizeof(float), a_array.data(), GL_STREAM_DRAW);
 	f_enable_vertex_attrib_array(v_vertex);

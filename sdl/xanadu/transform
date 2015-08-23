@@ -32,10 +32,10 @@ struct t_translate3
 	operator t_matrix<4, T>() const
 	{
 		T vs[4][4] = {
-			{1.0, 0.0, 0.0, v_value.v_x},
-			{0.0, 1.0, 0.0, v_value.v_y},
-			{0.0, 0.0, 1.0, v_value.v_z},
-			{0.0, 0.0, 0.0, 1.0}
+			{1.0, 0.0, 0.0, 0.0},
+			{0.0, 1.0, 0.0, 0.0},
+			{0.0, 0.0, 1.0, 0.0},
+			{v_value.v_x, v_value.v_y, v_value.v_z, 1.0}
 		};
 		return t_matrix<4, T>(vs);
 	}
@@ -46,15 +46,14 @@ inline t_matrix<4, T>& operator*=(t_matrix<4, T>& a_value0, const t_translate3<T
 {
 	for (size_t i = 0; i < 4; ++i)
 		for (size_t j = 0; j < 3; ++j)
-			a_value0[i][3] += a_value0[i][j] * a_value1.v_value[j];
+			a_value0[3][i] += a_value0[j][i] * a_value1.v_value[j];
 	return a_value0;
 }
 
 template<typename T>
 inline t_matrix<4, T> operator*(const t_matrix<4, T>& a_value0, const t_translate3<T>& a_value1)
 {
-	t_matrix<4, T> value = a_value0;
-	return value *= a_value1;
+	return t_matrix<4, T>(a_value0) *= a_value1;
 }
 
 template<typename T>
@@ -96,17 +95,16 @@ struct t_scale3
 template<size_t N, typename T>
 inline t_matrix<N, T>& operator*=(t_matrix<N, T>& a_value0, const t_scale3<T>& a_value1)
 {
-	for (size_t i = 0; i < N; ++i)
-		for (size_t j = 0; j < 3; ++j)
-			a_value0[i][j] *= a_value1.v_value[j];
+	for (size_t j = 0; j < 3; ++j)
+		for (size_t i = 0; i < N; ++i)
+			a_value0[j][i] *= a_value1.v_value[j];
 	return a_value0;
 }
 
 template<size_t N, typename T>
 inline t_matrix<N, T> operator*(const t_matrix<N, T>& a_value0, const t_scale3<T>& a_value1)
 {
-	t_matrix<N, T> value = a_value0;
-	return value *= a_value1;
+	return t_matrix<N, T>(a_value0) *= a_value1;
 }
 
 template<typename T>
@@ -117,9 +115,7 @@ struct t_rotate3
 	t_vector3<T> v_axis;
 	T v_angle;
 
-	t_rotate3()
-	{
-	}
+	t_rotate3() = default;
 	t_rotate3(const t_rotate3<T>& a_value) : v_axis(a_value.v_axis), v_angle(a_value.v_angle)
 	{
 	}
@@ -138,13 +134,13 @@ struct t_rotate3
 	template<size_t N>
 	t_rotate3<T>& operator=(const t_matrix<N, T>& a_value)
 	{
-		v_axis.v_x = static_cast<float>(a_value[2][1] - a_value[1][2]);
-		v_axis.v_y = static_cast<float>(a_value[0][2] - a_value[2][0]);
-		v_axis.v_z = static_cast<float>(a_value[1][0] - a_value[0][1]);
+		v_axis.v_x = static_cast<float>(a_value[1][2] - a_value[2][1]);
+		v_axis.v_y = static_cast<float>(a_value[2][0] - a_value[0][2]);
+		v_axis.v_z = static_cast<float>(a_value[0][1] - a_value[1][0]);
 		T d = v_axis * v_axis;
 		if (d > 1.0E-6) {
 			d = sqrt(d);
-			v_angle = static_cast<float>(atan2(d * 0.5, (a_value[0][0] + a_value[1][1] + a_value[2][2] - 1.0) * 0.5));
+			v_angle = static_cast<T>(atan2(d * 0.5, (a_value[0][0] + a_value[1][1] + a_value[2][2] - 1.0) * 0.5));
 			v_axis /= d;
 		} else {
 			v_axis = t_vector3<T>(0.0, 1.0, 0.0);
@@ -184,15 +180,15 @@ struct t_rotate3
 		const T vs[3][3] = {
 			{
 				d0 * vector.v_x * vector.v_x + c,
-				d0 * xy - s * vector.v_z,
-				d0 * zx + s * vector.v_y
-			}, {
 				d0 * xy + s * vector.v_z,
-				d0 * vector.v_y * vector.v_y + c,
-				d0 * yz - s * vector.v_x
+				d0 * zx - s * vector.v_y
 			}, {
-				d0 * zx - s * vector.v_y,
-				d0 * yz + s * vector.v_x,
+				d0 * xy - s * vector.v_z,
+				d0 * vector.v_y * vector.v_y + c,
+				d0 * yz + s * vector.v_x
+			}, {
+				d0 * zx + s * vector.v_y,
+				d0 * yz - s * vector.v_x,
 				d0 * vector.v_z * vector.v_z + c
 			}
 		};
@@ -213,8 +209,7 @@ inline t_matrix<N, T>& operator*=(t_matrix<N, T>& a_value0, const t_rotate3<T>& 
 template<size_t N, typename T>
 inline t_matrix<N, T> operator*(const t_matrix<N, T>& a_value0, const t_rotate3<T>& a_value1)
 {
-	t_matrix<N, T> value = a_value0;
-	return value *= a_value1;
+	return t_matrix<N, T>(a_value0) *= a_value1;
 }
 
 template<typename T>
@@ -222,12 +217,12 @@ inline t_matrix<4, T> f_frustum(T a_left, T a_right, T a_bottom, T a_top, T a_ne
 {
 	t_matrix<4, T> m(0.0);
 	m[0][0] = 2.0 * a_near / (a_right - a_left);
-	m[0][2] = (a_right + a_left) / (a_right - a_left);
 	m[1][1] = 2.0 * a_near / (a_top - a_bottom);
-	m[1][2] = (a_top + a_bottom) / (a_top - a_bottom);
+	m[2][0] = (a_right + a_left) / (a_right - a_left);
+	m[2][1] = (a_top + a_bottom) / (a_top - a_bottom);
 	m[2][2] = -(a_far + a_near) / (a_far - a_near);
-	m[2][3] = -2.0 * a_far * a_near / (a_far - a_near);
-	m[3][2] = -1.0;
+	m[2][3] = -1.0;
+	m[3][2] = -2.0 * a_far * a_near / (a_far - a_near);
 	return m;
 }
 
@@ -236,11 +231,11 @@ inline t_matrix<4, T> f_orthographic(T a_left, T a_right, T a_bottom, T a_top, T
 {
 	t_matrix<4, T> m(1.0);
 	m[0][0] = 2.0 / (a_right - a_left);
-	m[0][3] = -(a_right + a_left) / (a_right - a_left);
 	m[1][1] = 2.0 / (a_top - a_bottom);
-	m[1][3] = -(a_top + a_bottom) / (a_top - a_bottom);
 	m[2][2] = -2.0 / (a_far - a_near);
-	m[2][3] = -(a_far + a_near) / (a_far - a_near);
+	m[3][0] = -(a_right + a_left) / (a_right - a_left);
+	m[3][1] = -(a_top + a_bottom) / (a_top - a_bottom);
+	m[3][2] = -(a_far + a_near) / (a_far - a_near);
 	return m;
 }
 
@@ -249,8 +244,8 @@ inline U f_affine(const t_matrix<N, T>& a_value0, const U& a_value1)
 {
 	U x;
 	for (size_t i = 0; i < N - 1; ++i) {
-		x[i] = a_value0[i][N - 1];
-		for (size_t j = 0; j < N - 1; ++j) x[i] += a_value0[i][j] * a_value1[j];
+		x[i] = a_value0[N - 1][i];
+		for (size_t j = 0; j < N - 1; ++j) x[i] += a_value0[j][i] * a_value1[j];
 	}
 	return x;
 }
@@ -260,9 +255,9 @@ inline U f_transform3(const t_matrix<N, T>& a_value0, const U& a_value1)
 {
 	U x;
 	for (size_t i = 0; i < 3; ++i) {
-		x[i] = a_value0[i][0] * a_value1[0];
-		x[i] += a_value0[i][1] * a_value1[1];
-		x[i] += a_value0[i][2] * a_value1[2];
+		x[i] = a_value0[0][i] * a_value1[0];
+		x[i] += a_value0[1][i] * a_value1[1];
+		x[i] += a_value0[2][i] * a_value1[2];
 	}
 	return x;
 }

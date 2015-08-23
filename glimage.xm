@@ -97,8 +97,8 @@ void main()
 	};
 	$__call = @(projection, vertex, bytes) {
 		gl.use_program($program);
-		$projection.matrix4fv(true, projection);
-		$vertex_matrix.matrix4fv(true, vertex);
+		$projection.matrix4fv(false, projection);
+		$vertex_matrix.matrix4fv(false, vertex);
 		gl.bind_buffer(gl.ARRAY_BUFFER, $vertices);
 		gl.buffer_data(gl.ARRAY_BUFFER, bytes, gl.STREAM_DRAW);
 		gl.enable_vertex_attrib_array($vertex);
@@ -207,8 +207,8 @@ void main()
 	};
 	$__call = @(projection, vertex, text) {
 		gl.use_program($program);
-		$projection.matrix4fv(true, projection);
-		$vertex_matrix.matrix4fv(true, vertex);
+		$projection.matrix4fv(false, projection);
+		$vertex_matrix.matrix4fv(false, vertex);
 		gl.enable_vertex_attrib_array($vertex);
 		gl.bind_buffer(gl.ARRAY_BUFFER, $vertices);
 		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, 0, 0);

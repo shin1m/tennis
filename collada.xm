@@ -146,7 +146,10 @@ Source = Class() :: WithTree :: @{
 		j = $offset + i * $stride;
 		xs = $_source;
 		m = Matrix4();
-		for (k = 0; k < 16; k = k + 1) m.v[k] = xs[j + k];
+		for (k = 0; k < 4; k = k + 1) {
+			row = j + k * 4;
+			for (l = 0; l < 4; l = l + 1) m.v[l * 4 + k] = xs[row + l];
+		}
 		m;
 	};
 	$create_array = @(n) {
@@ -608,18 +611,18 @@ Matrix = Class(Matrix4) :: @{
 		m8 = v1[8];
 		m9 = v1[9];
 		m10 = v1[10];
-		v1[0] = m0 * v0[0] + m1 * v0[4] + m2 * v0[8];
-		v1[1] = m0 * v0[1] + m1 * v0[5] + m2 * v0[9];
-		v1[2] = m0 * v0[2] + m1 * v0[6] + m2 * v0[10];
-		v1[3] = m0 * v0[3] + m1 * v0[7] + m2 * v0[11] + v1[3];
-		v1[4] = m4 * v0[0] + m5 * v0[4] + m6 * v0[8];
-		v1[5] = m4 * v0[1] + m5 * v0[5] + m6 * v0[9];
-		v1[6] = m4 * v0[2] + m5 * v0[6] + m6 * v0[10];
-		v1[7] = m4 * v0[3] + m5 * v0[7] + m6 * v0[11] + v1[7];
-		v1[8] = m8 * v0[0] + m9 * v0[4] + m10 * v0[8];
-		v1[9] = m8 * v0[1] + m9 * v0[5] + m10 * v0[9];
-		v1[10] = m8 * v0[2] + m9 * v0[6] + m10 * v0[10];
-		v1[11] = m8 * v0[3] + m9 * v0[7] + m10 * v0[11] + v1[11];
+		v1[0] = m0 * v0[0] + m4 * v0[1] + m8 * v0[2];
+		v1[4] = m0 * v0[4] + m4 * v0[5] + m8 * v0[6];
+		v1[8] = m0 * v0[8] + m4 * v0[9] + m8 * v0[10];
+		v1[12] = m0 * v0[12] + m4 * v0[13] + m8 * v0[14] + v1[12];
+		v1[1] = m1 * v0[0] + m5 * v0[1] + m9 * v0[2];
+		v1[5] = m1 * v0[4] + m5 * v0[5] + m9 * v0[6];
+		v1[9] = m1 * v0[8] + m5 * v0[9] + m9 * v0[10];
+		v1[13] = m1 * v0[12] + m5 * v0[13] + m9 * v0[14] + v1[13];
+		v1[2] = m2 * v0[0] + m6 * v0[1] + m10 * v0[2];
+		v1[6] = m2 * v0[4] + m6 * v0[5] + m10 * v0[6];
+		v1[10] = m2 * v0[8] + m6 * v0[9] + m10 * v0[10];
+		v1[14] = m2 * v0[12] + m6 * v0[13] + m10 * v0[14] + v1[14];
 	};
 };
 $Matrix = Matrix;
@@ -1087,7 +1090,7 @@ Channel = Class() :: @{
 				i = find_index(path[1], j + 1, @(x) x == 0x28) + 1;
 				j = find_index(path[1], i, @(x) x == 0x29);
 				row = Integer(path[1].substring(i, j - i));
-				ij = row * 4 + column;
+				ij = column * 4 + row;
 				$__call = ij < 15 ? @(value) target.v[ij] = value : @(value) {};
 			} else {
 				$__call = @(value) value.bytes.copy(0, 16 * gl.Float32Array.BYTES_PER_ELEMENT, target.bytes, 0);
@@ -1262,7 +1265,9 @@ $load = @(source) {
 	read_matrix = @{
 		xs = parse_array(gl.Float32Array, Float, 16, reader.read_element_text());
 		m = Matrix4();
-		for (i = 0; i < 16; i = i + 1) m.v[i] = xs[i];
+		for (i = 0; i < 4; i = i + 1)
+			for (j = 0; j < 4; j = j + 1)
+				m.v[j * 4 + i] = xs[i * 4 + j];
 		m;
 	};
 	read_empty_elements = @(name, callback) {

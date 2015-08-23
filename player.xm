@@ -76,13 +76,12 @@ $Player = Class() :: @{
 			iterators.each((@(key, value) value.rewind($end))[$]);
 			root = Object();
 			skeleton.render(null, Matrix4(), [{"Root": root}]);
-			$end_position = Vector3(root.vertex.v[3], 0.0, root.vertex.v[11]);
-			$end_toward = Vector3(root.vertex.v[2], 0.0, root.vertex.v[10]);
+			$end_position = Vector3(root.vertex.v[12], 0.0, root.vertex.v[14]);
+			$end_toward = Vector3(root.vertex.v[8], 0.0, root.vertex.v[10]);
 		};
 		$merge = @(player) {
 			placement = player.placement;
 			placement.position = placement.validate() * $end_position;
-			placement.v[3] = placement.v[7] = placement.v[11] = 0.0;
 			placement.toward = placement * $end_toward;
 			placement.valid = false;
 		};
@@ -94,7 +93,7 @@ $Player = Class() :: @{
 			iterators.each((@(key, value) value.rewind($start))[$]);
 			root = Object();
 			skeleton.render(null, Matrix4(), [{"Root": root}]);
-			$toward = Vector3(root.vertex.v[2], 0.0, root.vertex.v[10]);
+			$toward = Vector3(root.vertex.v[8], 0.0, root.vertex.v[10]);
 		};
 	};
 	Motion = Class() :: @{
@@ -309,7 +308,7 @@ $Player = Class() :: @{
 		$actions = load($scene, $root, model + ".player");
 		$speed = $actions.run.speed;
 		$actions.serve.set.rewind();
-		$lefty = $root.transforms[1].v[3] < 0.0 ? -1.0 : 1.0;
+		$lefty = $root.transforms[1].v[12] < 0.0 ? -1.0 : 1.0;
 		$smash_hand = -0.25 * $lefty;
 		$motion = null;
 		$reset(1.0, $state_default);
@@ -329,7 +328,7 @@ $Player = Class() :: @{
 	$setup = @() $placement.validate();
 	$root_position = @{
 		v = $root.transforms[1].v;
-		$placement.validate() * ($root.transforms[0] * Vector3(v[3], v[7], v[11]));
+		$placement.validate() * ($root.transforms[0] * Vector3(v[12], v[13], v[14]));
 	};
 	$direction = @{
 		v = $ball.velocity;
@@ -343,10 +342,10 @@ $Player = Class() :: @{
 		$placement.validate();
 		p = ball - $placement.position;
 		v = $placement.toward;
-		x = v.z * p.x - v.x * p.z - swing.spot[3];
-		y = p.y - swing.spot[7];
-		z = v.x * p.x + v.z * p.z - swing.spot[11];
-		swing.spot[1] > 0.0 ? Vector3(-x, y, -z) : Vector3(x, y, z);
+		x = v.z * p.x - v.x * p.z - swing.spot[12];
+		y = p.y - swing.spot[13];
+		z = v.x * p.x + v.z * p.z - swing.spot[14];
+		swing.spot[4] > 0.0 ? Vector3(-x, y, -z) : Vector3(x, y, z);
 	};
 	$step = @{
 		$state.step[$]();
@@ -362,7 +361,7 @@ $Player = Class() :: @{
 	};
 	$do = @(shot) $state.do[$](shot);
 	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward);
-	$smash_height = @() $actions.swing.forehand.smash.spot[7] - 0.25;
+	$smash_height = @() $actions.swing.forehand.smash.spot[13] - 0.25;
 	$state_default = State(@{
 		v = $ball.position - $placement.position;
 		v.y = 0.0;

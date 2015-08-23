@@ -140,8 +140,8 @@ private:
 protected:
 	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
-		v_projection.f_matrix4(true, a_uniforms.v_projection);
-		v_vertex_matrix.f_matrix4(true, a_uniforms.v_vertex);
+		v_projection.f_matrix4(a_uniforms.v_projection);
+		v_vertex_matrix.f_matrix4(a_uniforms.v_vertex);
 		f_enable_vertex_attrib_array(v_vertex);
 		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_vertices);
 		f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, 0, 0);
@@ -182,7 +182,7 @@ protected:
 			f_enable_vertex_attrib_array(v_normal);
 			f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_normals);
 			f_vertex_attrib_pointer(v_normal, 3, GL_FLOAT, false, 0, 0);
-			v_normal_matrix.f_matrix3(true, a_uniforms.v_normal);
+			v_normal_matrix.f_matrix3(a_uniforms.v_normal);
 		}
 		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_normal);
@@ -421,8 +421,8 @@ private:
 protected:
 	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
-		v_projection.f_matrix4(true, a_uniforms.v_projection);
-		v_vertex_matrices.f_matrix4(true, a_uniforms.v_vertices, a_uniforms.v_count);
+		v_projection.f_matrix4(a_uniforms.v_projection);
+		v_vertex_matrices.f_matrix4(a_uniforms.v_vertices, a_uniforms.v_count);
 		f_enable_vertex_attrib_array(v_vertex);
 		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_vertices);
 		f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, 0, 0);

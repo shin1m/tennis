@@ -1110,7 +1110,7 @@ void t_channel::f_build(const t_resolve& a_resolve)
 	j = v_target_path.find(L'(', i + 1) + 1;
 	i = v_target_path.find(L')', j);
 	size_t row = std::stoul(v_target_path.substr(j, i - j));
-	v_ij = row * 4 + column;
+	v_ij = column * 4 + row;
 }
 
 void t_sampler::f_dump(std::wostream& a_out, const std::wstring& a_indent) const
@@ -1362,7 +1362,9 @@ void t_document::f_load(t_reader& a_reader, const std::wstring& a_base)
 		std::vector<float> xs;
 		f_parse_vector(16, a_reader.f_read_element_text(), xs);
 		t_matrix4f m;
-		std::copy(xs.begin(), xs.end(), m.v_array);
+		for (size_t i = 0; i < 4; ++i)
+			for (size_t j = 0; j < 4; ++j)
+				m[j][i] = xs[i * 4 + j];
 		return m;
 	};
 	auto f_read_skin = [&]
