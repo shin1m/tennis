@@ -349,13 +349,13 @@ Detector.addGetWebGLMessage() unless Detector.webgl
 
 setup = (screen, container, onexit) ->
   screen.scene.add new THREE.AmbientLight(0x333333)
-  directionalLight = new THREE.DirectionalLight 0x777777
-  directionalLight.position.set(1.0, 1.0, -1.0).normalize()
+  directionalLight = new THREE.DirectionalLight 0xffffff
+  directionalLight.position.set(1.0, 1.0, 0.5).normalize()
   screen.scene.add directionalLight
   particleLight = new THREE.Mesh new THREE.SphereGeometry(4, 8, 8), new THREE.MeshBasicMaterial({color: 0xffffff})
-  particleLight.position.set 1000, 4000, 3000
+  particleLight.position.set 0, 1000, 0
   screen.scene.add particleLight
-  pointLight = new THREE.PointLight 0x333333, 4
+  pointLight = new THREE.PointLight 0xffffff, 0.25
   particleLight.add pointLight
 
   back = container.querySelector '.back'
