@@ -1172,6 +1172,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			case SDL_KEYUP:
 				main.v_screen->f_key_release(event.key.keysym.sym);
 				break;
+#ifndef __ANDROID__
 			case SDL_MOUSEMOTION:
 				if (dragging) {
 					SDL_TouchFingerEvent tfinger;
@@ -1198,6 +1199,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 					main.v_screen->f_finger_up(tfinger, width, height);
 				}
 				break;
+#endif
 			case SDL_CONTROLLERBUTTONDOWN:
 				main.v_screen->f_key_press(main.f_keycode(event.cbutton));
 				break;
