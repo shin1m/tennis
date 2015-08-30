@@ -18,6 +18,7 @@ struct t_main
 	t_scale3f v_text_scale{1.0, 1.0, 1.0};
 	gl::t_buffer v_triangle;
 	std::unique_ptr<t_screen> v_screen;
+	t_game_controller v_controllers[2];
 
 	t_main(const std::wstring& a_prefix, bool a_show_pad);
 	std::wstring f_path(const std::wstring& a_name) const
@@ -34,6 +35,8 @@ struct t_main
 	{
 		a_sound.f_create(f_convert(f_path(a_name)).c_str());
 	}
+	void f_setup_controllers();
+	SDL_Keycode f_keycode(const SDL_ControllerButtonEvent& a_button) const;
 };
 
 template<typename T_item>
@@ -128,10 +131,14 @@ struct t_menu
 	{
 		switch (a_key) {
 		case SDLK_ESCAPE:
+		case SDLK_1:
+		case SDLK_VOLUMEUP:
 			v_back();
 			break;
+		case SDLK_RETURN:
 		case SDLK_SPACE:
 		case SDLK_2:
+		case SDLK_VOLUMEDOWN:
 			f_do();
 			break;
 		case SDLK_LEFT:

@@ -162,9 +162,10 @@ class Training extends Stage
         super__step.call @
     , player1, =>
       for key, value of {
-        13: ->
+        9: ->
           @side = -@side
           @transit_ready()
+        13: -> @transit_ready()
       }
         @state_ready.key_press[key] = value
         @state_play.key_press[key] = value

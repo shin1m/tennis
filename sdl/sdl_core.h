@@ -39,6 +39,41 @@ public:
 	}
 };
 
+class t_game_controller
+{
+	SDL_GameController* v_p = NULL;
+
+public:
+	~t_game_controller()
+	{
+		if (v_p != NULL) SDL_GameControllerClose(v_p);
+	}
+	void f_open(int a_index)
+	{
+		f_close();
+		v_p = SDL_GameControllerOpen(a_index);
+		if (v_p == NULL) throw std::runtime_error(std::string("SDL_GameControllerOpen Error: ") + SDL_GetError());
+	}
+	void f_close()
+	{
+		if (v_p == NULL) return;
+		SDL_GameControllerClose(v_p);
+		v_p = NULL;
+	}
+	operator SDL_GameController*() const
+	{
+		return v_p;
+	}
+	operator bool() const
+	{
+		return v_p != NULL && SDL_GameControllerGetAttached(v_p) == SDL_TRUE;
+	}
+	SDL_JoystickID f_joystick_id() const
+	{
+		return SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(v_p));
+	}
+};
+
 class t_gl_context
 {
 	SDL_GLContext v_p;

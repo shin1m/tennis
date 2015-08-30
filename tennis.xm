@@ -79,6 +79,7 @@ Menu = Class() :: @{
 	};
 	$keys = keys = {
 		xraft.Key.ESCAPE: @() $back(),
+		xraft.Key.RETURN: $do,
 		xraft.Key.SPACE: $do,
 		xraft.Key.D2: $do,
 		xraft.Key.LEFT: $left,
@@ -274,10 +275,11 @@ Training = Class(stage.Stage) :: @{
 			};
 		}, player1);
 		{
-			xraft.Key.RETURN: @() {
+			xraft.Key.TAB: @{
 				$side = -$side;
 				$transit_ready();
-			}
+			},
+			xraft.Key.RETURN: @() $transit_ready()
 		}.each(@(key, value) {
 			$state_ready.key_press[key] = value;
 			$state_play.key_press[key] = value;

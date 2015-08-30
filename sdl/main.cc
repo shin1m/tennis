@@ -20,6 +20,9 @@ t_main::t_main(const std::wstring& a_prefix, bool a_show_pad) : v_prefix(a_prefi
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_triangle);
 	gl::f_buffer_data(GL_ARRAY_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
+	int n = SDL_GameControllerAddMappingsFromFile(f_convert(f_path(L"gamecontrollerdb.txt")).c_str());
+	if (n == -1) throw std::runtime_error((std::string("SDL_GameControllerAddMappingsFromFile Error: ") + SDL_GetError()).c_str());
+	f_setup_controllers();
 }
 
 std::unique_ptr<xmlParserInputBuffer, void (*)(xmlParserInputBufferPtr)> t_main::f_input(const std::wstring& a_name)
@@ -50,6 +53,94 @@ void t_main::f_load(t_document& a_document, const std::wstring& a_name)
 void t_main::f_load(gl::t_image& a_image, const std::wstring& a_name)
 {
 	a_image.f_create(f_path(a_name), GL_RGB5_A1);
+}
+
+std::vector<std::string> joysticks;
+
+void t_main::f_setup_controllers()
+{
+	for (auto& x : v_controllers) x.f_close();
+	size_t j = 0;
+	int n = SDL_NumJoysticks();
+joysticks.clear();
+	for (int i = 0; i < n; ++i) {
+char guid[33];
+SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(i), guid, sizeof(guid));
+SDL_Log("joystick guid: %s", guid);
+joysticks.push_back(std::string(guid) + (SDL_IsGameController(i) == SDL_TRUE ? " is gc" : " is not gc"));
+		if (SDL_IsGameController(i) != SDL_TRUE) continue;
+SDL_Log("is game controller");
+		try {
+			v_controllers[j].f_open(i);
+			if (++j >= sizeof(v_controllers) / sizeof(t_game_controller)) break;
+		} catch (std::exception& e) {
+			SDL_Log("caught: %s", e.what());
+		}
+	}
+}
+
+SDL_Keycode t_main::f_keycode(const SDL_ControllerButtonEvent& a_button) const
+{
+	if (v_controllers[0] && a_button.which == v_controllers[0].f_joystick_id()) {
+		switch (a_button.button) {
+		case SDL_CONTROLLER_BUTTON_A:
+			return SDLK_VOLUMEDOWN;
+		case SDL_CONTROLLER_BUTTON_B:
+			return SDLK_2;
+		case SDL_CONTROLLER_BUTTON_X:
+			return SDLK_1;
+		case SDL_CONTROLLER_BUTTON_Y:
+			return SDLK_VOLUMEUP;
+		case SDL_CONTROLLER_BUTTON_BACK:
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+			return SDLK_ESCAPE;
+		case SDL_CONTROLLER_BUTTON_GUIDE:
+			return SDLK_TAB;
+		case SDL_CONTROLLER_BUTTON_START:
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+			return SDLK_RETURN;
+		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+			return SDLK_UP;
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+			return SDLK_DOWN;
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+			return SDLK_LEFT;
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			return SDLK_RIGHT;
+		}
+	} else if (v_controllers[1] && a_button.which == v_controllers[1].f_joystick_id()) {
+		switch (a_button.button) {
+		case SDL_CONTROLLER_BUTTON_A:
+			return SDLK_PERIOD;
+		case SDL_CONTROLLER_BUTTON_B:
+			return SDLK_9;
+		case SDL_CONTROLLER_BUTTON_X:
+			return SDLK_7;
+		case SDL_CONTROLLER_BUTTON_Y:
+			return SDLK_COMMA;
+		case SDL_CONTROLLER_BUTTON_BACK:
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+			return SDLK_ESCAPE;
+		case SDL_CONTROLLER_BUTTON_GUIDE:
+			return SDLK_TAB;
+		case SDL_CONTROLLER_BUTTON_START:
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+			return SDLK_RETURN;
+		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+			return SDLK_8;
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+			return SDLK_5;
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+			return SDLK_4;
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			return SDLK_6;
+		}
+	}
+	return SDLK_UNKNOWN;
 }
 
 void t_match::f_new_game()
@@ -312,8 +403,9 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 		a_state.v_key_press = [this, key_press](t_stage& a_stage, SDL_Keycode a_key)
 		{
 			switch (a_key) {
-			case SDLK_RETURN:
+			case SDLK_TAB:
 				v_side = -v_side;
+			case SDLK_RETURN:
 				f_transit_ready();
 				break;
 			default:
@@ -616,6 +708,10 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 		auto render = std::move(a_state.v_render);
 		a_state.v_render = [render, &a_player, pad_size](t_stage& a_stage, size_t a_width, size_t a_height)
 		{
+			if (a_stage.v_main.v_controllers[0]) {
+				render(a_stage, a_width, a_height);
+				return;
+			}
 			auto& shader = a_stage.v_main.v_shaders.f_constant_color();
 			std::remove_reference<decltype(shader)>::type::t_uniforms uniforms;
 			uniforms.v_projection = a_stage.v_main.v_projection.v_array;
@@ -649,7 +745,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 		auto v = f_affine(m, t_vector3f(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0));
 		auto u = v - t_vector3f(size * 0.5 - a, size * 0.5 - 1.0, 0.0);
 		a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
-//		if (u.f_length() < size / 16.0) return;
+		if (u.f_length() < size / 8.0) return;
 		if (u.v_x == 0.0) {
 			(u.v_y < 0.0 ? a_player.v_backward : a_player.v_forward) = true;
 		} else {
@@ -910,6 +1006,14 @@ void t_main_menu::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_
 {
 	t_dialog::f_render(a_width, a_height, a_viewing);
 	t_menu<t_menu_item>::f_render(f_transform(a_viewing));
+#if 0
+	auto viewing = a_viewing * t_translate(-1.0, 0.5, 0.0) * t_scale3f(0.1, 0.1, 0.1);
+	float y = 0.0;
+	for (const auto& s : joysticks) {
+		t_dialog::v_main.v_font(t_dialog::v_main.v_projection, viewing * t_translate(0.0, y, 0.0), f_convert(s));
+		y -= 1.0;
+	}
+#endif
 }
 
 void t_main_menu::f_key_press(SDL_Keycode a_key)
@@ -967,7 +1071,6 @@ void t_main_screen::f_render(size_t a_width, size_t a_height)
 {
 	glViewport(0, 0, a_width, a_height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
 	auto viewing = t_matrix4f(1.0);
 	if (v_transit) {
 		float a = 2.0 * v_direction * a_width / a_height;
@@ -1044,7 +1147,6 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 	}, NULL);
 #endif
 	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
 	SDL_Event event;
 	bool dragging = false;
 	while (true) {
@@ -1070,7 +1172,6 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			case SDL_KEYUP:
 				main.v_screen->f_key_release(event.key.keysym.sym);
 				break;
-#ifndef __ANDROID__
 			case SDL_MOUSEMOTION:
 				if (dragging) {
 					SDL_TouchFingerEvent tfinger;
@@ -1097,7 +1198,17 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 					main.v_screen->f_finger_up(tfinger, width, height);
 				}
 				break;
-#else
+			case SDL_CONTROLLERBUTTONDOWN:
+				main.v_screen->f_key_press(main.f_keycode(event.cbutton));
+				break;
+			case SDL_CONTROLLERBUTTONUP:
+				main.v_screen->f_key_release(main.f_keycode(event.cbutton));
+				break;
+			case SDL_CONTROLLERDEVICEADDED:
+			case SDL_CONTROLLERDEVICEREMOVED:
+			case SDL_CONTROLLERDEVICEREMAPPED:
+				main.f_setup_controllers();
+				break;
 			case SDL_FINGERDOWN:
 				main.v_screen->f_finger_down(event.tfinger, width, height);
 				break;
@@ -1107,7 +1218,6 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			case SDL_FINGERMOTION:
 				main.v_screen->f_finger_motion(event.tfinger, width, height);
 				break;
-#endif
 			}
 		}
 		main.v_screen->f_render(width, height);
@@ -1122,7 +1232,7 @@ int main(int argc, char* argv[])
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 	try {
-		t_sdl sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS);
+		t_sdl sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
 		t_sdl_image image(IMG_INIT_PNG | IMG_INIT_JPG);
 		t_sdl_ttf ttf;
 		t_sdl_audio audio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
