@@ -1174,6 +1174,9 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 				switch (event.key.keysym.sym) {
 				case SDLK_q:
 					return;
+				case SDLK_AC_BACK:
+					main.v_screen->f_key_press(SDLK_ESCAPE);
+					break;
 				default:
 					main.v_screen->f_key_press(event.key.keysym.sym);
 				}
