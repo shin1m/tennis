@@ -52,7 +52,7 @@ struct t_menu
 	void f_each(const t_matrix4f& a_viewing, T_callback a_callback)
 	{
 		size_t n = (v_items.size() + v_columns - 1) / v_columns;
-		float scale = 1.0 / std::max(n, size_t(4));
+		float scale = 1.0 / std::max(n, size_t(5));
 		auto viewing = a_viewing * t_scale3f(scale, scale, 1.0);
 		float dx = 4.0 * 2.0 / v_columns;
 		float x = dx * 0.5 - 4.0;

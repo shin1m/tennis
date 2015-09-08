@@ -203,9 +203,13 @@ class Training extends Stage
     @player1.set_motion new player.Motion @player1.actions.swing[shot]
     @player1.transit Player::state_swing
   toss_message = [
-    '  CHANGE SIDES: START'
-    '      POSITION: +    '
-    'COURCE & SWING: + & *'
+    '  CHANGE SIDES: SELECT'
+    '      POSITION: +     '
+    'COURCE & SWING: + & * '
+    ''
+    '           LOB        '
+    '    TOPSPIN * FLAT    '
+    '          SLICE       '
   ]
   trainings =
     serve:
@@ -216,11 +220,15 @@ class Training extends Stage
         @player1.node.position.set -9 * 12 * 0.0254 * @side, 0.0, -39 * 12 * 0.0254
         @player1.reset -1.0, Player::state_default
         @set_instruction [
-          'CHANGE SIDES: START'
-          '    POSITION: < + >'
-          '        TOSS:   *  '
-          '      COURCE: < + >'
-          '       SWING:   *  '
+          'CHANGE SIDES: SELECT'
+          '    POSITION: < + > '
+          '        TOSS:   *   '
+          '      COURCE: < + > '
+          '       SWING:   *   '
+          ''
+          '        SECOND      '
+          '     SPIN * FLAT    '
+          '        SLICE       '
         ]
         @duration = 0.0 * 64.0
       play: ->

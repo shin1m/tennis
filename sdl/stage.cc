@@ -142,6 +142,10 @@ void t_stage::f_render(size_t a_width, size_t a_height)
 	if (v_dual) glViewport(0, 0, a_width / 2, a_height);
 	float pw = a_width * (v_dual ? 0.5 : 1.0) / a_height;
 	float ph = 1.0;
+	if (pw < 0.75) {
+		ph = 0.75 / pw;
+		pw = 0.75;
+	}
 	auto projection = f_frustum(-pw, pw, -ph, ph, 10.0f, 200.0f);
 	v_scene.f_render(projection, v_camera0.f_viewing());
 	if (v_dual) {

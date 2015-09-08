@@ -142,6 +142,10 @@ if (print_time) print("\tclear: " + (time.now() - t0));
 		if ($dual) gl.viewport(0, 0, width / 2, height);
 		pw = width * ($dual ? 0.5 : 1.0) / height;
 		ph = 1.0;
+		if (pw < 0.75) {
+			ph = 0.75 / pw;
+			pw = 0.75;
+		}
 		projection = Matrix4().frustum(-pw, pw, -ph, ph, 10.0, 200.0).bytes;
 		$scene.render(projection, $camera0.viewing());
 		if ($dual) {

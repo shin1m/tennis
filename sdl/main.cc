@@ -333,9 +333,13 @@ void t_match::f_new_set()
 }
 
 const std::vector<std::wstring> t_training::v_toss_message{
-	L"  CHANGE SIDES: START",
-	L"      POSITION: +    ",
-	L"COURCE & SWING: + & *"
+	L"  CHANGE SIDES: SELECT",
+	L"      POSITION:   +   ",
+	L"COURCE & SWING: + & * ",
+	L"",
+	L"           LOB        ",
+	L"    TOPSPIN * FLAT    ",
+	L"          SLICE       "
 };
 
 void t_training::f_ball_ace()
@@ -446,13 +450,17 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_transit_ready();
 		}, [this]
 		{
-			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.625, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = std::vector<std::wstring>{
-				L"CHANGE SIDES: START",
-				L"    POSITION: < + >",
-				L"        TOSS:   *  ",
-				L"      COURCE: < + >",
-				L"       SWING:   *  "
+				L"CHANGE SIDES: SELECT",
+				L"    POSITION: < + > ",
+				L"        TOSS:   *   ",
+				L"      COURCE: < + > ",
+				L"       SWING:   *   ",
+				L"",
+				L"        SECOND      ",
+				L"     SPIN * FLAT    ",
+				L"        SLICE       "
 			};
 			v_duration = 0.0 * 64.0;
 		}, []
@@ -469,7 +477,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_transit_ready();
 		}, [this]
 		{
-			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = v_toss_message;
 			v_duration = 0.5 * 64.0;
 		}, [this]
@@ -487,7 +495,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_transit_ready();
 		}, [this]
 		{
-			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = v_toss_message;
 			v_duration = 0.5 * 64.0;
 		}, [this]
@@ -505,7 +513,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_transit_ready();
 		}, [this]
 		{
-			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.75, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = v_toss_message;
 			v_duration = 0.5 * 64.0;
 		}, [this]
@@ -859,7 +867,7 @@ void t_dialog::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_vie
 		-w, 1.0, 0.0, (1.0f - s) * 0.5f, (1.0f - t) * 0.5f,
 		w, 1.0, 0.0, (1.0f + s) * 0.5f, (1.0f - t) * 0.5f
 	});
-	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.5, 0.0) * t_scale3f(1.5 / 4.0, 1.5 / 4.0, 1.0) * t_translate3f(v_title.size() * -0.25, 0.0, 0.0);
+	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.5, 0.0) * t_scale3f(1.125 / 4.0, 1.125 / 4.0, 1.0) * t_translate3f(v_title.size() * -0.25, 0.0, 0.0);
 	v_main.v_font(v_main.v_projection, viewing, v_title);
 }
 
@@ -953,7 +961,7 @@ void t_stage_menu::f_transit(t_menu<t_menu_item>& a_menu, float a_direction)
 	v_t = 0.0;
 }
 
-t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"main-background.jpg", L"main-background.wav", L"TENNIS"), t_menu<t_menu_item>(a_screen.v_main)
+t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"main-background.jpg", L"main-background.wav", L"WakuWakuTennis"), t_menu<t_menu_item>(a_screen.v_main)
 {
 	v_back = []
 	{
@@ -961,41 +969,42 @@ t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"
 		event.type = SDL_QUIT;
 		SDL_PushEvent(&event);
 	};
-	v_items = std::vector<t_menu_item>{
-		t_menu_item{L"  1P vs COM  ", []{}, [this, &a_screen]
+	v_items.push_back(t_menu_item{L"  1P vs COM  ", []{}, [this, &a_screen]
+	{
+		v_sound.f_stop();
+		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
-			{
-				a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, false, f_controller0, a_player0, f_computer, a_player1);
-			}), -1.0);
-		}},
-		t_menu_item{L"  1P vs 2P   ", []{}, [this, &a_screen]
+			a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, false, f_controller0, a_player0, f_computer, a_player1);
+		}), -1.0);
+	}});
+#ifdef __ANDROID__
+	if (a_screen.v_main.v_controllers[1])
+#endif
+	v_items.push_back(t_menu_item{L"  1P vs 2P   ", []{}, [this, &a_screen]
+	{
+		v_sound.f_stop();
+		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs 2P", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs 2P", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
-			{
-				a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, true, false, f_controller0, a_player0, f_controller1, a_player1);
-			}), -1.0);
-		}},
-		t_menu_item{L" COM vs COM  ", []{}, [this, &a_screen]
+			a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, true, false, f_controller0, a_player0, f_controller1, a_player1);
+		}), -1.0);
+	}});
+	v_items.push_back(t_menu_item{L" COM vs COM  ", []{}, [this, &a_screen]
+	{
+		v_sound.f_stop();
+		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"COM vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"COM vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
-			{
-				a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, true, f_computer, a_player0, f_computer, a_player1);
-			}), -1.0);
-		}},
-		t_menu_item{L"  TRAINING   ", []{}, [this, &a_screen]
+			a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, true, f_computer, a_player0, f_computer, a_player1);
+		}), -1.0);
+	}});
+	v_items.push_back(t_menu_item{L"  TRAINING   ", []{}, [this, &a_screen]
+	{
+		v_sound.f_stop();
+		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"training-background.wav", L"TRAINING", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			v_sound.f_stop();
-			a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"training-background.wav", L"TRAINING", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
-			{
-				a_screen.v_main.v_screen = std::make_unique<t_training>(a_screen.v_main, f_controller0, a_player0, a_player1);
-			}), -1.0);
-		}},
-		t_menu_item{L"    EXIT     ", []{}, v_back}
-	};
+			a_screen.v_main.v_screen = std::make_unique<t_training>(a_screen.v_main, f_controller0, a_player0, a_player1);
+		}), -1.0);
+	}});
+	v_items.push_back(t_menu_item{L"    EXIT     ", []{}, v_back});
 }
 
 void t_main_menu::f_step()

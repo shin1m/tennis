@@ -41,7 +41,7 @@ Menu = Class() :: @{
 	};
 	$render = @(viewing) {
 		n = ($items.size() + $columns - 1) / $columns;
-		scale = 1.0 / (n < 4 ? 4 : n);
+		scale = 1.0 / (n < 5 ? 5 : n);
 		viewing = Matrix4(viewing).scale(scale, scale, 1.0);
 		dx = 4.0 * 2.0 / $columns;
 		x = dx * 0.5 - 4.0;
@@ -289,9 +289,13 @@ Training = Class(stage.Stage) :: @{
 		$menu = Menu(main);
 		$menu.back = $exit;
 		toss_message = [
-			"  CHANGE SIDES: START",
-			"      POSITION: +    ",
-			"COURCE & SWING: + & *"
+			"  CHANGE SIDES: SELECT",
+			"      POSITION:   +   ",
+			"COURCE & SWING: + & * ",
+			"",
+			"           LOB        ",
+			"    TOPSPIN * FLAT    ",
+			"          SLICE       "
 		];
 		$menu.items = '(
 			Item(" SERVE ", @{
@@ -303,34 +307,38 @@ Training = Class(stage.Stage) :: @{
 				$player1.reset(-1.0, Player.state_default);
 				$step_things();
 			}[$], (@() $transit_ready())[$], @{
-				$text_viewing = Matrix4().translate(0.0, -0.625, 0.0).scale(0.125, 0.125, 1.0);
+				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0);
 				$message = [
-					"CHANGE SIDES: START",
-					"    POSITION: < + >",
-					"        TOSS:   *  ",
-					"      COURCE: < + >",
-					"       SWING:   *  "
+					"CHANGE SIDES: SELECT",
+					"    POSITION: < + > ",
+					"        TOSS:   *   ",
+					"      COURCE: < + > ",
+					"       SWING:   *   ",
+					"",
+					"        SECOND      ",
+					"     SPIN * FLAT    ",
+					"        SLICE       "
 				];
 				$duration = 0.0 * 64.0;
 			}[$], @{}, (@() $transit_select())[$]),
 			Item(" STROKE", @{
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss);
 			}[$], (@() $transit_ready())[$], @{
-				$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0);
 				$message = toss_message;
 				$duration = 0.5 * 64.0;
 			}[$], (@() $toss('toss))[$], (@() $transit_select())[$]),
 			Item(" VOLLEY", @{
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss);
 			}[$], (@() $transit_ready())[$], @{
-				$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0);
 				$message = toss_message;
 				$duration = 0.5 * 64.0;
 			}[$], (@() $toss('toss))[$], (@() $transit_select())[$]),
 			Item(" SMASH ", @{
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), 'toss_lob);
 			}[$], (@() $transit_ready())[$], @{
-				$text_viewing = Matrix4().translate(0.0, -0.75, 0.0).scale(0.125, 0.125, 1.0);
+				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0);
 				$message = toss_message;
 				$duration = 0.5 * 64.0;
 			}[$], (@() $toss('toss_lob))[$], (@() $transit_select())[$]),
@@ -483,7 +491,7 @@ Dialog = Class() :: @{
 		array[18] = (1.0 + s) * 0.5;
 		array[19] = (1.0 - t) * 0.5;
 		$image($main.projection, viewing.bytes, bytes);
-		v = (viewing * $main.text_scale).translate(0.0, 0.5, 0.0).scale(1.5 / 4.0, 1.5 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes;
+		v = (viewing * $main.text_scale).translate(0.0, 0.5, 0.0).scale(1.125 / 4.0, 1.125 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes;
 		$main.font($main.projection, v, $title);
 	};
 };
