@@ -39,6 +39,41 @@ public:
 	}
 };
 
+class t_joystick
+{
+	SDL_Joystick* v_p = NULL;
+
+public:
+	~t_joystick()
+	{
+		if (v_p != NULL) SDL_JoystickClose(v_p);
+	}
+	void f_open(int a_index)
+	{
+		f_close();
+		v_p = SDL_JoystickOpen(a_index);
+		if (v_p == NULL) throw std::runtime_error(std::string("SDL_JoystickOpen Error: ") + SDL_GetError());
+	}
+	void f_close()
+	{
+		if (v_p == NULL) return;
+		SDL_JoystickClose(v_p);
+		v_p = NULL;
+	}
+	operator SDL_Joystick*() const
+	{
+		return v_p;
+	}
+	operator bool() const
+	{
+		return v_p != NULL && SDL_JoystickGetAttached(v_p) == SDL_TRUE;
+	}
+	SDL_JoystickID f_id() const
+	{
+		return SDL_JoystickInstanceID(v_p);
+	}
+};
+
 class t_game_controller
 {
 	SDL_GameController* v_p = NULL;
@@ -68,7 +103,7 @@ public:
 	{
 		return v_p != NULL && SDL_GameControllerGetAttached(v_p) == SDL_TRUE;
 	}
-	SDL_JoystickID f_joystick_id() const
+	SDL_JoystickID f_id() const
 	{
 		return SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(v_p));
 	}

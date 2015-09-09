@@ -18,7 +18,12 @@ struct t_main
 	t_scale3f v_text_scale{1.0, 1.0, 1.0};
 	gl::t_buffer v_triangle;
 	std::unique_ptr<t_screen> v_screen;
+#ifdef __ANDROID__
+	t_joystick v_controllers[2];
+	Uint8 v_hats[2]{SDL_HAT_CENTERED, SDL_HAT_CENTERED};
+#else
 	t_game_controller v_controllers[2];
+#endif
 
 	t_main(const std::wstring& a_prefix, bool a_show_pad);
 	std::wstring f_path(const std::wstring& a_name) const
@@ -36,8 +41,77 @@ struct t_main
 		a_sound.f_create(f_convert(f_path(a_name)).c_str());
 	}
 	void f_setup_controllers();
-	SDL_Keycode f_keycode(const SDL_ControllerButtonEvent& a_button) const;
+	template<typename T_event>
+	SDL_Keycode f_keycode(const T_event& a_button) const;
+#ifdef __ANDROID__
+	void f_hat(const SDL_JoyHatEvent& a_hat);
+#endif
 };
+
+template<typename T_event>
+SDL_Keycode t_main::f_keycode(const T_event& a_button) const
+{
+	if (v_controllers[0] && a_button.which == v_controllers[0].f_id()) {
+		switch (a_button.button) {
+		case SDL_CONTROLLER_BUTTON_A:
+			return SDLK_VOLUMEDOWN;
+		case SDL_CONTROLLER_BUTTON_B:
+			return SDLK_2;
+		case SDL_CONTROLLER_BUTTON_X:
+			return SDLK_1;
+		case SDL_CONTROLLER_BUTTON_Y:
+			return SDLK_VOLUMEUP;
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+			return SDLK_ESCAPE;
+		case SDL_CONTROLLER_BUTTON_BACK:
+		case SDL_CONTROLLER_BUTTON_GUIDE:
+			return SDLK_TAB;
+		case SDL_CONTROLLER_BUTTON_START:
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+			return SDLK_RETURN;
+		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+			return SDLK_UP;
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+			return SDLK_DOWN;
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+			return SDLK_LEFT;
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			return SDLK_RIGHT;
+		}
+	} else if (v_controllers[1] && a_button.which == v_controllers[1].f_id()) {
+		switch (a_button.button) {
+		case SDL_CONTROLLER_BUTTON_A:
+			return SDLK_PERIOD;
+		case SDL_CONTROLLER_BUTTON_B:
+			return SDLK_9;
+		case SDL_CONTROLLER_BUTTON_X:
+			return SDLK_7;
+		case SDL_CONTROLLER_BUTTON_Y:
+			return SDLK_COMMA;
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+			return SDLK_ESCAPE;
+		case SDL_CONTROLLER_BUTTON_BACK:
+		case SDL_CONTROLLER_BUTTON_GUIDE:
+			return SDLK_TAB;
+		case SDL_CONTROLLER_BUTTON_START:
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+			return SDLK_RETURN;
+		case SDL_CONTROLLER_BUTTON_DPAD_UP:
+			return SDLK_8;
+		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+			return SDLK_5;
+		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+			return SDLK_4;
+		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			return SDLK_6;
+		}
+	}
+	return SDLK_UNKNOWN;
+}
 
 template<typename T_item>
 struct t_menu

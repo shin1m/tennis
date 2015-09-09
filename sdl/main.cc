@@ -20,8 +20,10 @@ t_main::t_main(const std::wstring& a_prefix, bool a_show_pad) : v_prefix(a_prefi
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_triangle);
 	gl::f_buffer_data(GL_ARRAY_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
+#ifndef __ANDROID__
 	int n = SDL_GameControllerAddMappingsFromFile(f_convert(f_path(L"gamecontrollerdb.txt")).c_str());
 	if (n == -1) throw std::runtime_error((std::string("SDL_GameControllerAddMappingsFromFile Error: ") + SDL_GetError()).c_str());
+#endif
 	f_setup_controllers();
 }
 
@@ -55,93 +57,75 @@ void t_main::f_load(gl::t_image& a_image, const std::wstring& a_name)
 	a_image.f_create(f_path(a_name), GL_RGB5_A1);
 }
 
+#ifdef __ANDROID__
+namespace
+{
 std::vector<std::string> joysticks;
+}
+#endif
 
 void t_main::f_setup_controllers()
 {
 	for (auto& x : v_controllers) x.f_close();
+#ifdef __ANDROID__
+joysticks.clear();
+#endif
 	size_t j = 0;
 	int n = SDL_NumJoysticks();
-joysticks.clear();
 	for (int i = 0; i < n; ++i) {
+#ifndef __ANDROID__
 char guid[33];
 SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(i), guid, sizeof(guid));
 SDL_Log("joystick guid: %s", guid);
-joysticks.push_back(std::string(guid) + (SDL_IsGameController(i) == SDL_TRUE ? " is gc" : " is not gc"));
 		if (SDL_IsGameController(i) != SDL_TRUE) continue;
 SDL_Log("is game controller");
+#endif
 		try {
 			v_controllers[j].f_open(i);
-			if (++j >= sizeof(v_controllers) / sizeof(t_game_controller)) break;
+#ifdef __ANDROID__
+			int b = SDL_JoystickNumButtons(v_controllers[j]);
+			int h = SDL_JoystickNumHats(v_controllers[j]);
+char cs[32];
+std::sprintf(cs, "buttons: %d, hats: %d", b, h);
+joysticks.push_back(cs);
+			if (b <= 0 || h <= 0) {
+				v_controllers[j].f_close();
+				continue;
+			}
+#endif
+			if (++j >= sizeof(v_controllers) / sizeof(v_controllers[0])) break;
 		} catch (std::exception& e) {
 			SDL_Log("caught: %s", e.what());
 		}
 	}
 }
 
-SDL_Keycode t_main::f_keycode(const SDL_ControllerButtonEvent& a_button) const
+#ifdef __ANDROID__
+void t_main::f_hat(const SDL_JoyHatEvent& a_hat)
 {
-	if (v_controllers[0] && a_button.which == v_controllers[0].f_joystick_id()) {
-		switch (a_button.button) {
-		case SDL_CONTROLLER_BUTTON_A:
-			return SDLK_VOLUMEDOWN;
-		case SDL_CONTROLLER_BUTTON_B:
-			return SDLK_2;
-		case SDL_CONTROLLER_BUTTON_X:
-			return SDLK_1;
-		case SDL_CONTROLLER_BUTTON_Y:
-			return SDLK_VOLUMEUP;
-		case SDL_CONTROLLER_BUTTON_BACK:
-		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-			return SDLK_ESCAPE;
-		case SDL_CONTROLLER_BUTTON_GUIDE:
-			return SDLK_TAB;
-		case SDL_CONTROLLER_BUTTON_START:
-		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-			return SDLK_RETURN;
-		case SDL_CONTROLLER_BUTTON_DPAD_UP:
-			return SDLK_UP;
-		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-			return SDLK_DOWN;
-		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-			return SDLK_LEFT;
-		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-			return SDLK_RIGHT;
-		}
-	} else if (v_controllers[1] && a_button.which == v_controllers[1].f_joystick_id()) {
-		switch (a_button.button) {
-		case SDL_CONTROLLER_BUTTON_A:
-			return SDLK_PERIOD;
-		case SDL_CONTROLLER_BUTTON_B:
-			return SDLK_9;
-		case SDL_CONTROLLER_BUTTON_X:
-			return SDLK_7;
-		case SDL_CONTROLLER_BUTTON_Y:
-			return SDLK_COMMA;
-		case SDL_CONTROLLER_BUTTON_BACK:
-		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-		case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-			return SDLK_ESCAPE;
-		case SDL_CONTROLLER_BUTTON_GUIDE:
-			return SDLK_TAB;
-		case SDL_CONTROLLER_BUTTON_START:
-		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-			return SDLK_RETURN;
-		case SDL_CONTROLLER_BUTTON_DPAD_UP:
-			return SDLK_8;
-		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-			return SDLK_5;
-		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-			return SDLK_4;
-		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-			return SDLK_6;
-		}
+	if (v_controllers[0] && a_hat.which == v_controllers[0].f_id()) {
+		if ((v_hats[0] & SDL_HAT_UP) != 0) v_screen->f_key_release(SDLK_UP);
+		if ((v_hats[0] & SDL_HAT_RIGHT) != 0) v_screen->f_key_release(SDLK_RIGHT);
+		if ((v_hats[0] & SDL_HAT_DOWN) != 0) v_screen->f_key_release(SDLK_DOWN);
+		if ((v_hats[0] & SDL_HAT_LEFT) != 0) v_screen->f_key_release(SDLK_LEFT);
+		v_hats[0] = a_hat.value;
+		if ((v_hats[0] & SDL_HAT_UP) != 0) v_screen->f_key_press(SDLK_UP);
+		if ((v_hats[0] & SDL_HAT_RIGHT) != 0) v_screen->f_key_press(SDLK_RIGHT);
+		if ((v_hats[0] & SDL_HAT_DOWN) != 0) v_screen->f_key_press(SDLK_DOWN);
+		if ((v_hats[0] & SDL_HAT_LEFT) != 0) v_screen->f_key_press(SDLK_LEFT);
+	} else if (v_controllers[1] && a_hat.which == v_controllers[1].f_id()) {
+		if ((v_hats[1] & SDL_HAT_UP) != 0) v_screen->f_key_release(SDLK_8);
+		if ((v_hats[1] & SDL_HAT_RIGHT) != 0) v_screen->f_key_release(SDLK_6);
+		if ((v_hats[1] & SDL_HAT_DOWN) != 0) v_screen->f_key_release(SDLK_5);
+		if ((v_hats[1] & SDL_HAT_LEFT) != 0) v_screen->f_key_release(SDLK_4);
+		v_hats[1] = a_hat.value;
+		if ((v_hats[1] & SDL_HAT_UP) != 0) v_screen->f_key_press(SDLK_8);
+		if ((v_hats[1] & SDL_HAT_RIGHT) != 0) v_screen->f_key_press(SDLK_6);
+		if ((v_hats[1] & SDL_HAT_DOWN) != 0) v_screen->f_key_press(SDLK_5);
+		if ((v_hats[1] & SDL_HAT_LEFT) != 0) v_screen->f_key_press(SDLK_4);
 	}
-	return SDLK_UNKNOWN;
 }
+#endif
 
 void t_match::f_new_game()
 {
@@ -1212,6 +1196,21 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 				}
 				break;
 #endif
+#ifdef __ANDROID__
+			case SDL_JOYHATMOTION:
+				main.f_hat(event.jhat);
+				break;
+			case SDL_JOYBUTTONDOWN:
+				main.v_screen->f_key_press(main.f_keycode(event.jbutton));
+				break;
+			case SDL_JOYBUTTONUP:
+				main.v_screen->f_key_release(main.f_keycode(event.jbutton));
+				break;
+			case SDL_JOYDEVICEADDED:
+			case SDL_JOYDEVICEREMOVED:
+				main.f_setup_controllers();
+				break;
+#else
 			case SDL_CONTROLLERBUTTONDOWN:
 				main.v_screen->f_key_press(main.f_keycode(event.cbutton));
 				break;
@@ -1223,6 +1222,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			case SDL_CONTROLLERDEVICEREMAPPED:
 				main.f_setup_controllers();
 				break;
+#endif
 			case SDL_FINGERDOWN:
 				main.v_screen->f_finger_down(event.tfinger, width, height);
 				break;
