@@ -5,6 +5,30 @@
 
 #include "computer.h"
 
+void t_component::f_step()
+{
+}
+
+void t_component::f_render(const t_matrix4f& a_viewing)
+{
+}
+
+void t_component::f_key_press(SDL_Keycode a_key)
+{
+}
+
+void t_component::f_finger_down(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
+{
+}
+
+void t_component::f_finger_up(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
+{
+}
+
+void t_component::f_finger_motion(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
+{
+}
+
 t_main::t_main(const std::wstring& a_prefix, bool a_show_pad) : v_prefix(a_prefix), v_show_pad(a_show_pad)
 {
 	v_font.f_create(f_path(L"font.ttf.png"));
@@ -283,7 +307,7 @@ void t_match::f_next()
 
 void t_match::f_back()
 {
-	v_main.v_screen = std::make_unique<t_main_screen>(v_main);
+	v_back();
 }
 
 void t_match::f_transit_play()
@@ -375,10 +399,9 @@ void t_training::f_step_things()
 	v_camera1.v_toward = t_vector3f(0.0, -6.0, -40.0 * v_player1->v_end);
 }
 
-t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_state&, t_player&)>& a_controller0, const std::wstring& a_player0, const std::wstring& a_player1) : t_stage(a_main, true, false, a_controller0, a_player0, [](t_stage::t_state& a_state, t_player& a_player)
+t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_state&, t_player&)>& a_controller0, const std::wstring& a_player0, const std::wstring& a_player1, const std::function<void ()>& a_back) : t_stage(a_main, true, false, a_controller0, a_player0, [](t_stage::t_state& a_state, t_player& a_player)
 {
-	auto step = std::move(a_state.v_step);
-	a_state.v_step = [step, &a_player](t_stage& a_stage)
+	a_state.v_step = [step = std::move(a_state.v_step), &a_player](t_stage& a_stage)
 	{
 		if (a_player.v_state != &t_player::v_state_swing) a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
 		step(a_stage);
@@ -387,8 +410,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 {
 	auto f = [this](t_state& a_state)
 	{
-		auto key_press = std::move(a_state.v_key_press);
-		a_state.v_key_press = [this, key_press](t_stage& a_stage, SDL_Keycode a_key)
+		a_state.v_key_press = [this, key_press = std::move(a_state.v_key_press)](t_stage& a_stage, SDL_Keycode a_key)
 		{
 			switch (a_key) {
 			case SDLK_TAB:
@@ -400,8 +422,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 				key_press(a_stage, a_key);
 			}
 		};
-		auto finger_up = std::move(a_state.v_finger_up);
-		a_state.v_finger_up = [this, finger_up](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+		a_state.v_finger_up = [this, finger_up = std::move(a_state.v_finger_up)](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 		{
 			if (a_event.x > 0.5 && a_event.y < 0.5) {
 				v_side = -v_side;
@@ -415,12 +436,12 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 	f(v_state_play);
 	v_camera0.v_position = t_vector3f(0.0, 14.0, 0.0);
 	v_camera0.v_toward = t_vector3f(0.0, -12.0, -40.0 * v_player0->v_end);
-	v_menu.v_back = [this]
-	{
-		f_exit();
-	};
+	v_menu.v_back = a_back;
 	v_menu.v_items.assign({
 		t_item{L" SERVE ", [this]
+		{
+			f_transit_ready();
+		}, [this]
 		{
 			v_ball->f_reset(v_side, 2 * 12 * 0.0254 * v_side, 0.875, 39 * 12 * 0.0254);
 			v_mark->v_duration = 0.0;
@@ -429,11 +450,6 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			v_player1->v_placement->v_valid = false;
 			v_player1->f_reset(-1.0, t_player::v_state_default);
 			f_step_things();
-		}, [this]
-		{
-			f_transit_ready();
-		}, [this]
-		{
 			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = std::vector<std::wstring>{
 				L"CHANGE SIDES: SELECT",
@@ -447,87 +463,45 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 				L"        SLICE       "
 			};
 			v_duration = 0.0 * 64.0;
-		}, []
-		{
-		}, [this]
-		{
-			f_transit_select();
-		}},
+		}, [] {}},
 		t_item{L" STROKE", [this]
-		{
-			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.0 - 3.2 * v_side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss);
-		}, [this]
 		{
 			f_transit_ready();
 		}, [this]
 		{
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.0 - 3.2 * v_side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss);
 			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = v_toss_message;
 			v_duration = 0.5 * 64.0;
 		}, [this]
 		{
 			f_toss(v_player1->v_actions.v_swing.v_toss);
-		}, [this]
-		{
-			f_transit_select();
 		}},
 		t_item{L" VOLLEY", [this]
 		{
-			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.1 - 2.0 * v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss);
-		}, [this]
-		{
 			f_transit_ready();
 		}, [this]
 		{
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.1 - 2.0 * v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss);
 			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = v_toss_message;
 			v_duration = 0.5 * 64.0;
 		}, [this]
 		{
 			f_toss(v_player1->v_actions.v_swing.v_toss);
-		}, [this]
-		{
-			f_transit_select();
 		}},
 		t_item{L" SMASH ", [this]
-		{
-			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.4 - 0.4 * v_side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss_lob);
-		}, [this]
 		{
 			f_transit_ready();
 		}, [this]
 		{
+			f_reset(3 * 12 * 0.0254 * v_side, 1.0, -39 * 12 * 0.0254, t_vector3f((0.4 - 0.4 * v_side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), v_player1->v_actions.v_swing.v_toss_lob);
 			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = v_toss_message;
 			v_duration = 0.5 * 64.0;
 		}, [this]
 		{
 			f_toss(v_player1->v_actions.v_swing.v_toss_lob);
-		}, [this]
-		{
-			f_transit_select();
-		}},
-		t_item{L" BACK  ", [this]
-		{
-			v_ball->f_reset(v_side, 2 * 12 * 0.0254, t_ball::c_radius + 0.01, 2 * 12 * 0.0254);
-			v_mark->v_duration = 0.0;
-			v_player0->v_placement->v_position = t_vector3f((0.1 - 2.0 * v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
-			v_player0->v_placement->v_valid = false;
-			v_player0->f_reset(1.0, t_player::v_state_default);
-			v_player1->v_placement->v_position = t_vector3f((0.1 + 2.0 * v_side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
-			v_player1->v_placement->v_valid = false;
-			v_player1->f_reset(-1.0, t_player::v_state_default);
-			f_step_things();
-		}, [this]
-		{
-			f_back();
-		}, []
-		{
-		}, []
-		{
-		}, [this]
-		{
-			f_exit();
 		}}
 	});
 	f_transit_select();
@@ -564,18 +538,11 @@ void t_training::f_toss(t_player::t_swing& a_shot)
 
 void t_training::f_back()
 {
-	v_menu.f_selected().v_back();
-}
-
-void t_training::f_exit()
-{
-	v_main.v_screen = std::make_unique<t_main_screen>(v_main);
+	f_transit_select();
 }
 
 const t_stage::t_state t_training::v_state_select{
-	[](t_stage& a_stage)
-	{
-	},
+	[](t_stage& a_stage) {},
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
@@ -592,17 +559,17 @@ const t_stage::t_state t_training::v_state_select{
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
-		stage.v_menu.f_finger_down(a_event, stage.f_transform());
+		stage.v_menu.f_finger_down(stage.f_transform(), a_event);
 	},
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
-		stage.v_menu.f_finger_up(a_event, stage.f_transform());
+		stage.v_menu.f_finger_up(stage.f_transform(), a_event);
 	},
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
-		stage.v_menu.f_finger_motion(a_event, stage.f_transform());
+		stage.v_menu.f_finger_motion(stage.f_transform(), a_event);
 	}
 };
 
@@ -616,7 +583,15 @@ void t_training::f_transit_select()
 {
 	v_state = &v_state_select;
 	v_side = 1.0;
-	v_menu.f_selected().v_select();
+	v_ball->f_reset(v_side, 2 * 12 * 0.0254, t_ball::c_radius + 0.01, 2 * 12 * 0.0254);
+	v_mark->v_duration = 0.0;
+	v_player0->v_placement->v_position = t_vector3f((0.1 - 2.0 * v_side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254);
+	v_player0->v_placement->v_valid = false;
+	v_player0->f_reset(1.0, t_player::v_state_default);
+	v_player1->v_placement->v_position = t_vector3f((0.1 + 2.0 * v_side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254);
+	v_player1->v_placement->v_valid = false;
+	v_player1->f_reset(-1.0, t_player::v_state_default);
+	f_step_things();
 	v_message.clear();
 	v_duration = 0.0 * 64.0;
 }
@@ -624,14 +599,12 @@ void t_training::f_transit_select()
 void t_training::f_transit_ready()
 {
 	v_state = &v_state_ready;
-	v_menu.f_selected().v_select();
 	v_menu.f_selected().v_ready();
 }
 
 void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 {
-	auto key_press = std::move(a_state.v_key_press);
-	a_state.v_key_press = [key_press, &a_player](t_stage& a_stage, SDL_Keycode a_key)
+	a_state.v_key_press = [key_press = std::move(a_state.v_key_press), &a_player](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		switch (a_key) {
 		case SDLK_1:
@@ -671,8 +644,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			key_press(a_stage, a_key);
 		}
 	};
-	auto key_release = std::move(a_state.v_key_release);
-	a_state.v_key_release = [key_release, &a_player](t_stage& a_stage, SDL_Keycode a_key)
+	a_state.v_key_release = [key_release = std::move(a_state.v_key_release), &a_player](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		switch (a_key) {
 		case SDLK_LEFT:
@@ -697,8 +669,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 	};
 	const float pad_size = 1.0;
 	if (a_player.v_stage.v_main.v_show_pad) {
-		auto render = std::move(a_state.v_render);
-		a_state.v_render = [render, &a_player, pad_size](t_stage& a_stage, size_t a_width, size_t a_height)
+		a_state.v_render = [render = std::move(a_state.v_render), &a_player, pad_size](t_stage& a_stage, size_t a_width, size_t a_height)
 		{
 			if (a_stage.v_main.v_controllers[0]) {
 				render(a_stage, a_width, a_height);
@@ -746,8 +717,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			if (a > std::tan(M_PI * 0.125)) (u.v_y < 0.0 ? a_player.v_backward : a_player.v_forward) = true;
 		}
 	};
-	auto finger_down = std::move(a_state.v_finger_down);
-	a_state.v_finger_down = [left_pad, finger_down, &a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	a_state.v_finger_down = [left_pad, finger_down = std::move(a_state.v_finger_down), &a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		if (a_event.x < 0.5) {
 			left_pad(a_stage, a_event, a_width, a_height);
@@ -762,14 +732,12 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 		}
 		if (a_event.y < 0.5) finger_down(a_stage, a_event, a_width, a_height);
 	};
-	auto finger_up = std::move(a_state.v_finger_up);
-	a_state.v_finger_up = [finger_up, &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	a_state.v_finger_up = [finger_up = std::move(a_state.v_finger_up), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		if (a_event.x < 0.5) a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
 		if (a_event.y < 0.5) finger_up(a_stage, a_event, a_width, a_height);
 	};
-	auto finger_motion = std::move(a_state.v_finger_motion);
-	a_state.v_finger_motion = [left_pad, finger_motion, &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	a_state.v_finger_motion = [left_pad, finger_motion = std::move(a_state.v_finger_motion), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		if (a_event.x < 0.5) left_pad(a_stage, a_event, a_width, a_height);
 		if (a_event.y < 0.5) finger_motion(a_stage, a_event, a_width, a_height);
@@ -778,8 +746,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 
 void f_controller1(t_stage::t_state& a_state, t_player& a_player)
 {
-	auto key_press = std::move(a_state.v_key_press);
-	a_state.v_key_press = [key_press, &a_player](t_stage& a_stage, SDL_Keycode a_key)
+	a_state.v_key_press = [key_press = std::move(a_state.v_key_press), &a_player](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		switch (a_key) {
 		case SDLK_7:
@@ -810,8 +777,7 @@ void f_controller1(t_stage::t_state& a_state, t_player& a_player)
 			key_press(a_stage, a_key);
 		}
 	};
-	auto key_release = std::move(a_state.v_key_release);
-	a_state.v_key_release = [key_release, &a_player](t_stage& a_stage, SDL_Keycode a_key)
+	a_state.v_key_release = [key_release = std::move(a_state.v_key_release), &a_player](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		switch (a_key) {
 		case SDLK_4:
@@ -832,204 +798,115 @@ void f_controller1(t_stage::t_state& a_state, t_player& a_player)
 	};
 }
 
-t_dialog::t_dialog(t_main& a_main, const std::wstring& a_image, const std::wstring& a_sound, const std::wstring& a_title) : v_main(a_main), v_title(a_title)
+void t_background::f_render(const t_matrix4f& a_viewing)
 {
-	v_main.f_load(v_image, a_image);
-	v_main.f_load(v_sound, a_sound);
-	v_sound.f_play(-1);
-}
-
-void t_dialog::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_viewing)
-{
-	float w = static_cast<float>(a_width) / a_height;
-	float a = a_width * v_image.v_height / (a_height * v_image.v_width);
+	float a = v_main.v_aspect * v_image.v_height / v_image.v_width;
 	float s = a < 1.0 ? a : 1.0;
 	float t = a < 1.0 ? 1.0 : 1.0 / a;
 	v_image(v_main.v_projection, a_viewing, std::array<float, 20>{
-		-w, -1.0, 0.0, (1.0f - s) * 0.5f, (1.0f + t) * 0.5f,
-		w, -1.0, 0.0, (1.0f + s) * 0.5f, (1.0f + t) * 0.5f,
-		-w, 1.0, 0.0, (1.0f - s) * 0.5f, (1.0f - t) * 0.5f,
-		w, 1.0, 0.0, (1.0f + s) * 0.5f, (1.0f - t) * 0.5f
+		-v_main.v_aspect, -1.0, 0.0, (1.0f - s) * 0.5f, (1.0f + t) * 0.5f,
+		v_main.v_aspect, -1.0, 0.0, (1.0f + s) * 0.5f, (1.0f + t) * 0.5f,
+		-v_main.v_aspect, 1.0, 0.0, (1.0f - s) * 0.5f, (1.0f - t) * 0.5f,
+		v_main.v_aspect, 1.0, 0.0, (1.0f + s) * 0.5f, (1.0f - t) * 0.5f
 	});
+	t_container::f_render(a_viewing);
+}
+
+void t_titled::f_render(const t_matrix4f& a_viewing)
+{
+	t_container::f_render(a_viewing);
 	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.5, 0.0) * t_scale3f(1.125 / 4.0, 1.125 / 4.0, 1.0) * t_translate3f(v_title.size() * -0.25, 0.0, 0.0);
 	v_main.v_font(v_main.v_projection, viewing, v_title);
 }
 
-t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_image, const std::wstring& a_sound, const std::wstring& a_title, const std::function<void (const std::wstring&, const std::wstring&)>& a_done) : t_dialog(a_screen.v_main, a_image, a_sound, a_title), v_player0(a_screen.v_main, 2), v_player1(a_screen.v_main, 2), v_ready(a_screen.v_main), v_menu(&v_player0)
+t_stage_menu::t_stage_menu(t_main_screen& a_screen, const std::wstring& a_title, const std::function<void (const std::wstring&, const std::wstring&)>& a_done, const std::function<void ()>& a_back) : t_titled(a_screen.v_main, a_title), v_player0(a_screen.v_main, 2), v_player1(a_screen.v_main, 2), v_ready(a_screen.v_main)
 {
-	v_player0.v_back = [this, &a_screen]
-	{
-		v_sound.f_stop();
-		a_screen.f_transit(std::make_unique<t_main_menu>(a_screen), 1.0);
-	};
+	v_player0.v_back = a_back;
 	v_player1.v_back = [this]
 	{
-		f_transit(v_player0, 1.0);
+		f_transit(&v_player0, 2.0 * v_main.v_aspect);
 	};
 	for (const auto& x : a_screen.v_players) {
-		v_player0.v_items.push_back(t_menu_item{std::get<0>(x), []{}, [this]
+		v_player0.v_items.push_back(t_menu_item{std::get<0>(x), [this]
 		{
-			f_transit(v_player1, -1.0);
+			f_transit(&v_player1, -2.0 * v_main.v_aspect);
 		}});
-		v_player1.v_items.push_back(t_menu_item{std::get<0>(x), []{}, [this]
+		v_player1.v_items.push_back(t_menu_item{std::get<0>(x), [this]
 		{
-			f_transit(v_ready, -1.0);
+			f_transit(&v_ready, -2.0 * v_main.v_aspect);
 		}});
 	}
 	v_ready.v_back = [this]
 	{
-		f_transit(v_player1, 1.0);
+		f_transit(&v_player1, 2.0 * v_main.v_aspect);
 	};
 	v_ready.v_items = std::vector<t_menu_item>{
-		t_menu_item{L"START", []{}, [this, &a_screen, a_done]
+		t_menu_item{L"START", [this, &a_screen, a_done]
 		{
 			a_done(std::get<1>(a_screen.v_players[v_player0.v_selected]), std::get<1>(a_screen.v_players[v_player1.v_selected]));
 		}}
 	};
+	v_content = &v_player0;
 }
 
-void t_stage_menu::f_step()
+void t_stage_menu::f_render(const t_matrix4f& a_viewing)
 {
-	if (!v_transit) return;
-	if (v_t < v_duration)
-		v_t += 1.0;
-	else
-		v_transit = nullptr;
-}
-
-void t_stage_menu::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_viewing)
-{
-	t_dialog::f_render(a_width, a_height, a_viewing);
+	t_titled::f_render(a_viewing);
 	auto message = v_player0.v_items[v_player0.v_selected].v_label;
-	if (v_menu == &v_player0) message += L'?';
+	if (v_content == &v_player0) message += L'?';
 	message += L" vs " + v_player1.v_items[v_player1.v_selected].v_label;
-	if (v_menu == &v_player1) message += L'?';
+	if (v_content == &v_player1) message += L'?';
 	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(1.5 / 8.0, 1.5 / 8.0, 1.0) * t_translate3f(message.size() * -0.25, -0.5, 0.0);
 	v_main.v_font(v_main.v_projection, viewing, message);
-	viewing = a_viewing;
-	if (v_transit) {
-		float a = 2.0 * v_direction * a_width / a_height;
-		float t = v_t / v_duration;
-		v_transit->f_render(viewing * t_translate3f(a * t, 0.0, 0.0) * v_main.v_text_scale);
-		viewing *= t_translate3f(a * (t - 1.0), 0.0, 0.0);
-	}
-	v_menu->f_render(f_transform(viewing));
 }
 
-void t_stage_menu::f_key_press(SDL_Keycode a_key)
+t_main_menu::t_main_menu(t_main_screen& a_screen, const std::function<void ()>& a_back) : t_titled(a_screen.v_main, L"WakuWakuTennis"), v_menu(a_screen.v_main)
 {
-	if (!v_transit) v_menu->f_key_press(a_key);
-}
-
-void t_stage_menu::f_finger_down(const SDL_TouchFingerEvent& a_event)
-{
-	if (!v_transit) v_menu->f_finger_down(a_event, f_transform(t_matrix4f(1.0)));
-}
-
-void t_stage_menu::f_finger_up(const SDL_TouchFingerEvent& a_event)
-{
-	if (!v_transit) v_menu->f_finger_up(a_event, f_transform(t_matrix4f(1.0)));
-}
-
-void t_stage_menu::f_finger_motion(const SDL_TouchFingerEvent& a_event)
-{
-	if (!v_transit) v_menu->f_finger_motion(a_event, f_transform(t_matrix4f(1.0)));
-}
-
-void t_stage_menu::f_transit(t_menu<t_menu_item>& a_menu, float a_direction)
-{
-	v_transit = v_menu;
-	v_menu = &a_menu;
-	v_direction = a_direction;
-	v_duration = 30.0;
-	v_t = 0.0;
-}
-
-t_main_menu::t_main_menu(t_main_screen& a_screen) : t_dialog(a_screen.v_main, L"main-background.jpg", L"main-background.wav", L"WakuWakuTennis"), t_menu<t_menu_item>(a_screen.v_main)
-{
-	v_back = []
+	auto back2this = [&a_screen, a_back]
+	{
+		a_screen.v_container.f_transit(std::make_unique<t_main_menu>(a_screen, a_back), 2.0 * a_screen.v_main.v_aspect);
+	};
+	v_menu.v_back = []
 	{
 		SDL_Event event;
 		event.type = SDL_QUIT;
 		SDL_PushEvent(&event);
 	};
-	v_items.push_back(t_menu_item{L"  1P vs COM  ", []{}, [this, &a_screen]
+	v_menu.v_items.push_back(t_menu_item{L"  1P vs COM  ", [&a_screen, a_back, back2this]
 	{
-		v_sound.f_stop();
-		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+		a_screen.v_container.f_transit(std::make_unique<t_stage_menu>(a_screen, L"1P vs COM", [&main = a_screen.v_main, a_back](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, false, f_controller0, a_player0, f_computer, a_player1);
-		}), -1.0);
+			main.v_screen = std::make_unique<t_match>(main, false, false, f_controller0, a_player0, f_computer, a_player1, a_back);
+		}, back2this), -2.0 * a_screen.v_main.v_aspect);
 	}});
 #ifdef __ANDROID__
-	if (a_screen.v_main.v_controllers[1])
+	if (v_main.v_controllers[1])
 #endif
-	v_items.push_back(t_menu_item{L"  1P vs 2P   ", []{}, [this, &a_screen]
+	v_menu.v_items.push_back(t_menu_item{L"  1P vs 2P   ", [&a_screen, a_back, back2this]
 	{
-		v_sound.f_stop();
-		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"1P vs 2P", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+		a_screen.v_container.f_transit(std::make_unique<t_stage_menu>(a_screen, L"1P vs 2P", [&main = a_screen.v_main, a_back](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, true, false, f_controller0, a_player0, f_controller1, a_player1);
-		}), -1.0);
+			main.v_screen = std::make_unique<t_match>(main, true, false, f_controller0, a_player0, f_controller1, a_player1, a_back);
+		}, back2this), -2.0 * a_screen.v_main.v_aspect);
 	}});
-	v_items.push_back(t_menu_item{L" COM vs COM  ", []{}, [this, &a_screen]
+	v_menu.v_items.push_back(t_menu_item{L" COM vs COM  ", [&a_screen, a_back, back2this]
 	{
-		v_sound.f_stop();
-		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"main-background.wav", L"COM vs COM", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+		a_screen.v_container.f_transit(std::make_unique<t_stage_menu>(a_screen, L"COM vs COM", [&main = a_screen.v_main, a_back](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			a_screen.v_main.v_screen = std::make_unique<t_match>(a_screen.v_main, false, true, f_computer, a_player0, f_computer, a_player1);
-		}), -1.0);
+			main.v_screen = std::make_unique<t_match>(main, false, true, f_computer, a_player0, f_computer, a_player1, a_back);
+		}, back2this), -2.0 * a_screen.v_main.v_aspect);
 	}});
-	v_items.push_back(t_menu_item{L"  TRAINING   ", []{}, [this, &a_screen]
+	v_menu.v_items.push_back(t_menu_item{L"  TRAINING   ", [&a_screen, a_back, back2this]
 	{
-		v_sound.f_stop();
-		a_screen.f_transit(std::make_unique<t_stage_menu>(a_screen, L"main-background.jpg", L"training-background.wav", L"TRAINING", [&a_screen](const std::wstring& a_player0, const std::wstring& a_player1)
+		a_screen.v_container.f_transit(std::make_unique<t_stage_menu>(a_screen, L"TRAINING", [&main = a_screen.v_main, a_back](const std::wstring& a_player0, const std::wstring& a_player1)
 		{
-			a_screen.v_main.v_screen = std::make_unique<t_training>(a_screen.v_main, f_controller0, a_player0, a_player1);
-		}), -1.0);
+			main.v_screen = std::make_unique<t_training>(main, f_controller0, a_player0, a_player1, a_back);
+		}, back2this), -2.0 * a_screen.v_main.v_aspect);
 	}});
-	v_items.push_back(t_menu_item{L"    EXIT     ", []{}, v_back});
+	v_content = &v_menu;
 }
 
-void t_main_menu::f_step()
-{
-}
-
-void t_main_menu::f_render(size_t a_width, size_t a_height, const t_matrix4f& a_viewing)
-{
-	t_dialog::f_render(a_width, a_height, a_viewing);
-	t_menu<t_menu_item>::f_render(f_transform(a_viewing));
-#if 0
-	auto viewing = a_viewing * t_translate(-1.0, 0.5, 0.0) * t_scale3f(0.1, 0.1, 0.1);
-	float y = 0.0;
-	for (const auto& s : joysticks) {
-		t_dialog::v_main.v_font(t_dialog::v_main.v_projection, viewing * t_translate(0.0, y, 0.0), f_convert(s));
-		y -= 1.0;
-	}
-#endif
-}
-
-void t_main_menu::f_key_press(SDL_Keycode a_key)
-{
-	t_menu<t_menu_item>::f_key_press(a_key);
-}
-
-void t_main_menu::f_finger_down(const SDL_TouchFingerEvent& a_event)
-{
-	t_menu<t_menu_item>::f_finger_down(a_event, f_transform(t_matrix4f(1.0)));
-}
-
-void t_main_menu::f_finger_up(const SDL_TouchFingerEvent& a_event)
-{
-	t_menu<t_menu_item>::f_finger_up(a_event, f_transform(t_matrix4f(1.0)));
-}
-
-void t_main_menu::f_finger_motion(const SDL_TouchFingerEvent& a_event)
-{
-	t_menu<t_menu_item>::f_finger_motion(a_event, f_transform(t_matrix4f(1.0)));
-}
-
-t_main_screen::t_main_screen(t_main& a_main) : t_screen(a_main)
+t_main_screen::t_main_screen(t_main& a_main) : t_screen(a_main), v_container(v_main, L"main-background.jpg", L"main-background.wav")
 {
 	{
 		auto input = a_main.f_input(L"players");
@@ -1046,37 +923,35 @@ t_main_screen::t_main_screen(t_main& a_main) : t_screen(a_main)
 		}
 		reader.f_end_element();
 	}
-	v_dialog = std::make_unique<t_main_menu>(*this);
+	v_container.v_content = std::make_unique<t_main_menu>(*this, [&a_main]
+	{
+		a_main.v_screen = std::make_unique<t_main_screen>(a_main);
+	});
 }
 
 void t_main_screen::f_step()
 {
-	if (v_transit) {
-		if (v_t < v_duration)
-			v_t += 1.0;
-		else
-			v_transit = nullptr;
-	}
-	v_dialog->f_step();
+	v_container.f_step();
 }
 
 void t_main_screen::f_render(size_t a_width, size_t a_height)
 {
 	glViewport(0, 0, a_width, a_height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	auto viewing = t_matrix4f(1.0);
-	if (v_transit) {
-		float a = 2.0 * v_direction * a_width / a_height;
-		float t = v_t / v_duration;
-		v_transit->f_render(a_width, a_height, viewing * t_translate3f(a * t, 0.0, 0.0));
-		viewing *= t_translate3f(a * (t - 1.0), 0.0, 0.0);
+	v_container.f_render(t_matrix4f(1.0));
+#if 0
+	auto viewing = static_cast<t_matrix4f>(t_translate(-1.0, 0.5, 0.0)) * t_scale3f(0.1, 0.1, 0.1);
+	float y = 0.0;
+	for (const auto& s : joysticks) {
+		t_dialog::v_main.v_font(t_dialog::v_main.v_projection, viewing * t_translate(0.0, y, 0.0), f_convert(s));
+		y -= 1.0;
 	}
-	v_dialog->f_render(a_width, a_height, viewing);
+#endif
 }
 
 void t_main_screen::f_key_press(SDL_Keycode a_key)
 {
-	if (!v_transit) v_dialog->f_key_press(a_key);
+	v_container.f_key_press(a_key);
 }
 
 void t_main_screen::f_key_release(SDL_Keycode a_key)
@@ -1085,26 +960,17 @@ void t_main_screen::f_key_release(SDL_Keycode a_key)
 
 void t_main_screen::f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 {
-	if (!v_transit) v_dialog->f_finger_down(a_event);
+	v_container.f_finger_down(t_matrix4f(1.0), a_event);
 }
 
 void t_main_screen::f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 {
-	if (!v_transit) v_dialog->f_finger_up(a_event);
+	v_container.f_finger_up(t_matrix4f(1.0), a_event);
 }
 
 void t_main_screen::f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 {
-	if (!v_transit) v_dialog->f_finger_motion(a_event);
-}
-
-void t_main_screen::f_transit(std::unique_ptr<t_dialog>&& a_dialog, float a_direction)
-{
-	v_transit = std::move(v_dialog);
-	v_dialog = std::move(a_dialog);
-	v_direction = a_direction;
-	v_duration = 30.0;
-	v_t = 0.0;
+	v_container.f_finger_motion(t_matrix4f(1.0), a_event);
 }
 
 void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
@@ -1119,9 +985,10 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 	{
 		width = a_width;
 		height = a_height;
-		float w = static_cast<float>(width) / height;
-		main.v_projection = f_orthographic(-w, w, -1.0f, 1.0f, -1.0f, 1.0f);
-		main.v_text_scale = width < height ? t_scale3f(w, w, 1.0) : t_scale3f(1.0, 1.0, 1.0);
+		float a = static_cast<float>(width) / height;
+		main.v_aspect = a;
+		main.v_projection = f_orthographic(-a, a, -1.0f, 1.0f, -1.0f, 1.0f);
+		main.v_text_scale = width < height ? t_scale3f(a, a, 1.0) : t_scale3f(1.0, 1.0, 1.0);
 	};
 	f_resize(width, height);
 #ifdef __ANDROID__

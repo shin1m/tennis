@@ -33,8 +33,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 	{
 		a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
 	};
-	auto step = std::move(a_state.v_step);
-	a_state.v_step = [state = t_state(), f_reset_move, step, &a_player](t_stage& a_stage) mutable
+	a_state.v_step = [state = t_state(), f_reset_move, step = std::move(a_state.v_step), &a_player](t_stage& a_stage) mutable
 	{
 		auto& stage = dynamic_cast<t_match&>(a_stage);
 		auto& ball = *stage.v_ball;
