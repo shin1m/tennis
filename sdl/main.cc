@@ -341,13 +341,13 @@ void t_match::f_new_set()
 }
 
 const std::vector<std::wstring> t_training::v_toss_message{
-	L"  CHANGE SIDES: SELECT",
-	L"      POSITION:   +   ",
-	L"COURCE & SWING: + & * ",
+	L"  CHANGE SIDES: START",
+	L"      POSITION:   +  ",
+	L"COURCE & SWING: + & *",
 	L"",
-	L"           LOB        ",
-	L"    TOPSPIN * FLAT    ",
-	L"          SLICE       "
+	L"          LOB        ",
+	L"   TOPSPIN * FLAT    ",
+	L"         SLICE       "
 };
 
 void t_training::f_ball_ace()
@@ -413,9 +413,8 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 		a_state.v_key_press = [this, key_press = std::move(a_state.v_key_press)](t_stage& a_stage, SDL_Keycode a_key)
 		{
 			switch (a_key) {
-			case SDLK_TAB:
-				v_side = -v_side;
 			case SDLK_RETURN:
+				v_side = -v_side;
 				f_transit_ready();
 				break;
 			default:
@@ -452,15 +451,15 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_step_things();
 			v_text_viewing = t_matrix4f(1.0) * t_translate3f(0.0, -0.5, 0.0) * t_scale3f(1.5 / 16.0, 1.5 / 16.0, 1.0);
 			v_message = std::vector<std::wstring>{
-				L"CHANGE SIDES: SELECT",
-				L"    POSITION: < + > ",
-				L"        TOSS:   *   ",
-				L"      COURCE: < + > ",
-				L"       SWING:   *   ",
+				L"CHANGE SIDES: START",
+				L"    POSITION: < + >",
+				L"        TOSS:   *  ",
+				L"      COURCE: < + >",
+				L"       SWING:   *  ",
 				L"",
-				L"        SECOND      ",
-				L"     SPIN * FLAT    ",
-				L"        SLICE       "
+				L"       SECOND      ",
+				L"    SPIN * FLAT    ",
+				L"       SLICE       "
 			};
 			v_duration = 0.0 * 64.0;
 		}, [] {}},

@@ -309,11 +309,10 @@ Training = Class(stage.Stage) :: @{
 			};
 		}, player1);
 		{
-			xraft.Key.TAB: @{
+			xraft.Key.RETURN: @{
 				$side = -$side;
 				$transit_ready();
-			},
-			xraft.Key.RETURN: @() $transit_ready()
+			}
 		}.each(@(key, value) {
 			$state_ready.key_press[key] = value;
 			$state_play.key_press[key] = value;
@@ -323,13 +322,13 @@ Training = Class(stage.Stage) :: @{
 		$menu = Menu(main);
 		$menu.back = back;
 		toss_message = [
-			"  CHANGE SIDES: SELECT",
-			"      POSITION:   +   ",
-			"COURCE & SWING: + & * ",
+			"  CHANGE SIDES: START",
+			"      POSITION:   +  ",
+			"COURCE & SWING: + & *",
 			"",
-			"           LOB        ",
-			"    TOPSPIN * FLAT    ",
-			"          SLICE       "
+			"          LOB        ",
+			"   TOPSPIN * FLAT    ",
+			"         SLICE       "
 		];
 		$menu.items = '(
 			Item(" SERVE ", (@() $transit_ready())[$], @{
@@ -342,15 +341,15 @@ Training = Class(stage.Stage) :: @{
 				$step_things();
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0);
 				$message = [
-					"CHANGE SIDES: SELECT",
-					"    POSITION: < + > ",
-					"        TOSS:   *   ",
-					"      COURCE: < + > ",
-					"       SWING:   *   ",
+					"CHANGE SIDES: START",
+					"    POSITION: < + >",
+					"        TOSS:   *  ",
+					"      COURCE: < + >",
+					"       SWING:   *  ",
 					"",
-					"        SECOND      ",
-					"     SPIN * FLAT    ",
-					"        SLICE       "
+					"       SECOND      ",
+					"    SPIN * FLAT    ",
+					"       SLICE       "
 				];
 				$duration = 0.0 * 64.0;
 			}[$], @{}),
