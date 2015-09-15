@@ -556,7 +556,7 @@ StageMenu = Class(Titled) :: @{
 		if ($content === $player0) message = message + "?";
 		message = message + " vs " + $player1.items[$player1.selected].label;
 		if ($content === $player1) message = message + "?";
-		v = (viewing * $main.text_scale).translate(0.0, 0.25, 0.0).scale(1.5 / 8.0, 1.5 / 8.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes;
+		v = (viewing * $main.text_scale).translate(0.0, 0.25, 0.0).scale(1.0 / 4.0, 1.0 / 4.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes;
 		$main.font($main.projection, v, message);
 	};
 };

@@ -15,6 +15,13 @@ void t_component::f_render(const t_matrix4f& a_viewing)
 
 void t_component::f_key_press(SDL_Keycode a_key)
 {
+	switch (a_key) {
+	case SDLK_ESCAPE:
+	case SDLK_1:
+	case SDLK_VOLUMEUP:
+		v_back();
+		break;
+	}
 }
 
 void t_component::f_finger_down(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
@@ -23,6 +30,7 @@ void t_component::f_finger_down(const t_matrix4f& a_viewing, const SDL_TouchFing
 
 void t_component::f_finger_up(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
 {
+	if (a_event.x < 0.125) v_back();
 }
 
 void t_component::f_finger_motion(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
@@ -855,8 +863,35 @@ void t_stage_menu::f_render(const t_matrix4f& a_viewing)
 	if (v_content == &v_player0) message += L'?';
 	message += L" vs " + v_player1.v_items[v_player1.v_selected].v_label;
 	if (v_content == &v_player1) message += L'?';
-	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(1.5 / 8.0, 1.5 / 8.0, 1.0) * t_translate3f(message.size() * -0.25, -0.5, 0.0);
+	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(1.0 / 4.0, 1.0 / 4.0, 1.0) * t_translate3f(message.size() * -0.25, -0.5, 0.0);
 	v_main.v_font(v_main.v_projection, viewing, message);
+}
+
+t_credits::t_credits(t_main_screen& a_screen, const std::function<void ()>& a_back) : t_titled(a_screen.v_main, L"CREDITS")
+{
+	v_back = a_back;
+}
+
+void t_credits::f_render(const t_matrix4f& a_viewing)
+{
+	t_titled::f_render(a_viewing);
+	std::wstring message[] = {
+		L"Copyright (c) shin1m",
+		L"",
+		L"The background image is",
+		L"\"Arthur Ashe Stadium 2010\"",
+		L"by manalahmadkhan,",
+		L"used under CC BY 2.0.",
+		L"",
+		L"The sound effects are",
+		L"by freeSFX and others."
+	};
+	auto viewing = a_viewing * v_main.v_text_scale * t_translate3f(0.0, 0.25, 0.0) * t_scale3f(0.125, 0.125, 1.0);
+	float y = 0.0;
+	for (const auto& line : message) {
+		v_main.v_font(v_main.v_projection, viewing * t_translate3f(line.size() * -0.25, y, 0.0), line);
+		y -= 1.0;
+	}
 }
 
 t_main_menu::t_main_menu(t_main_screen& a_screen, const std::function<void ()>& a_back) : t_titled(a_screen.v_main, L"WakuWakuTennis"), v_menu(a_screen.v_main)
@@ -902,6 +937,10 @@ t_main_menu::t_main_menu(t_main_screen& a_screen, const std::function<void ()>& 
 			main.v_screen = std::make_unique<t_training>(main, f_controller0, a_player0, a_player1, a_back);
 		}, back2this), -2.0 * a_screen.v_main.v_aspect);
 	}});
+	v_menu.v_items.push_back(t_menu_item{L"   CREDITS   ", [&a_screen, a_back, back2this]
+	{
+		a_screen.v_container.f_transit(std::make_unique<t_credits>(a_screen, back2this), -2.0 * a_screen.v_main.v_aspect);
+	}});
 	v_content = &v_menu;
 }
 
@@ -942,7 +981,7 @@ void t_main_screen::f_render(size_t a_width, size_t a_height)
 	auto viewing = static_cast<t_matrix4f>(t_translate(-1.0, 0.5, 0.0)) * t_scale3f(0.1, 0.1, 0.1);
 	float y = 0.0;
 	for (const auto& s : joysticks) {
-		t_dialog::v_main.v_font(t_dialog::v_main.v_projection, viewing * t_translate(0.0, y, 0.0), f_convert(s));
+		v_main.v_font(v_main.v_projection, viewing * t_translate(0.0, y, 0.0), f_convert(s));
 		y -= 1.0;
 	}
 #endif

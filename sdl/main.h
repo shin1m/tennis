@@ -8,6 +8,8 @@
 
 struct t_component
 {
+	std::function<void ()> v_back;
+
 	virtual ~t_component() = default;
 	virtual void f_step();
 	virtual void f_render(const t_matrix4f& a_viewing);
@@ -47,19 +49,27 @@ struct t_container : t_component
 	}
 	virtual void f_key_press(SDL_Keycode a_key)
 	{
-		if (v_content && !v_transit) v_content->f_key_press(a_key);
+		if (v_transit) return;
+		if (v_content)
+			v_content->f_key_press(a_key);
+		else
+			t_component::f_key_press(a_key);
 	}
 	virtual void f_finger_down(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
 	{
-		if (v_content && !v_transit) v_content->f_finger_down(a_viewing, a_event);
+		if (!v_transit && v_content) v_content->f_finger_down(a_viewing, a_event);
 	}
 	virtual void f_finger_up(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
 	{
-		if (v_content && !v_transit) v_content->f_finger_up(a_viewing, a_event);
+		if (v_transit) return;
+		if (v_content)
+			v_content->f_finger_up(a_viewing, a_event);
+		else
+			t_component::f_finger_up(a_viewing, a_event);
 	}
 	virtual void f_finger_motion(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
 	{
-		if (v_content && !v_transit) v_content->f_finger_motion(a_viewing, a_event);
+		if (!v_transit && v_content) v_content->f_finger_motion(a_viewing, a_event);
 	}
 	void f_transit(T_component&& a_content, float a_slide)
 	{
@@ -176,7 +186,6 @@ struct t_menu : t_component
 {
 	t_main& v_main;
 	size_t v_columns;
-	std::function<void ()> v_back;
 	std::vector<T_item> v_items;
 	size_t v_selected = 0;
 
@@ -261,11 +270,6 @@ struct t_menu : t_component
 	virtual void f_key_press(SDL_Keycode a_key)
 	{
 		switch (a_key) {
-		case SDLK_ESCAPE:
-		case SDLK_1:
-		case SDLK_VOLUMEUP:
-			v_back();
-			break;
 		case SDLK_RETURN:
 		case SDLK_SPACE:
 		case SDLK_2:
@@ -288,6 +292,8 @@ struct t_menu : t_component
 		case SDLK_c:
 			f_down();
 			break;
+		default:
+			t_component::f_key_press(a_key);
 		}
 	}
 	virtual void f_finger_down(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
@@ -299,7 +305,7 @@ struct t_menu : t_component
 	{
 		int i = f_nearest(a_viewing, a_event);
 		if (i < 0) {
-			if (a_event.x < 0.125) v_back();
+			t_component::f_finger_up(a_viewing, a_event);
 		} else {
 			v_selected = i;
 			f_do();
@@ -423,6 +429,12 @@ struct t_stage_menu : t_titled
 	t_menu<t_menu_item> v_ready;
 
 	t_stage_menu(t_main_screen& a_screen, const std::wstring& a_title, const std::function<void (const std::wstring&, const std::wstring&)>& a_done, const std::function<void ()>& a_back);
+	virtual void f_render(const t_matrix4f& a_viewing);
+};
+
+struct t_credits : t_titled
+{
+	t_credits(t_main_screen& a_screen, const std::function<void ()>& a_back);
 	virtual void f_render(const t_matrix4f& a_viewing);
 };
 
