@@ -322,13 +322,13 @@ Training = Class(stage.Stage) :: @{
 		$menu = Menu(main);
 		$menu.back = back;
 		toss_message = [
-			"  CHANGE SIDES: START",
-			"      POSITION:   +  ",
-			"COURCE & SWING: + & *",
+			"     CHANGE SIDES: START",
+			"         POSITION:   +  ",
+			"PLACEMENT & SWING: + & *",
 			"",
-			"          LOB        ",
-			"   TOPSPIN * FLAT    ",
-			"         SLICE       "
+			"            LOB         ",
+			"     TOPSPIN * FLAT     ",
+			"           SLICE        "
 		];
 		$menu.items = '(
 			Item(" SERVE ", (@() $transit_ready())[$], @{
@@ -344,7 +344,7 @@ Training = Class(stage.Stage) :: @{
 					"CHANGE SIDES: START",
 					"    POSITION: < + >",
 					"        TOSS:   *  ",
-					"      COURCE: < + >",
+					"   DIRECTION: < + >",
 					"       SWING:   *  ",
 					"",
 					"       SECOND      ",

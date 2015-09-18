@@ -349,13 +349,13 @@ void t_match::f_new_set()
 }
 
 const std::vector<std::wstring> t_training::v_toss_message{
-	L"  CHANGE SIDES: START",
-	L"      POSITION:   +  ",
-	L"COURCE & SWING: + & *",
+	L"     CHANGE SIDES: START",
+	L"         POSITION:   +  ",
+	L"PLACEMENT & SWING: + & *",
 	L"",
-	L"          LOB        ",
-	L"   TOPSPIN * FLAT    ",
-	L"         SLICE       "
+	L"            LOB         ",
+	L"     TOPSPIN * FLAT     ",
+	L"           SLICE        "
 };
 
 void t_training::f_ball_ace()
@@ -462,7 +462,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 				L"CHANGE SIDES: START",
 				L"    POSITION: < + >",
 				L"        TOSS:   *  ",
-				L"      COURCE: < + >",
+				L"   DIRECTION: < + >",
 				L"       SWING:   *  ",
 				L"",
 				L"       SECOND      ",
@@ -689,7 +689,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			std::remove_reference<decltype(shader)>::type::t_attributes attributes;
 			attributes.v_vertices = a_stage.v_main.v_triangle;
 			float a = static_cast<float>(a_width) / a_height;
-			float size = std::min(a, pad_size);
+			float size = std::min(a * 0.875f, pad_size);
 			t_matrix4f triangle = t_translate3f(0.0, size * 0.25, 0.0);
 			triangle *= t_scale3f(size * 0.1, size * 0.1, 1.0);
 			t_matrix4f pad = t_translate3f(size * 0.5 - a, size * 0.5 - 1.0, 0.0);
@@ -710,7 +710,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 	auto left_pad = [&a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
 		float a = static_cast<float>(a_width) / a_height;
-		float size = std::min(a, pad_size);
+		float size = std::min(a * 0.875f, pad_size);
 		auto m = ~a_stage.v_main.v_projection;
 		auto v = f_affine(m, t_vector3f(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0));
 		auto u = v - t_vector3f(size * 0.5 - a, size * 0.5 - 1.0, 0.0);
@@ -730,7 +730,7 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			left_pad(a_stage, a_event, a_width, a_height);
 		} else {
 			float a = static_cast<float>(a_width) / a_height;
-			float size = std::min(a, pad_size);
+			float size = std::min(a * 0.875f, pad_size);
 			auto m = ~a_stage.v_main.v_projection;
 			auto v = f_affine(m, t_vector3f(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0));
 			auto u = v - t_vector3f(a - size * 0.5, size * 0.5 - 1.0, 0.0);
