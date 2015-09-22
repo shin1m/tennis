@@ -556,7 +556,7 @@ void main()
 			vertex = vertex + " + vertexMatrices[int(joint" + i + ")] * weight" + i;
 		}
 		compile(gl.VERTEX_SHADER, defines + "
-mat3 invert4to3(inout mat4 m) {
+mat3 invert4to3(const in mat4 m) {
 	//float d = m[0][0] * m[1][1] * m[2][2] + m[1][0] * m[2][1] * m[0][2] + m[2][0] * m[0][1] * m[1][2] - m[0][0] * m[2][1] * m[1][2] - m[2][0] * m[1][1] * m[0][2] - m[1][0] * m[0][1] * m[2][2];
 	return mat3(
 		m[1][1] * m[2][2] - m[1][2] * m[2][1],
