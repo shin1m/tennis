@@ -546,20 +546,7 @@ class t_shaders
 	std::map<std::tuple<size_t, size_t>, t_skin_diffuse_texture_specular_shader> v_skin_texture_phong_shaders;
 
 public:
-	void f_vertex_shader(t_shader& a_shader, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_VERTEX_SHADER);
-		a_shader.f_compile((a_defines + "\n"
-"uniform mat4 projection;\n"
-"uniform mat4 vertexMatrix;\n"
-"attribute vec3 vertex;\n"
-"\n"
-"void main()\n"
-"{\n"
-"	gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));\n"
-"}\n"
-		).c_str());
-	}
+	void f_vertex_shader(t_shader& a_shader, const std::string& a_defines);
 	GLuint f_vertex_shader()
 	{
 		if (v_vertex_shader == 0) f_vertex_shader(v_vertex_shader, "");
@@ -570,31 +557,7 @@ public:
 		if (v_vertex_shader_texture == 0) f_vertex_shader(v_vertex_shader_texture, "#define USE_TEXTURE");
 		return v_vertex_shader_texture;
 	}
-	void f_vertex_shader_normal(t_shader& a_shader, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_VERTEX_SHADER);
-		a_shader.f_compile((a_defines + "\n"
-"uniform mat4 projection;\n"
-"uniform mat4 vertexMatrix;\n"
-"attribute vec3 vertex;\n"
-"attribute vec3 normal;\n"
-"uniform mat3 normalMatrix;\n"
-"varying vec3 varyingNormal;\n"
-"#ifdef USE_TEXTURE\n"
-"attribute vec2 texcoord;\n"
-"varying vec2 varyingTexcoord;\n"
-"#endif\n"
-"\n"
-"void main()\n"
-"{\n"
-"	gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));\n"
-"	varyingNormal = normalize(normal * normalMatrix);\n"
-"#ifdef USE_TEXTURE\n"
-"	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);\n"
-"#endif\n"
-"}\n"
-		).c_str());
-	}
+	void f_vertex_shader_normal(t_shader& a_shader, const std::string& a_defines);
 	GLuint f_vertex_shader_normal()
 	{
 		if (v_vertex_shader_normal == 0) f_vertex_shader_normal(v_vertex_shader_normal, "");
@@ -605,34 +568,7 @@ public:
 		if (v_vertex_shader_normal_texture == 0) f_vertex_shader_normal(v_vertex_shader_normal_texture, "#define USE_TEXTURE");
 		return v_vertex_shader_normal_texture;
 	}
-	void f_constant_shader(t_shader& a_shader, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_FRAGMENT_SHADER);
-		a_shader.f_compile((a_defines + "\n"
-"#ifdef GL_ES\n"
-"precision mediump float;\n"
-"precision mediump int;\n"
-"#endif\n"
-"\n"
-"#ifdef USE_TEXTURE\n"
-"uniform sampler2D color;\n"
-"varying vec2 varyingTexcoord;\n"
-"#else\n"
-"uniform vec4 color;\n"
-"#endif\n"
-"\n"
-"void main()\n"
-"{\n"
-"#ifdef USE_TEXTURE\n"
-"	vec4 sample = texture2D(color, varyingTexcoord);\n"
-"	if (sample.a < 0.5) discard;\n"
-"	gl_FragColor = sample;\n"
-"#else\n"
-"	gl_FragColor = color;\n"
-"#endif\n"
-"}\n"
-		).c_str());
-	}
+	void f_constant_shader(t_shader& a_shader, const std::string& a_defines);
 	GLuint f_constant_shader_color()
 	{
 		if (v_constant_shader_color == 0) f_constant_shader(v_constant_shader_color, "");
@@ -653,59 +589,7 @@ public:
 		if (v_constant_texture == 0) v_constant_texture.f_build(f_vertex_shader_texture(), f_constant_shader_texture());
 		return v_constant_texture;
 	}
-	void f_blinn_shader(t_shader& a_shader, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_FRAGMENT_SHADER);
-		a_shader.f_compile((a_defines + "\n"
-"#ifdef GL_ES\n"
-"precision mediump float;\n"
-"precision mediump int;\n"
-"#endif\n"
-"\n"
-"uniform vec4 color;\n"
-"varying vec3 varyingNormal;\n"
-"#ifdef USE_TEXTURE\n"
-"uniform sampler2D diffuse;\n"
-"varying vec2 varyingTexcoord;\n"
-"#else\n"
-"uniform vec4 diffuse;\n"
-"#endif\n"
-"uniform vec4 specular;\n"
-"uniform float shininess;\n"
-"uniform float refraction;\n"
-"const vec3 light = vec3(0.40824829046, 0.40824829046, 0.81649658092);\n"
-"\n"
-"void main()\n"
-"{\n"
-"#ifdef USE_TEXTURE\n"
-"	vec4 sample = texture2D(diffuse, varyingTexcoord);\n"
-"	if (sample.a < 0.5) discard;\n"
-"#endif\n"
-"//	vec3 light = normalize(vec3(5.0, 5.0, 10.0));\n"
-"	vec3 eye = vec3(0.0, 0.0, 1.0);\n"
-"	vec3 h = (light + eye) * 0.5;\n"
-"	float nh = dot(varyingNormal, h);\n"
-"	float c2 = shininess * shininess;\n"
-"	float D = c2 / (nh * nh * (c2 - 1.0) + 1.0);\n"
-"	float eh = dot(eye, h);\n"
-"	float ne = dot(varyingNormal, eye);\n"
-"	float nl = dot(varyingNormal, light);\n"
-"	float G = min(1.0, 2.0 * nh * min(ne, nl) / eh);\n"
-"	float g = sqrt(refraction * refraction + eh * eh - 1.0);\n"
-"	float gpc = g + eh;\n"
-"	float gmc = g - eh;\n"
-"	float cgpcm1 = eh * gpc - 1.0;\n"
-"	float cgmcp1 = eh * gmc + 1.0;\n"
-"	float F = gmc * gmc * (1.0 + cgpcm1 * cgpcm1 / (cgmcp1 * cgmcp1)) * 0.5 / (gpc * gpc);\n"
-"#ifdef USE_TEXTURE\n"
-"	gl_FragColor = color + sample\n"
-"#else\n"
-"	gl_FragColor = color + diffuse\n"
-"#endif\n"
-"	* max(dot(varyingNormal, light), 0.0) + specular * max(D * D * G * F / ne, 0.0);\n"
-"}\n"
-		).c_str());
-	}
+	void f_blinn_shader(t_shader& a_shader, const std::string& a_defines);
 	GLuint f_blinn_shader_color()
 	{
 		if (v_blinn_shader_color == 0) f_blinn_shader(v_blinn_shader_color, "");
@@ -726,38 +610,7 @@ public:
 		if (v_blinn_texture == 0) v_blinn_texture.f_build(f_vertex_shader_normal_texture(), f_blinn_shader_texture());
 		return v_blinn_texture;
 	}
-	void f_lambert_shader(t_shader& a_shader, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_FRAGMENT_SHADER);
-		a_shader.f_compile((a_defines + "\n"
-"#ifdef GL_ES\n"
-"precision mediump float;\n"
-"precision mediump int;\n"
-"#endif\n"
-"\n"
-"uniform vec4 color;\n"
-"varying vec3 varyingNormal;\n"
-"#ifdef USE_TEXTURE\n"
-"uniform sampler2D diffuse;\n"
-"varying vec2 varyingTexcoord;\n"
-"#else\n"
-"uniform vec4 diffuse;\n"
-"#endif\n"
-"const vec3 light = vec3(0.40824829046, 0.40824829046, 0.81649658092);\n"
-"\n"
-"void main()\n"
-"{\n"
-"//	vec3 light = normalize(vec3(5.0, 5.0, 10.0));\n"
-"#ifdef USE_TEXTURE\n"
-"	vec4 sample = texture2D(diffuse, varyingTexcoord);\n"
-"	if (sample.a < 0.5) discard;\n"
-"	gl_FragColor = color + sample * max(dot(varyingNormal, light), 0.0);\n"
-"#else\n"
-"	gl_FragColor = color + diffuse * max(dot(varyingNormal, light), 0.0);\n"
-"#endif\n"
-"}\n"
-		).c_str());
-	}
+	void f_lambert_shader(t_shader& a_shader, const std::string& a_defines);
 	GLuint f_lambert_shader_color()
 	{
 		if (v_lambert_shader_color == 0) f_lambert_shader(v_lambert_shader_color, "");
@@ -778,51 +631,7 @@ public:
 		if (v_lambert_texture == 0) v_lambert_texture.f_build(f_vertex_shader_normal_texture(), f_lambert_shader_texture());
 		return v_lambert_texture;
 	}
-	void f_phong_shader(t_shader& a_shader, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_FRAGMENT_SHADER);
-		a_shader.f_compile((a_defines + "\n"
-"#ifdef GL_ES\n"
-"precision mediump float;\n"
-"precision mediump int;\n"
-"#endif\n"
-"\n"
-"uniform vec4 color;\n"
-"varying vec3 varyingNormal;\n"
-"#ifdef USE_TEXTURE\n"
-"uniform sampler2D diffuse;\n"
-"varying vec2 varyingTexcoord;\n"
-"#else\n"
-"uniform vec4 diffuse;\n"
-"#endif\n"
-"uniform vec4 specular;\n"
-"uniform float shininess;\n"
-"const vec3 light = vec3(0.40824829046, 0.40824829046, 0.81649658092);\n"
-"\n"
-"void main()\n"
-"{\n"
-"#ifdef USE_TEXTURE\n"
-"	vec4 sample = texture2D(diffuse, varyingTexcoord);\n"
-"	if (sample.a < 0.5) discard;\n"
-"#endif\n"
-"//	vec3 light = normalize(vec3(5.0, 5.0, 10.0));\n"
-"//	vec3 r = reflect(-light, varyingNormal);\n"
-"//	vec3 eye = vec3(0.0, 0.0, 1.0);\n"
-"//	float r = max(reflect(-light, varyingNormal).z, 0.0);\n"
-"	float nl = dot(varyingNormal, light);\n"
-"	float r = max(2.0 * nl * varyingNormal.z - light.z, 0.0);\n"
-"	float s = r / (shininess - shininess * r + r);\n"
-"#ifdef USE_TEXTURE\n"
-"	gl_FragColor = color + sample\n"
-"#else\n"
-"	gl_FragColor = color + diffuse\n"
-"#endif\n"
-"//	* max(dot(varyingNormal, light), 0.0) + specular * pow(max(dot(r, eye), 0.0), shininess);\n"
-"//	* max(dot(varyingNormal, light), 0.0) + specular * s;\n"
-"	* max(nl, 0.0) + specular * s;\n"
-"}\n"
-		).c_str());
-	}
+	void f_phong_shader(t_shader& a_shader, const std::string& a_defines);
 	GLuint f_phong_shader_color()
 	{
 		if (v_phong_shader_color == 0) f_phong_shader(v_phong_shader_color, "");
@@ -843,60 +652,7 @@ public:
 		if (v_phong_texture == 0) v_phong_texture.f_build(f_vertex_shader_normal_texture(), f_phong_shader_texture());
 		return v_phong_texture;
 	}
-	void f_skin_shader(t_shader& a_shader, size_t a_joints, size_t a_weights, const std::string& a_defines)
-	{
-		a_shader.f_create(GL_VERTEX_SHADER);
-		std::string joint;
-		std::string weight;
-		std::string vertex;
-		for (size_t i = 1; i < a_weights; ++i) {
-			auto si = std::to_string(i);
-			joint += "attribute float joint" + si + ";";
-			weight += "attribute float weight" + si + ";";
-			vertex += " + vertexMatrices[int(joint" + si + ")] * weight" + si;
-		}
-		a_shader.f_compile((a_defines + "\n"
-"mat3 invert4to3(const in mat4 m) {\n"
-"	//float d = m[0][0] * m[1][1] * m[2][2] + m[1][0] * m[2][1] * m[0][2] + m[2][0] * m[0][1] * m[1][2] - m[0][0] * m[2][1] * m[1][2] - m[2][0] * m[1][1] * m[0][2] - m[1][0] * m[0][1] * m[2][2];\n"
-"	return mat3(\n"
-"		m[1][1] * m[2][2] - m[1][2] * m[2][1],\n"
-"		m[0][2] * m[2][1] - m[0][1] * m[2][2],\n"
-"		m[0][1] * m[1][2] - m[0][2] * m[1][1],\n"
-"		m[1][2] * m[2][0] - m[1][0] * m[2][2],\n"
-"		m[0][0] * m[2][2] - m[0][2] * m[2][0],\n"
-"		m[0][2] * m[1][0] - m[0][0] * m[1][2],\n"
-"		m[1][0] * m[2][1] - m[1][1] * m[2][0],\n"
-"		m[0][1] * m[2][0] - m[0][0] * m[2][1],\n"
-"		m[0][0] * m[1][1] - m[0][1] * m[1][0]\n"
-"	);\n"
-"}\n"
-"\n"
-"uniform mat4 projection;\n"
-"uniform mat4 vertexMatrices[" + std::to_string(a_joints) + "];\n"
-"attribute vec3 vertex;\n"
-"attribute vec3 normal;\n"
-"attribute float joint0;\n"
-"" + joint + "\n"
-"attribute float weight0;\n"
-"" + weight + "\n"
-"varying vec3 varyingNormal;\n"
-"#ifdef USE_TEXTURE\n"
-"attribute vec2 texcoord;\n"
-"varying vec2 varyingTexcoord;\n"
-"#endif\n"
-"\n"
-"void main()\n"
-"{\n"
-"	vec4 v = vec4(vertex, 1.0);\n"
-"	mat4 vm = vertexMatrices[int(joint0)] * weight0" + vertex + ";\n"
-"	gl_Position = projection * (vm * v);\n"
-"	varyingNormal = normalize(normal * invert4to3(vm));\n"
-"#ifdef USE_TEXTURE\n"
-"	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);\n"
-"#endif\n"
-"}\n"
-		).c_str());
-	}
+	void f_skin_shader(t_shader& a_shader, size_t a_joints, size_t a_weights, const std::string& a_defines);
 	GLuint f_skin_shader_of(std::map<std::tuple<size_t, size_t>, t_shader>& a_skins, size_t a_joints, size_t a_weights, const std::string& a_defines)
 	{
 		auto key = std::make_tuple(a_joints, a_weights);

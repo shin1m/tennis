@@ -23,7 +23,7 @@ GL_SOURCES = \
 	gl/core.h \
 	gl/shaders.h \
 	gl/image.h \
-	gl__image.cc
+	gl.cc
 COLLADA_SOURCES = $(GL_SOURCES) \
 	xml_reader.h \
 	collada.h \

@@ -408,15 +408,16 @@ void main()
 	vec4 sample = texture2D(diffuse, varyingTexcoord);
 	if (sample.a < 0.5) discard;
 #endif
+	vec3 normal = normalize(varyingNormal);
 	vec3 light = normalize(vec3(5.0, 5.0, 10.0));
 	vec3 eye = vec3(0.0, 0.0, 1.0);
-	vec3 h = (light + eye) * 0.5;
-	float nh = dot(varyingNormal, h);
+	vec3 h = normalize(light + eye);
+	float nh = dot(normal, h);
 	float c2 = shininess * shininess;
 	float D = c2 / (nh * nh * (c2 - 1.0) + 1.0);
 	float eh = dot(eye, h);
-	float ne = dot(varyingNormal, eye);
-	float nl = dot(varyingNormal, light);
+	float ne = dot(normal, eye);
+	float nl = dot(normal, light);
 	float G = min(1.0, 2.0 * nh * min(ne, nl) / eh);
 	float g = sqrt(refraction * refraction + eh * eh - 1.0);
 	float gpc = g + eh;
@@ -429,7 +430,7 @@ void main()
 #else
 	gl_FragColor = color + diffuse
 #endif
-	* max(dot(varyingNormal, light), 0.0) + specular * max(D * D * G * F / ne, 0.0);
+	* max(nl, 0.0) + specular * max(D * D * G * F / ne, 0.0);
 }
 ");
 	};
@@ -467,13 +468,16 @@ uniform vec4 diffuse;
 
 void main()
 {
-	vec3 light = normalize(vec3(5.0, 5.0, 10.0));
 #ifdef USE_TEXTURE
 	vec4 sample = texture2D(diffuse, varyingTexcoord);
 	if (sample.a < 0.5) discard;
-	gl_FragColor = color + sample * max(dot(varyingNormal, light), 0.0);
+#endif
+	vec3 normal = normalize(varyingNormal);
+	vec3 light = normalize(vec3(5.0, 5.0, 10.0));
+#ifdef USE_TEXTURE
+	gl_FragColor = color + sample * max(dot(normal, light), 0.0);
 #else
-	gl_FragColor = color + diffuse * max(dot(varyingNormal, light), 0.0);
+	gl_FragColor = color + diffuse * max(dot(normal, light), 0.0);
 #endif
 }
 ");
@@ -518,15 +522,16 @@ void main()
 	vec4 sample = texture2D(diffuse, varyingTexcoord);
 	if (sample.a < 0.5) discard;
 #endif
+	vec3 normal = normalize(varyingNormal);
 	vec3 light = normalize(vec3(5.0, 5.0, 10.0));
-	vec3 r = reflect(-light, varyingNormal);
+	vec3 r = reflect(-light, normal);
 	vec3 eye = vec3(0.0, 0.0, 1.0);
 #ifdef USE_TEXTURE
 	gl_FragColor = color + sample
 #else
 	gl_FragColor = color + diffuse
 #endif
-	* max(dot(varyingNormal, light), 0.0) + specular * pow(max(dot(r, eye), 0.0), shininess);
+	* max(dot(normal, light), 0.0) + specular * pow(max(dot(r, eye), 0.0), shininess);
 }
 ");
 	};

@@ -13,7 +13,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SOURCE_PATH)
 
 LOCAL_SRC_FILES := $(SDL2_PATH)/src/main/android/SDL_android_main.c \
 	$(SOURCE_PATH)/portable.cc \
-	$(SOURCE_PATH)/gl__image.cc \
+	$(SOURCE_PATH)/gl.cc \
 	$(SOURCE_PATH)/collada.cc \
 	$(SOURCE_PATH)/ball.cc \
 	$(SOURCE_PATH)/player.cc \
