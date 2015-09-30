@@ -31,8 +31,8 @@ class t_matrix
 					T d0 = f_absolute(m[i]);
 					if (d0 > d) d = d0;
 				}
-				if (d == 0.0) return false;
-				w = 1.0 / d;
+				if (d == T(0)) return false;
+				w = T(1) / d;
 				return true;
 			}
 			T f_pivot(size_t i) const
@@ -81,10 +81,10 @@ class t_matrix
 				size_t p = f_pivot(i);
 				if (p != i) std::swap(is[i], is[p]);
 				T d = columns[is[i]].m[i];
-				if (d == 0.0) return false;
+				if (d == T(0)) return false;
 				f_erase(i, d);
 			}
-			return columns[is[N - 1]].m[N - 1] != 0.0;
+			return columns[is[N - 1]].m[N - 1] != T(0);
 		}
 		void f_backsubstitute(t_matrix<N, T>& x) const
 		{
@@ -92,7 +92,7 @@ class t_matrix
 				size_t i;
 				for (i = 0; i < N; ++i) {
 					const T* ds = columns[is[i]].m;
-					T d = is[i] == j ? 1.0 : 0.0;
+					T d = is[i] == j ? T(1) : T(0);
 					for (size_t k = 0; k < i; ++k) d -= ds[k] * x[k][j];
 					x[i][j] = d;
 				}
@@ -106,8 +106,8 @@ class t_matrix
 		}
 		T f_determinant(const t_matrix<N, T>& x)
 		{
-			if (!f_initialize(x)) return 0.0;
-			T determinant = 1.0;
+			if (!f_initialize(x)) return T(0);
+			T determinant = T(1);
 			for (size_t i = 0; i < N - 1; ++i) {
 				size_t p = f_pivot(i);
 				if (p != i) {
@@ -115,7 +115,7 @@ class t_matrix
 					determinant = -determinant;
 				}
 				T d = columns[is[i]].m[i];
-				if (d == 0.0) return 0.0;
+				if (d == T(0)) return T(0);
 				determinant *= d;
 				f_erase(i, d);
 			}
@@ -141,9 +141,9 @@ public:
 	{
 		for (size_t i = 0; i < N - 1; ++i) {
 			for (size_t j = 0; j < N - 1; ++j) v[i][j] = a_value[i][j];
-			v[i][N - 1] = v[N - 1][i] = 0.0;
+			v[i][N - 1] = v[N - 1][i] = T(0);
 		}
-		v[N - 1][N - 1] = 1.0;
+		v[N - 1][N - 1] = T(1);
 	}
 	explicit t_matrix(const t_matrix<N + 1, T>& a_value)
 	{
@@ -155,9 +155,9 @@ public:
 	{
 		for (size_t i = 0; i < N; ++i) {
 			size_t j = 0;
-			while (j < i) v[i][j++] = 0.0;
+			while (j < i) v[i][j++] = T(0);
 			v[i][j++] = a_value;
-			while (j < N) v[i][j++] = 0.0;
+			while (j < N) v[i][j++] = T(0);
 		}
 	}
 	t_matrix(const T a_values[N][N])
@@ -177,18 +177,18 @@ public:
 	{
 		for (size_t i = 0; i < N - 1; ++i) {
 			for (size_t j = 0; j < N - 1; ++j) v[i][j] = a_value[i][j];
-			v[i][N - 1] = v[N - 1][i] = 0.0;
+			v[i][N - 1] = v[N - 1][i] = T(0);
 		}
-		v[N - 1][N - 1] = 1.0;
+		v[N - 1][N - 1] = T(1);
 		return *this;
 	}
 	t_matrix<N, T>& operator=(T a_value)
 	{
 		for (size_t i = 0; i < N; ++i) {
 			size_t j = 0;
-			while (j < i) v[i][j++] = 0.0;
+			while (j < i) v[i][j++] = T(0);
 			v[i][j++] = a_value;
-			while (j < N) v[i][j++] = 0.0;
+			while (j < N) v[i][j++] = T(0);
 		}
 		return *this;
 	}
@@ -266,7 +266,7 @@ public:
 	}
 	t_matrix<N, T>& operator/=(T a_value)
 	{
-		return *this *= 1.0 / a_value;
+		return *this *= T(1) / a_value;
 	}
 	t_matrix<N, T> operator+(const t_matrix<N, T>& a_value) const
 	{

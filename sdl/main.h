@@ -33,7 +33,7 @@ struct t_container : t_component
 		if (v_content) v_content->f_step();
 		if (!v_transit) return;
 		if (v_t < v_duration)
-			v_t += 1.0;
+			v_t += 1.0f;
 		else
 			v_transit = nullptr;
 	}
@@ -42,8 +42,8 @@ struct t_container : t_component
 		auto viewing = a_viewing;
 		if (v_transit) {
 			float t = v_t / v_duration;
-			v_transit->f_render(viewing * t_translate3f(v_slide * t, 0.0, 0.0));
-			viewing *= t_translate3f(v_slide * (t - 1.0), 0.0, 0.0);
+			v_transit->f_render(viewing * t_translate3f(v_slide * t, 0.0f, 0.0f));
+			viewing *= t_translate3f(v_slide * (t - 1.0f), 0.0f, 0.0f);
 		}
 		if (v_content) v_content->f_render(viewing);
 	}
@@ -76,8 +76,8 @@ struct t_container : t_component
 		v_transit = std::move(v_content);
 		v_content = std::move(a_content);
 		v_slide = a_slide;
-		v_duration = 30.0;
-		v_t = 0.0;
+		v_duration = 30.0f;
+		v_t = 0.0f;
 	}
 };
 
@@ -91,7 +91,7 @@ struct t_main
 	t_chunk v_sound_select;
 	float v_aspect;
 	t_matrix4f v_projection;
-	t_scale3f v_text_scale{1.0, 1.0, 1.0};
+	t_scale3f v_text_scale{1.0f, 1.0f, 1.0f};
 	gl::t_buffer v_triangle;
 	std::unique_ptr<t_screen> v_screen;
 #ifdef __ANDROID__
@@ -193,16 +193,16 @@ struct t_menu : t_component
 	void f_each(const t_matrix4f& a_viewing, T_callback a_callback)
 	{
 		size_t n = (v_items.size() + v_columns - 1) / v_columns;
-		float scale = 1.0 / std::max(n, size_t(5));
-		auto viewing = a_viewing * v_main.v_text_scale * t_scale3f(scale, scale, 1.0);
-		float dx = 4.0 * 2.0 / v_columns;
-		float x = dx * 0.5 - 4.0;
+		float scale = 1.0f / std::max(n, size_t(5));
+		auto viewing = a_viewing * v_main.v_text_scale * t_scale3f(scale, scale, 1.0f);
+		float dx = 4.0f * 2.0f / v_columns;
+		float x = dx * 0.5f - 4.0f;
 		size_t k = 0;
 		for (size_t i = 0; i < v_columns; ++i) {
-			float y = 0.0;
+			float y = 0.0f;
 			for (size_t j = 0; j < n && k < v_items.size(); ++j) {
-				y -= 1.0;
-				a_callback(k, viewing * t_translate3f(x, y, 0.0));
+				y -= 1.0f;
+				a_callback(k, viewing * t_translate3f(x, y, 0.0f));
 				++k;
 			}
 			x += dx;
@@ -211,11 +211,11 @@ struct t_menu : t_component
 	int f_nearest(const t_matrix4f& a_viewing, const SDL_TouchFingerEvent& a_event)
 	{
 		int i = -1;
-		float d = 2.0;
-		t_vector3f v(a_event.x * 2.0 - 1.0, a_event.y * -2.0 + 1.0, 0.0);
+		float d = 2.0f;
+		t_vector3f v(a_event.x * 2.0f - 1.0f, a_event.y * -2.0f + 1.0f, 0.0f);
 		f_each(a_viewing, [&](size_t a_i, const t_matrix4f& a_viewing)
 		{
-			float a = f_affine(~(v_main.v_projection * a_viewing * t_translate3f(0.0, 0.5, 0.0) * t_scale3f(4.0, 1.0, 1.0)), v).f_length();
+			float a = f_affine(~(v_main.v_projection * a_viewing * t_translate3f(0.0f, 0.5f, 0.0f) * t_scale3f(4.0f, 1.0f, 1.0f)), v).f_length();
 			if (a > d) return;
 			i = a_i;
 			d = a;
@@ -264,7 +264,7 @@ struct t_menu : t_component
 		{
 			const auto& item = v_items[a_i];
 			auto text = (a_i == v_selected ? L"*" : L" ") + item.v_label;
-			v_main.v_font(v_main.v_projection, a_viewing * t_translate3f(text.size() * -0.25, 0.0, 0.0), text);
+			v_main.v_font(v_main.v_projection, a_viewing * t_translate3f(text.size() * -0.25f, 0.0f, 0.0f), text);
 		});
 	}
 	virtual void f_key_press(SDL_Keycode a_key)
@@ -373,7 +373,7 @@ struct t_training : t_stage
 
 	t_matrix4f f_transform() const
 	{
-		return static_cast<t_matrix4f>(v_main.v_text_scale) * t_translate3f(0.0, 0.5, 0.0);
+		return static_cast<t_matrix4f>(v_main.v_text_scale) * t_translate3f(0.0f, 0.5f, 0.0f);
 	}
 	virtual void f_ball_ace();
 	virtual void f_ball_let();

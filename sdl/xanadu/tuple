@@ -122,8 +122,8 @@ public:
 	}
 	void f_interpolate(const t_tuple2<T>& a_tuple, T a_t)
 	{
-		v_x = static_cast<T>((1.0 - a_t) * v_x + a_t * a_tuple.v_x);
-		v_y = static_cast<T>((1.0 - a_t) * v_y + a_t * a_tuple.v_y);
+		v_x = static_cast<T>((T(1) - a_t) * v_x + a_t * a_tuple.v_x);
+		v_y = static_cast<T>((T(1) - a_t) * v_y + a_t * a_tuple.v_y);
 	}
 };
 
@@ -235,9 +235,9 @@ public:
 	}
 	void f_interpolate(const t_tuple3<T>& a_tuple, T a_t)
 	{
-		v_x = static_cast<T>((1.0 - a_t) * v_x + a_t * a_tuple.v_x);
-		v_y = static_cast<T>((1.0 - a_t) * v_y + a_t * a_tuple.v_y);
-		v_z = static_cast<T>((1.0 - a_t) * v_z + a_t * a_tuple.v_z);
+		v_x = static_cast<T>((T(1) - a_t) * v_x + a_t * a_tuple.v_x);
+		v_y = static_cast<T>((T(1) - a_t) * v_y + a_t * a_tuple.v_y);
+		v_z = static_cast<T>((T(1) - a_t) * v_z + a_t * a_tuple.v_z);
 	}
 };
 
@@ -363,10 +363,10 @@ public:
 	}
 	void f_interpolate(const t_tuple4<T>& a_tuple, T a_t)
 	{
-		v_x = static_cast<T>((1.0 - a_t) * v_x + a_t * a_tuple.v_x);
-		v_y = static_cast<T>((1.0 - a_t) * v_y + a_t * a_tuple.v_y);
-		v_z = static_cast<T>((1.0 - a_t) * v_z + a_t * a_tuple.v_z);
-		v_w = static_cast<T>((1.0 - a_t) * v_w + a_t * a_tuple.v_w);
+		v_x = static_cast<T>((T(1) - a_t) * v_x + a_t * a_tuple.v_x);
+		v_y = static_cast<T>((T(1) - a_t) * v_y + a_t * a_tuple.v_y);
+		v_z = static_cast<T>((T(1) - a_t) * v_z + a_t * a_tuple.v_z);
+		v_w = static_cast<T>((T(1) - a_t) * v_w + a_t * a_tuple.v_w);
 	}
 };
 

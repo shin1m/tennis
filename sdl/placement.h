@@ -6,8 +6,8 @@
 struct t_posture : t_matrix_transform
 {
 	bool v_valid = false;
-	t_vector3f v_toward{0.0, 0.0, 1.0};
-	t_vector3f v_upward{0.0, 1.0, 0.0};
+	t_vector3f v_toward{0.0f, 0.0f, 1.0f};
+	t_vector3f v_upward{0.0f, 1.0f, 0.0f};
 
 	void f_setup()
 	{
@@ -35,7 +35,7 @@ struct t_posture : t_matrix_transform
 		auto left = (v_upward ^ v_toward).f_normalized();
 		v_toward.f_normalize();
 		v_upward = v_toward ^ left;
-		t_matrix4f m(1.0);
+		t_matrix4f m(1.0f);
 		m[0][0] = -left.v_x;
 		m[0][1] = v_upward.v_x;
 		m[0][2] = -v_toward.v_x;
@@ -51,7 +51,7 @@ struct t_posture : t_matrix_transform
 
 struct t_placement : t_posture
 {
-	t_vector3f v_position{0.0, 0.0, 0.0};
+	t_vector3f v_position{0.0f, 0.0f, 0.0f};
 
 	void f_setup()
 	{

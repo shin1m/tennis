@@ -402,12 +402,12 @@ void t_font::f_create(GLsizei a_width, GLsizei a_height, const GLvoid* a_data, s
 	f_tex_parameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	f_bind_texture(GL_TEXTURE_2D, 0);
 	std::vector<float> array(a_count * 12);
-	float division = 1.0 / a_count;
+	float division = 1.0f / a_count;
 	for (size_t i = 0; i < a_count; ++i) {
 		size_t j = i * 12;
-		array[j] = array[j + 3] = array[j + 4] = array[j + 10] = 0.0;
+		array[j] = array[j + 3] = array[j + 4] = array[j + 10] = 0.0f;
 		array[j + 6] = array[j + 9] = v_unit;
-		array[j + 1] = array[j + 7] = 1.0;
+		array[j + 1] = array[j + 7] = 1.0f;
 		array[j + 2] = array[j + 5] = i * division;
 		array[j + 8] = array[j + 11] = (i + 1) * division;
 	}
@@ -430,7 +430,7 @@ void t_font::f_create(const std::wstring& a_path)
 	std::vector<char> data(width * height * 4);
 	if (SDL_ConvertPixels(width, height, surface->format->format, surface->pixels, surface->pitch, SDL_PIXELFORMAT_ABGR8888, data.data(), width * 4) != 0) throw std::runtime_error(std::string("SDL_ConvertPixels Error: ") + SDL_GetError());
 	SDL_FreeSurface(surface);
-	f_create(width, height, data.data(), 128, width / (128.0 * height));
+	f_create(width, height, data.data(), 128, width / (128.0f * height));
 }
 
 void t_font::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_vertex, const std::wstring& a_text)

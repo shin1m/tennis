@@ -13,17 +13,17 @@ void t_stage::f_step_things()
 	v_mark->f_step();
 	v_player0->f_step();
 	v_player1->f_step();
-	auto target = v_ball->v_position * 0.25;
+	auto target = v_ball->v_position * 0.25f;
 	if (v_fixed) {
 		v_camera0.v_position.v_x = target.v_x;
-		v_camera0.v_position.v_z = 48.0 + target.v_z;
+		v_camera0.v_position.v_z = 48.0f + target.v_z;
 		v_camera1.v_position.v_x = target.v_x;
-		v_camera1.v_position.v_z = -48.0 + target.v_z;
+		v_camera1.v_position.v_z = -48.0f + target.v_z;
 	} else {
-		v_camera0.v_position.v_x = target.v_x + v_player0->f_root_position().v_x * 0.5;
-		v_camera0.v_position.v_z = 48.0 * v_player0->v_end + target.v_z;
-		v_camera1.v_position.v_x = target.v_x + v_player1->f_root_position().v_x * 0.5;
-		v_camera1.v_position.v_z = 48.0 * v_player1->v_end + target.v_z;
+		v_camera0.v_position.v_x = target.v_x + v_player0->f_root_position().v_x * 0.5f;
+		v_camera0.v_position.v_z = 48.0f * v_player0->v_end + target.v_z;
+		v_camera1.v_position.v_x = target.v_x + v_player1->f_root_position().v_x * 0.5f;
+		v_camera1.v_position.v_z = 48.0f * v_player1->v_end + target.v_z;
 	}
 }
 
@@ -45,8 +45,8 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	v_player1->v_opponent = v_player0.get();
 	v_state_ready.v_step = [](t_stage& a_stage)
 	{
-		if (a_stage.v_duration > 0.0)
-			a_stage.v_duration -= 1.0;
+		if (a_stage.v_duration > 0.0f)
+			a_stage.v_duration -= 1.0f;
 		else
 			a_stage.f_transit_play();
 	};
@@ -72,8 +72,8 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	};
 	v_state_ready.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
-		if (a_event.y > 0.25) return;
-		if (a_event.x < 0.5)
+		if (a_event.y > 0.25f) return;
+		if (a_event.x < 0.5f)
 			a_stage.f_back();
 		else
 			a_stage.f_transit_play();
@@ -85,8 +85,8 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	{
 		a_stage.f_step_things();
 		if (!a_stage.v_ball->v_done) return;
-		if (a_stage.v_duration > 0.0)
-			a_stage.v_duration -= 1.0;
+		if (a_stage.v_duration > 0.0f)
+			a_stage.v_duration -= 1.0f;
 		else
 			a_stage.f_next();
 	};
@@ -112,8 +112,8 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	};
 	v_state_play.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
 	{
-		if (a_event.y > 0.25) return;
-		if (a_event.x < 0.5)
+		if (a_event.y > 0.25f) return;
+		if (a_event.x < 0.5f)
 			a_stage.f_back();
 		else
 			a_stage.f_next();
@@ -140,11 +140,11 @@ void t_stage::f_render(size_t a_width, size_t a_height)
 	v_player1->f_setup();
 	glEnable(GL_DEPTH_TEST);
 	if (v_dual) glViewport(0, 0, a_width / 2, a_height);
-	float pw = a_width * (v_dual ? 0.5 : 1.0) / a_height;
-	float ph = 1.0;
-	if (pw < 0.75) {
-		ph = 0.75 / pw;
-		pw = 0.75;
+	float pw = a_width * (v_dual ? 0.5f : 1.0f) / a_height;
+	float ph = 1.0f;
+	if (pw < 0.75f) {
+		ph = 0.75f / pw;
+		pw = 0.75f;
 	}
 	auto projection = f_frustum(-pw, pw, -ph, ph, 10.0f, 200.0f);
 	v_scene.f_render(projection, v_camera0.f_viewing());
@@ -154,11 +154,11 @@ void t_stage::f_render(size_t a_width, size_t a_height)
 		glViewport(0, 0, a_width, a_height);
 	}
 	glDisable(GL_DEPTH_TEST);
-	float y = v_message.size() * 0.5 - 1.0;
+	float y = v_message.size() * 0.5f - 1.0f;
 	for (const auto& line : v_message) {
-		auto viewing = static_cast<t_matrix4f>(v_main.v_text_scale) * v_text_viewing * t_translate3f(line.size() * -0.25, y, 0.0);
+		auto viewing = static_cast<t_matrix4f>(v_main.v_text_scale) * v_text_viewing * t_translate3f(line.size() * -0.25f, y, 0.0f);
 		v_main.v_font(v_main.v_projection, viewing, line);
-		y -= 1.0;
+		y -= 1.0f;
 	}
 	v_state->v_render(*this, a_width, a_height);
 }

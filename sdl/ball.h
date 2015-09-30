@@ -3,17 +3,17 @@
 
 #include "placement.h"
 
-std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>> f_circle(size_t a_n, float a_sign = 1.0);
+std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>> f_circle(size_t a_n, float a_sign = 1.0f);
 void f_divide(size_t a_n, const t_vector3f& a_a, const t_vector3f& a_b, const t_vector3f& a_c, std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>>& a_triangles);
 std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>> f_sphere(size_t a_n);
 std::unique_ptr<t_node> f_node(t_document& a_document, gl::t_shaders& a_shaders, const std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>>& a_triangles, const std::wstring& a_material);
 
-const float G = 9.8 / (64.0 * 64.0);
+const float G = 9.8f / (64.0f * 64.0f);
 
 inline float f_projected_time_for_y(float a_py, float a_vy, float a_y, float a_sign)
 {
-	float a = a_vy * a_vy + 2.0 * G * (a_py - a_y);
-	return a < 0.0 ? NAN : (a_vy + a_sign * sqrt(a)) / G;
+	float a = a_vy * a_vy + 2.0f * G * (a_py - a_y);
+	return a < 0.0f ? NAN : (a_vy + a_sign * sqrt(a)) / G;
 }
 
 struct t_player;
@@ -21,13 +21,13 @@ struct t_stage;
 
 struct t_ball
 {
-	static constexpr float c_radius = 0.0625;
+	static constexpr float c_radius = 0.0625f;
 	static std::array<float, 3> v_rally;
 
 	t_stage& v_stage;
-	t_vector3f v_position{0.0, 0.0, 0.0};
-	t_vector3f v_velocity{0.0, 0.0, 0.0};
-	t_vector3f v_spin{0.0, 0.0, 0.0};
+	t_vector3f v_position{0.0f, 0.0f, 0.0f};
+	t_vector3f v_velocity{0.0f, 0.0f, 0.0f};
+	t_vector3f v_spin{0.0f, 0.0f, 0.0f};
 	std::unique_ptr<t_node> v_node = std::make_unique<t_node>();
 	t_translate* v_translate;
 	t_translate* v_body_translate;
@@ -76,7 +76,7 @@ struct t_ball
 	}
 	void f_impact(float a_dx, float a_dz, float a_speed, float a_vy, const t_vector3f& a_spin)
 	{
-		auto d = t_vector3f(a_dx, 0.0, a_dz).f_normalized();
+		auto d = t_vector3f(a_dx, 0.0f, a_dz).f_normalized();
 		v_velocity = t_vector3f(d.v_x * a_speed, a_vy, d.v_z * a_speed);
 		v_spin = t_vector3f(-d.v_z * a_spin.v_x + d.v_x * a_spin.v_z, a_spin.v_y, d.v_x * a_spin.v_x + d.v_z * a_spin.v_z);
 	}
@@ -93,10 +93,10 @@ struct t_ball
 
 struct t_mark
 {
-	static constexpr float c_radius = 0.0625;
+	static constexpr float c_radius = 0.0625f;
 
-	float v_duration = 0.0;
-	float v_stretch = 1.0;
+	float v_duration = 0.0f;
+	float v_stretch = 1.0f;
 	std::unique_ptr<t_node> v_node;
 	t_placement* v_placement;
 	t_scale* v_scale;
@@ -105,7 +105,7 @@ struct t_mark
 	void f_setup();
 	void f_step()
 	{
-		if (v_duration > 0.0) v_duration -= 1.0;
+		if (v_duration > 0.0f) v_duration -= 1.0f;
 	}
 	void f_mark(const t_ball& a_ball);
 };

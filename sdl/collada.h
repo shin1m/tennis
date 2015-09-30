@@ -181,7 +181,7 @@ struct t_accessor_of<t_matrix<4, T>> : public t_accessor
 
 struct t_asset
 {
-	double v_unit_meter = 1.0;
+	float v_unit_meter = 1.0f;
 	std::wstring v_unit_name = L"meter";
 	std::wstring v_up_axis;
 
@@ -390,16 +390,16 @@ struct t_shading_model
 		virtual void operator()(const t_matrix4f& a_projection);
 	};
 
-	std::unique_ptr<t_common> v_emission = std::make_unique<t_common_color>(0.0, 0.0, 0.0, 1.0);
-	std::unique_ptr<t_common> v_ambient = std::make_unique<t_common_color>(0.0, 0.0, 0.0, 1.0);
-	std::unique_ptr<t_common> v_diffuse = std::make_unique<t_common_color>(0.0, 0.0, 0.0, 1.0);
-	std::unique_ptr<t_common> v_specular = std::make_unique<t_common_color>(0.0, 0.0, 0.0, 1.0);
-	std::unique_ptr<t_common> v_shininess = std::make_unique<t_common_float>(0.0);
-	std::unique_ptr<t_common> v_reflective = std::make_unique<t_common_color>(0.0, 0.0, 0.0, 1.0);
-	std::unique_ptr<t_common> v_reflectivity = std::make_unique<t_common_float>(0.0);
-	std::unique_ptr<t_common> v_transparent = std::make_unique<t_common_color>(0.0, 0.0, 0.0, 1.0);
-	std::unique_ptr<t_common> v_transparency = std::make_unique<t_common_float>(0.0);
-	std::unique_ptr<t_common> v_index_of_refraction = std::make_unique<t_common_float>(0.0);
+	std::unique_ptr<t_common> v_emission = std::make_unique<t_common_color>(0.0f, 0.0f, 0.0f, 1.0f);
+	std::unique_ptr<t_common> v_ambient = std::make_unique<t_common_color>(0.0f, 0.0f, 0.0f, 1.0f);
+	std::unique_ptr<t_common> v_diffuse = std::make_unique<t_common_color>(0.0f, 0.0f, 0.0f, 1.0f);
+	std::unique_ptr<t_common> v_specular = std::make_unique<t_common_color>(0.0f, 0.0f, 0.0f, 1.0f);
+	std::unique_ptr<t_common> v_shininess = std::make_unique<t_common_float>(0.0f);
+	std::unique_ptr<t_common> v_reflective = std::make_unique<t_common_color>(0.0f, 0.0f, 0.0f, 1.0f);
+	std::unique_ptr<t_common> v_reflectivity = std::make_unique<t_common_float>(0.0f);
+	std::unique_ptr<t_common> v_transparent = std::make_unique<t_common_color>(0.0f, 0.0f, 0.0f, 1.0f);
+	std::unique_ptr<t_common> v_transparency = std::make_unique<t_common_float>(0.0f);
+	std::unique_ptr<t_common> v_index_of_refraction = std::make_unique<t_common_float>(0.0f);
 
 	virtual ~t_shading_model() = default;
 	virtual void f_dump(std::wostream& a_out, const std::wstring& a_indent) const;
@@ -532,7 +532,7 @@ struct t_transform : t_with_sid
 
 struct t_matrix_transform : t_transform, t_matrix4f
 {
-	t_matrix_transform(const t_matrix4f& a_x = t_matrix4f(1.0)) : t_matrix4f(a_x)
+	t_matrix_transform(const t_matrix4f& a_x = t_matrix4f(1.0f)) : t_matrix4f(a_x)
 	{
 	}
 	virtual void f_dump(std::wostream& a_out, const std::wstring& a_indent) const;
@@ -586,7 +586,7 @@ struct t_instance_material_fallback : t_instance_material, t_shading_model
 
 	t_instance_material_fallback()
 	{
-		v_emission = std::make_unique<t_common_color>(1.0, 1.0, 1.0, 1.0);
+		v_emission = std::make_unique<t_common_color>(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 	virtual void f_build(const t_resolve& a_resolve);
 	virtual t_shading_model* f_model();
@@ -732,7 +732,7 @@ struct t_sampler : t_unique
 		}
 		float f_duration() const
 		{
-			return v_count > 0 ? v_input[v_count - 1] : 0.0;
+			return v_count > 0 ? v_input[v_count - 1] : 0.0f;
 		}
 		virtual void f_forward(float a_t) = 0;
 		size_t f_index() const
@@ -752,7 +752,7 @@ struct t_sampler : t_unique
 
 		T f_get(float a_t)
 		{
-			if (v_count <= 0) return T(0.0);
+			if (v_count <= 0) return T(0.0f);
 			size_t i = v_i;
 			while (i < v_count && v_input[i] <= a_t) ++i;
 			if (i <= 0) return v_output[0];

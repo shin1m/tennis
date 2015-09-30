@@ -27,7 +27,7 @@ struct t_player
 		t_vector3f v_end_position;
 		t_vector3f v_end_toward;
 
-		void f_initialize(t_document& a_scene, t_node* a_skeleton, float a_start, float a_duration, float a_impact, float a_speed, const t_vector3f& a_spin = t_vector3f(0.0, 0.0, 0.0));
+		void f_initialize(t_document& a_scene, t_node* a_skeleton, float a_start, float a_duration, float a_impact, float a_speed, const t_vector3f& a_spin = t_vector3f(0.0f, 0.0f, 0.0f));
 		void f_merge(t_player& a_player) const;
 	};
 	struct t_run : t_action
@@ -82,7 +82,7 @@ struct t_player
 	};
 	struct t_run_motion : t_motion
 	{
-		static constexpr float c_duration = 4.0 / 64.0;
+		static constexpr float c_duration = 4.0f / 64.0f;
 
 		t_vector3f v_toward;
 		t_placement* v_placement;
@@ -192,13 +192,13 @@ struct t_player
 	t_vector3f f_direction() const
 	{
 		const auto& v = v_ball.v_velocity;
-		float e = (v.v_z < 0.0 ? 1.0 : -1.0) * v_end;
-		t_vector3f d(v.v_x * e, 0.0, v.v_z * e);
-		return d.f_length() > 0.01 / 64.0 ? d : t_vector3f(0.0, 0.0, -v_end);
+		float e = (v.v_z < 0.0f ? 1.0f : -1.0f) * v_end;
+		t_vector3f d(v.v_x * e, 0.0f, v.v_z * e);
+		return d.f_length() > 0.01f / 64.0f ? d : t_vector3f(0.0f, 0.0f, -v_end);
 	}
 	float f_whichhand(const t_vector3f& a_v) const
 	{
-		return t_vector3f(-a_v.v_z, 0.0, a_v.v_x) * (v_ball.v_position - v_placement->v_position);
+		return t_vector3f(-a_v.v_z, 0.0f, a_v.v_x) * (v_ball.v_position - v_placement->v_position);
 	}
 	t_vector3f f_relative_ball(const t_swing& a_swing, const t_vector3f& a_ball) const
 	{
@@ -208,7 +208,7 @@ struct t_player
 		float x = v.v_z * p.v_x - v.v_x * p.v_z - a_swing.v_spot[3][0];
 		float y = p.v_y - a_swing.v_spot[3][1];
 		float z = v.v_x * p.v_x + v.v_z * p.v_z - a_swing.v_spot[3][2];
-		return a_swing.v_spot[1][0] > 0.0 ? t_vector3f(-x, y, -z) : t_vector3f(x, y, z);
+		return a_swing.v_spot[1][0] > 0.0f ? t_vector3f(-x, y, -z) : t_vector3f(x, y, z);
 	}
 	t_vector3f f_relative_ball(const t_swing& a_swing) const
 	{
@@ -218,14 +218,14 @@ struct t_player
 	{
 		v_state->v_step(*this);
 		auto& position = v_placement->v_position;
-		if (position.v_x < -30 * 12 * 0.0254)
-			position.v_x = -30 * 12 * 0.0254;
-		else if (position.v_x > 30 * 12 * 0.0254)
-			position.v_x = 30 * 12 * 0.0254;
-		if (position.v_z * v_end < 1.0)
-			position.v_z = 1.0 * v_end;
-		else if (position.v_z * v_end > 60 * 12 * 0.0254)
-			position.v_z = 60 * 12 * 0.0254 * v_end;
+		if (position.v_x < -30 * 12 * 0.0254f)
+			position.v_x = -30 * 12 * 0.0254f;
+		else if (position.v_x > 30 * 12 * 0.0254f)
+			position.v_x = 30 * 12 * 0.0254f;
+		if (position.v_z * v_end < 1.0f)
+			position.v_z = 1.0f * v_end;
+		else if (position.v_z * v_end > 60 * 12 * 0.0254f)
+			position.v_z = 60 * 12 * 0.0254f * v_end;
 	}
 	void f_do(t_swing t_shots::* a_shot)
 	{
@@ -233,11 +233,11 @@ struct t_player
 	}
 	t_vector3f f_shot_direction() const
 	{
-		return v_ball.v_position.v_z * v_end < 0.0 ? t_vector3f(0.0, 0.0, -v_end) : ::f_shot_direction(v_ball.v_position, v_end, v_left, v_right, v_forward, v_backward);
+		return v_ball.v_position.v_z * v_end < 0.0f ? t_vector3f(0.0f, 0.0f, -v_end) : ::f_shot_direction(v_ball.v_position, v_end, v_left, v_right, v_forward, v_backward);
 	}
 	float f_smash_height() const
 	{
-		return v_actions.v_swing.v_forehand.v_smash.v_spot[3][1] - 0.25;
+		return v_actions.v_swing.v_forehand.v_smash.v_spot[3][1] - 0.25f;
 	}
 	static const t_state v_state_default;
 	static const t_state v_state_serve_set;

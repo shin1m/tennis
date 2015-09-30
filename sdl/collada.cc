@@ -160,17 +160,17 @@ void t_skin_primitive::f_vertex_buffer(const t_input& a_input, const std::vector
 		const auto& bones = std::get<1>(x);
 		size_t k = 0;
 		for (; k < bones.size(); ++k) {
-			jarray[j * a_weights + k] = std::get<0>(bones[k]) + 1.0;
+			jarray[j * a_weights + k] = std::get<0>(bones[k]) + 1.0f;
 			warray[j * a_weights + k] = std::get<1>(bones[k]);
 		}
 		if (k < 1) {
-			jarray[j * a_weights + k] = 0.0;
-			warray[j * a_weights + k] = 1.0;
+			jarray[j * a_weights + k] = 0.0f;
+			warray[j * a_weights + k] = 1.0f;
 			k = 1;
 		}
 		for (; k < a_weights; ++k) {
-			jarray[j * a_weights + k] = 0.0;
-			warray[j * a_weights + k] = 0.0;
+			jarray[j * a_weights + k] = 0.0f;
+			warray[j * a_weights + k] = 0.0f;
 		}
 		i += v_stride;
 	}
@@ -336,7 +336,7 @@ void t_shading_model::f_build(const t_resolve& a_resolve, const std::map<std::ws
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_refraction_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -360,7 +360,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_refraction_s
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_refraction_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -385,7 +385,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_refraction
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_color_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_attributes.v_vertices = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
@@ -402,7 +402,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_color_shader>::operator()(const t_m
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_attributes.v_vertices = a_primitive.v_vertices;
 	v_attributes.v_normals = a_primitive.v_normals;
@@ -423,7 +423,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_shader>::operator()(c
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_attributes.v_vertices = a_primitive.v_vertices;
@@ -445,7 +445,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_shader>::operator()
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -468,7 +468,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_shader>::ope
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -492,7 +492,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_shader>::o
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_refraction_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -517,7 +517,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_refract
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_refraction_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -543,7 +543,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_refra
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_color_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
 	v_attributes.v_vertices = a_primitive.v_vertices;
@@ -563,7 +563,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_color_shader>::operator()(cons
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
@@ -585,7 +585,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_shader>::operato
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
@@ -608,7 +608,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_shader>::opera
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -632,7 +632,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_shader>
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
-	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125;
+	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
@@ -1775,7 +1775,7 @@ void t_document::f_load(t_reader& a_reader, const std::wstring& a_base)
 				auto sid = a_reader.f_get_attribute(L"sid");
 				std::vector<float> xs;
 				f_parse_vector(4, a_reader.f_read_element_text(), xs);
-				auto transform = std::make_unique<t_rotate>(xs[0], xs[1], xs[2], xs[3] * M_PI / 180.0);
+				auto transform = std::make_unique<t_rotate>(xs[0], xs[1], xs[2], xs[3] * static_cast<float>(M_PI / 180.0));
 				transform->v_sid = sid;
 				if (!sid.empty()) a_x.v_sids.emplace(sid, transform.get());
 				a_x.v_transforms.push_back(std::move(transform));

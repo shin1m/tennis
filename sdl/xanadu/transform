@@ -32,10 +32,10 @@ struct t_translate3
 	operator t_matrix<4, T>() const
 	{
 		T vs[4][4] = {
-			{1.0, 0.0, 0.0, 0.0},
-			{0.0, 1.0, 0.0, 0.0},
-			{0.0, 0.0, 1.0, 0.0},
-			{v_value.v_x, v_value.v_y, v_value.v_z, 1.0}
+			{T(1), T(0), T(0), T(0)},
+			{T(0), T(1), T(0), T(0)},
+			{T(0), T(0), T(1), T(0)},
+			{v_value.v_x, v_value.v_y, v_value.v_z, T(1)}
 		};
 		return t_matrix<4, T>(vs);
 	}
@@ -84,9 +84,9 @@ struct t_scale3
 	operator t_matrix<3, T>() const
 	{
 		T vs[3][3] = {
-			{v_value.v_x, 0.0, 0.0},
-			{0.0, v_value.v_y, 0.0},
-			{0.0, 0.0, v_value.v_z}
+			{v_value.v_x, T(0), T(0)},
+			{T(0), v_value.v_y, T(0)},
+			{T(0), T(0), v_value.v_z}
 		};
 		return t_matrix<3, T>(vs);
 	}
@@ -138,13 +138,13 @@ struct t_rotate3
 		v_axis.v_y = static_cast<float>(a_value[2][0] - a_value[0][2]);
 		v_axis.v_z = static_cast<float>(a_value[0][1] - a_value[1][0]);
 		T d = v_axis * v_axis;
-		if (d > 1.0E-6) {
+		if (d > T(1.0E-6)) {
 			d = sqrt(d);
-			v_angle = static_cast<T>(atan2(d * 0.5, (a_value[0][0] + a_value[1][1] + a_value[2][2] - 1.0) * 0.5));
+			v_angle = static_cast<T>(atan2(d * T(0.5), (a_value[0][0] + a_value[1][1] + a_value[2][2] - T(1)) * T(0.5)));
 			v_axis /= d;
 		} else {
-			v_axis = t_vector3<T>(0.0, 1.0, 0.0);
-			v_angle = 0.0;
+			v_axis = t_vector3<T>(T(0), T(1), T(0));
+			v_angle = T(0);
 		}
 		return *this;
 	}
@@ -152,13 +152,13 @@ struct t_rotate3
 	t_rotate3<T>& operator=(const t_quaternion<T>& a_value)
 	{
 		T d = a_value.v_x * a_value.v_x + a_value.v_y * a_value.v_y + a_value.v_z * a_value.v_z;
-		if (d > 1.0E-6) {
+		if (d > T(1.0E-6)) {
 			d = sqrt(d);
 			v_axis /= d;
-			v_angle = 2.0 * atan2(d, a_value.v_w);
+			v_angle = T(2) * atan2(d, a_value.v_w);
 		} else {
-			v_axis = t_vector3<T>(0.0, 1.0, 0.0);
-			v_angle = 0.0;
+			v_axis = t_vector3<T>(T(0), T(1), T(0));
+			v_angle = T(0);
 		}
 	}
 */
@@ -169,11 +169,11 @@ struct t_rotate3
 	operator t_matrix<3, T>() const
 	{
 		T d = v_axis.f_length();
-		if (d < 1.0E-10) return t_matrix<3, T>(1.0);
+		if (d < T(1.0E-10)) return t_matrix<3, T>(T(1));
 		t_vector3<T> vector = v_axis / d;
 		T s = sin(v_angle);
 		T c = cos(v_angle);
-		T d0 = 1.0 - c;
+		T d0 = T(1) - c;
 		T zx = vector.v_z * vector.v_x;
 		T xy = vector.v_x * vector.v_y;
 		T yz = vector.v_y * vector.v_z;
@@ -215,24 +215,24 @@ inline t_matrix<N, T> operator*(const t_matrix<N, T>& a_value0, const t_rotate3<
 template<typename T>
 inline t_matrix<4, T> f_frustum(T a_left, T a_right, T a_bottom, T a_top, T a_near, T a_far)
 {
-	t_matrix<4, T> m(0.0);
-	m[0][0] = 2.0 * a_near / (a_right - a_left);
-	m[1][1] = 2.0 * a_near / (a_top - a_bottom);
+	t_matrix<4, T> m(T(0));
+	m[0][0] = T(2) * a_near / (a_right - a_left);
+	m[1][1] = T(2) * a_near / (a_top - a_bottom);
 	m[2][0] = (a_right + a_left) / (a_right - a_left);
 	m[2][1] = (a_top + a_bottom) / (a_top - a_bottom);
 	m[2][2] = -(a_far + a_near) / (a_far - a_near);
-	m[2][3] = -1.0;
-	m[3][2] = -2.0 * a_far * a_near / (a_far - a_near);
+	m[2][3] = -T(1);
+	m[3][2] = -T(2) * a_far * a_near / (a_far - a_near);
 	return m;
 }
 
 template<typename T>
 inline t_matrix<4, T> f_orthographic(T a_left, T a_right, T a_bottom, T a_top, T a_near, T a_far)
 {
-	t_matrix<4, T> m(1.0);
-	m[0][0] = 2.0 / (a_right - a_left);
-	m[1][1] = 2.0 / (a_top - a_bottom);
-	m[2][2] = -2.0 / (a_far - a_near);
+	t_matrix<4, T> m(T(1));
+	m[0][0] = T(2) / (a_right - a_left);
+	m[1][1] = T(2) / (a_top - a_bottom);
+	m[2][2] = -T(2) / (a_far - a_near);
 	m[3][0] = -(a_right + a_left) / (a_right - a_left);
 	m[3][1] = -(a_top + a_bottom) / (a_top - a_bottom);
 	m[3][2] = -(a_far + a_near) / (a_far - a_near);
