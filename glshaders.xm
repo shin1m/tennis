@@ -558,8 +558,9 @@ void main()
 		for (i = 1; i < weights; i = i + 1) {
 			joint = joint + "attribute float joint" + i + ";";
 			weight = weight + "attribute float weight" + i + ";";
-			vertex = vertex + " + vertexMatrices[int(joint" + i + ")] * weight" + i;
+			vertex = vertex + "if (weight" + i + " > 0.0) { vm += vertexMatrices[int(joint" + i + ")] * weight" + i + ";";
 		}
+		for (i = 1; i < weights; i = i + 1) vertex = vertex + " }";
 		compile(gl.VERTEX_SHADER, defines + "
 mat3 invert4to3(const in mat4 m) {
 	//float d = m[0][0] * m[1][1] * m[2][2] + m[1][0] * m[2][1] * m[0][2] + m[2][0] * m[0][1] * m[1][2] - m[0][0] * m[2][1] * m[1][2] - m[2][0] * m[1][1] * m[0][2] - m[1][0] * m[0][1] * m[2][2];
@@ -593,7 +594,7 @@ varying vec2 varyingTexcoord;
 void main()
 {
 	vec4 v = vec4(vertex, 1.0);
-	mat4 vm = vertexMatrices[int(joint0)] * weight0" + vertex + ";
+	mat4 vm = vertexMatrices[int(joint0)] * weight0;" + vertex + "
 	gl_Position = projection * (vm * v);
 	varyingNormal = normalize(normal * invert4to3(vm));
 #ifdef USE_TEXTURE

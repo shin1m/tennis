@@ -220,10 +220,11 @@ void t_shaders::f_skin_shader(t_shader& a_shader, size_t a_joints, size_t a_weig
 	std::string vertex;
 	for (size_t i = 1; i < a_weights; ++i) {
 		auto si = std::to_string(i);
-		joint += "attribute float joint" + si + ";";
-		weight += "attribute float weight" + si + ";";
-		vertex += " + vertexMatrices[int(joint" + si + ")] * weight" + si;
+		joint += "attribute float joint" + si + ";\n";
+		weight += "attribute float weight" + si + ";\n";
+		vertex += "if (weight" + si + " > 0.0) { vm += vertexMatrices[int(joint" + si + ")] * weight" + si + ";";
 	}
+	for (size_t i = 1; i < a_weights; ++i) vertex += " }";
 	a_shader.f_compile((a_defines + "\n"
 "mat3 invert4to3(const in mat4 m) {\n"
 "	//float d = m[0][0] * m[1][1] * m[2][2] + m[1][0] * m[2][1] * m[0][2] + m[2][0] * m[0][1] * m[1][2] - m[0][0] * m[2][1] * m[1][2] - m[2][0] * m[1][1] * m[0][2] - m[1][0] * m[0][1] * m[2][2];\n"
@@ -245,9 +246,9 @@ void t_shaders::f_skin_shader(t_shader& a_shader, size_t a_joints, size_t a_weig
 "attribute vec3 vertex;\n"
 "attribute vec3 normal;\n"
 "attribute float joint0;\n"
-"" + joint + "\n"
++ joint +
 "attribute float weight0;\n"
-"" + weight + "\n"
++ weight +
 "varying vec3 varyingNormal;\n"
 "#ifdef USE_TEXTURE\n"
 "attribute vec2 texcoord;\n"
@@ -257,7 +258,7 @@ void t_shaders::f_skin_shader(t_shader& a_shader, size_t a_joints, size_t a_weig
 "void main()\n"
 "{\n"
 "	vec4 v = vec4(vertex, 1.0);\n"
-"	mat4 vm = vertexMatrices[int(joint0)] * weight0" + vertex + ";\n"
+"	mat4 vm = vertexMatrices[int(joint0)] * weight0;" + vertex + "\n"
 "	gl_Position = projection * (vm * v);\n"
 "	varyingNormal = normalize(normal * invert4to3(vm));\n"
 "#ifdef USE_TEXTURE\n"
