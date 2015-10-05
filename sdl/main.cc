@@ -684,10 +684,9 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			}
 			auto& shader = a_stage.v_main.v_shaders.f_constant_color();
 			std::remove_reference<decltype(shader)>::type::t_uniforms uniforms;
+			uniforms.v_stride = 3 * sizeof(float);
 			uniforms.v_projection = a_stage.v_main.v_projection.v_array;
 			uniforms.v_color = t_vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-			std::remove_reference<decltype(shader)>::type::t_attributes attributes;
-			attributes.v_vertices = a_stage.v_main.v_triangle;
 			float a = static_cast<float>(a_width) / a_height;
 			float size = std::min(a * 0.875f, pad_size);
 			t_matrix4f triangle = t_translate3f(0.0f, size * 0.25f, 0.0f);
@@ -696,13 +695,13 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			for (size_t i = 0; i < 8; ++i) {
 				auto m = pad * t_rotate3f(t_vector3f(0.0f, 0.0f, 1.0f), static_cast<float>(M_PI / 4.0f) * i) * triangle;
 				uniforms.v_vertex = m.v_array;
-				shader(uniforms, attributes, GL_LINE_STRIP, 0, 4);
+				shader(uniforms, a_stage.v_main.v_triangle, GL_LINE_STRIP, 0, 4);
 			}
 			pad = t_translate3f(a - size * 0.5f, size * 0.5f - 1.0f, 0.0f);
 			for (size_t i = 0; i < 4; ++i) {
 				auto m = pad * t_rotate3f(t_vector3f(0.0f, 0.0f, 1.0f), static_cast<float>(M_PI / 2.0) * i) * triangle;
 				uniforms.v_vertex = m.v_array;
-				shader(uniforms, attributes, GL_LINE_STRIP, 0, 4);
+				shader(uniforms, a_stage.v_main.v_triangle, GL_LINE_STRIP, 0, 4);
 			}
 			render(a_stage, a_width, a_height);
 		};

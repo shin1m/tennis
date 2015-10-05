@@ -204,9 +204,9 @@ struct t_primitive
 	size_t v_stride;
 	std::map<std::tuple<std::wstring, size_t>, t_input> v_inputs;
 	std::vector<size_t> v_indices;
+	std::map<std::tuple<std::wstring, size_t>, size_t> v_others;
 	gl::t_buffer v_vertices;
-	gl::t_buffer v_normals;
-	std::map<std::tuple<std::wstring, size_t>, gl::t_buffer> v_others;
+	size_t v_vertices_stride;
 
 	t_primitive(GLenum a_mode, size_t a_unit) : v_mode(a_mode), v_unit(a_unit)
 	{
@@ -215,9 +215,10 @@ struct t_primitive
 	{
 	}
 	virtual void f_dump(std::wostream& a_out, const std::wstring& a_indent) const;
-	void f_input_buffer(const t_resolve& a_resolve, const t_input& a_input, t_source& a_source, size_t a_dimension, gl::t_buffer& a_buffer);
-	void f_normal_and_others(const t_resolve& a_resolve);
-	const gl::t_buffer& f_input(const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds, const std::wstring& a_semantic);
+	size_t f_estimate_normal_and_others(const t_resolve& a_resolve, size_t a_offset);
+	void f_input_buffer(const t_input& a_input, t_source& a_source, size_t a_dimension, char* a_bytes, size_t a_stride, size_t a_offset);
+	void f_normal_and_others(const t_resolve& a_resolve, char* a_bytes, size_t a_stride, size_t a_offset);
+	size_t f_input(const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds, const std::wstring& a_semantic) const;
 };
 
 struct t_mesh_primitive : t_primitive
@@ -226,23 +227,15 @@ struct t_mesh_primitive : t_primitive
 	{
 	}
 	void f_build(const t_resolve& a_resolve);
-	void f_create(size_t a_count, const std::wstring& a_material, const std::vector<float>& a_vertices, const std::vector<float>& a_normals, const std::map<std::tuple<std::wstring, size_t>, std::vector<float>>& a_others);
+	void f_create(size_t a_count, const std::wstring& a_material, const std::vector<char>& a_vertices, size_t a_stride, const std::map<std::tuple<std::wstring, size_t>, size_t>& a_others);
 };
 
 struct t_skin_primitive : t_primitive
 {
-	gl::t_buffer v_joints;
-	gl::t_buffer v_weights;
-
 	t_skin_primitive(const t_primitive& a_primitive) : t_primitive(a_primitive)
 	{
 	}
-	void f_vertex_buffer(const t_input& a_input, const std::vector<std::tuple<t_vector3f, std::vector<std::tuple<size_t, float>>>>& a_vertices, size_t a_weights);
-	void f_build(const t_resolve& a_resolve, const std::vector<std::tuple<t_vector3f, std::vector<std::tuple<size_t, float>>>>& a_vertices, size_t a_weights)
-	{
-		f_vertex_buffer(v_inputs.at(std::make_tuple(L"VERTEX", 0)), a_vertices, a_weights);
-		f_normal_and_others(a_resolve);
-	}
+	void f_build(const t_resolve& a_resolve, const std::vector<std::tuple<t_vector3f, std::vector<std::tuple<size_t, float>>>>& a_vertices, size_t a_weights);
 };
 
 struct t_vertices : t_unique
@@ -358,7 +351,7 @@ struct t_shading_model
 	{
 		T& v_shader;
 		typename T::t_uniforms v_uniforms;
-		typename T::t_attributes v_attributes;
+		GLuint v_attributes;
 		GLenum v_mode;
 		size_t v_count;
 
@@ -379,7 +372,7 @@ struct t_shading_model
 	{
 		T& v_shader;
 		typename T::t_uniforms v_uniforms;
-		typename T::t_attributes v_attributes;
+		GLuint v_attributes;
 		GLenum v_mode;
 		size_t v_count;
 

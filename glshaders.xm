@@ -2,6 +2,8 @@ gl = Module("gl");
 
 $Uniforms = Class() :: @{
 	$__initialize = @{
+		$stride = null;
+		$texcoords = null;
 		$projection = null;
 		$vertex = null;
 		$vertices = null;
@@ -14,16 +16,6 @@ $Uniforms = Class() :: @{
 	};
 };
 
-$Attributes = Class() :: @{
-	$__initialize = @{
-		$vertices = null;
-		$joints = null;
-		$weights = null;
-		$normals = null;
-		$texcoords = null;
-	};
-};
-
 MeshShader = Class() :: @{
 	$__initialize = @(program) {
 		$program = program;
@@ -31,24 +23,25 @@ MeshShader = Class() :: @{
 		$vertex_matrix = $program.get_uniform_location("vertexMatrix");
 		$vertex = $program.get_attrib_location("vertex");
 	};
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		$projection.matrix4fv(false, uniforms.projection);
 		$vertex_matrix.matrix4fv(false, uniforms.vertex);
 		gl.enable_vertex_attrib_array($vertex);
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.vertices);
-		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, 0, 0);
+		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, uniforms.stride, 0);
 		gl.draw_arrays(mode, offset, count);
 		gl.disable_vertex_attrib_array($vertex);
 	};
 	$__call = @(uniforms, attributes, mode, offset, count) {
 		gl.use_program($program);
-		$call(uniforms, attributes, mode, offset, count);
+		gl.bind_buffer(gl.ARRAY_BUFFER, attributes);
+		$call(uniforms, mode, offset, count);
 		gl.use_program(null);
 		gl.bind_buffer(gl.ARRAY_BUFFER, null);
 	};
 };
 
 WithNormal = @{
+	normal_offset = 3 * gl.Float32Array.BYTES_PER_ELEMENT;
 	super__initialize = $__initialize;
 	$__initialize = @(program) {
 		super__initialize[$](program);
@@ -56,14 +49,11 @@ WithNormal = @{
 		$normal_matrix = $program.get_uniform_location("normalMatrix");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
-		if (attributes.normals !== null) {
-			gl.enable_vertex_attrib_array($normal);
-			gl.bind_buffer(gl.ARRAY_BUFFER, attributes.normals);
-			gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, 0, 0);
-			$normal_matrix.matrix3fv(false, uniforms.normal);
-		}
-		super__call[$](uniforms, attributes, mode, offset, count);
+	$call = @(uniforms, mode, offset, count) {
+		gl.enable_vertex_attrib_array($normal);
+		gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, uniforms.stride, normal_offset);
+		$normal_matrix.matrix3fv(false, uniforms.normal);
+		super__call[$](uniforms, mode, offset, count);
 		gl.disable_vertex_attrib_array($normal);
 	};
 };
@@ -75,10 +65,10 @@ WithColor = @{
 		$color = $program.get_uniform_location("color");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		color = uniforms.color;
 		$color.uniform4f(color.x, color.y, color.z, color.w);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		super__call[$](uniforms, mode, offset, count);
 	};
 };
 
@@ -90,14 +80,13 @@ WithTexture = @{
 		$color = $program.get_uniform_location("color");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		gl.enable_vertex_attrib_array($texcoord);
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.texcoords);
-		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, 0, 0);
+		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, uniforms.stride, uniforms.texcoords);
 		gl.active_texture(gl.TEXTURE0);
 		gl.bind_texture(gl.TEXTURE_2D, uniforms.color);
 		$color.uniform1i(0);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		super__call[$](uniforms, mode, offset, count);
 		gl.disable_vertex_attrib_array($texcoord);
 		gl.bind_texture(gl.TEXTURE_2D, null);
 	};
@@ -110,10 +99,10 @@ WithDiffuseColor = @{
 		$diffuse = $program.get_uniform_location("diffuse");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		diffuse = uniforms.diffuse;
 		$diffuse.uniform4f(diffuse.x, diffuse.y, diffuse.z, diffuse.w);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		super__call[$](uniforms, mode, offset, count);
 	};
 };
 
@@ -125,14 +114,13 @@ WithDiffuseTexture = @{
 		$diffuse = $program.get_uniform_location("diffuse");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		gl.enable_vertex_attrib_array($texcoord);
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.texcoords);
-		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, 0, 0);
+		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, uniforms.stride, uniforms.texcoords);
 		gl.active_texture(gl.TEXTURE0);
 		gl.bind_texture(gl.TEXTURE_2D, uniforms.diffuse);
 		$diffuse.uniform1i(0);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		super__call[$](uniforms, mode, offset, count);
 		gl.disable_vertex_attrib_array($texcoord);
 		gl.bind_texture(gl.TEXTURE_2D, null);
 	};
@@ -146,11 +134,11 @@ WithSpecular = @{
 		$shininess = $program.get_uniform_location("shininess");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		specular = uniforms.specular;
 		$specular.uniform4f(specular.x, specular.y, specular.z, specular.w);
 		$shininess.uniform1f(uniforms.shininess);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		super__call[$](uniforms, mode, offset, count);
 	};
 };
 
@@ -161,13 +149,15 @@ WithRefraction = @{
 		$refraction = $program.get_uniform_location("refraction");
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		$refraction.uniform1f(uniforms.refraction);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		super__call[$](uniforms, mode, offset, count);
 	};
 };
 
 SkinShader = @(n) Class() :: @{
+	joints_offset = 3 * gl.Float32Array.BYTES_PER_ELEMENT;
+	weights_offset = joints_offset + n * gl.Int32Array.BYTES_PER_ELEMENT;
 	$__initialize = @(program) {
 		$program = program;
 		$projection = $program.get_uniform_location("projection");
@@ -180,21 +170,16 @@ SkinShader = @(n) Class() :: @{
 			$weights.push($program.get_attrib_location("weight" + i));
 		}
 	};
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		$projection.matrix4fv(false, uniforms.projection);
 		$vertex_matrices.matrix4fv(false, uniforms.vertices);
 		gl.enable_vertex_attrib_array($vertex);
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.vertices);
-		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, 0, 0);
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.joints);
+		gl.vertex_attrib_pointer($vertex, 3, gl.FLOAT, false, uniforms.stride, 0);
 		for (i = 0; i < n; i = i + 1) {
 			gl.enable_vertex_attrib_array($joints[i]);
-			gl.vertex_attrib_pointer($joints[i], 1, gl.FLOAT, false, n * gl.Float32Array.BYTES_PER_ELEMENT, i * gl.Float32Array.BYTES_PER_ELEMENT);
-		}
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.weights);
-		for (i = 0; i < n; i = i + 1) {
+			gl.vertex_attrib_pointer($joints[i], 1, gl.UNSIGNED_INT, false, uniforms.stride, joints_offset + i * gl.Int32Array.BYTES_PER_ELEMENT);
 			gl.enable_vertex_attrib_array($weights[i]);
-			gl.vertex_attrib_pointer($weights[i], 1, gl.FLOAT, false, n * gl.Float32Array.BYTES_PER_ELEMENT, i * gl.Float32Array.BYTES_PER_ELEMENT);
+			gl.vertex_attrib_pointer($weights[i], 1, gl.FLOAT, false, uniforms.stride, weights_offset + i * gl.Float32Array.BYTES_PER_ELEMENT);
 		}
 		gl.draw_arrays(mode, offset, count);
 		gl.disable_vertex_attrib_array($vertex);
@@ -205,7 +190,8 @@ SkinShader = @(n) Class() :: @{
 	};
 	$__call = @(uniforms, attributes, mode, offset, count) {
 		gl.use_program($program);
-		$call(uniforms, attributes, mode, offset, count);
+		gl.bind_buffer(gl.ARRAY_BUFFER, attributes);
+		$call(uniforms, mode, offset, count);
 		gl.use_program(null);
 		gl.bind_buffer(gl.ARRAY_BUFFER, null);
 	};
@@ -216,13 +202,13 @@ WithSkinNormal = @{
 	$__initialize = @(program) {
 		super__initialize[$](program);
 		$normal = $program.get_attrib_location("normal");
+		$normal_offset = 3 * gl.Float32Array.BYTES_PER_ELEMENT + $joints.size() * gl.Int32Array.BYTES_PER_ELEMENT + $joints.size() * gl.Float32Array.BYTES_PER_ELEMENT;
 	};
 	super__call = $call;
-	$call = @(uniforms, attributes, mode, offset, count) {
+	$call = @(uniforms, mode, offset, count) {
 		gl.enable_vertex_attrib_array($normal);
-		gl.bind_buffer(gl.ARRAY_BUFFER, attributes.normals);
-		gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, 0, 0);
-		super__call[$](uniforms, attributes, mode, offset, count);
+		gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, uniforms.stride, $normal_offset);
+		super__call[$](uniforms, mode, offset, count);
 		gl.disable_vertex_attrib_array($normal);
 	};
 };

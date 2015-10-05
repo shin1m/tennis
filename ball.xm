@@ -48,26 +48,26 @@ sphere = @(n) {
 };
 
 node = @(resolve, shaders, triangles, material) {
-	bytes0 = Bytes(triangles.size() * 9 * gl.Float32Array.BYTES_PER_ELEMENT);
-	bytes1 = Bytes(triangles.size() * 9 * gl.Float32Array.BYTES_PER_ELEMENT);
-	array0 = gl.Float32Array(bytes0);
-	array1 = gl.Float32Array(bytes1);
+	stride = 6 * gl.Float32Array.BYTES_PER_ELEMENT;
+	bytes = Bytes(triangles.size() * 3 * stride);
+	vertices = gl.Float32Array(bytes);
+	normals = gl.Float32Array(bytes, 3 * gl.Float32Array.BYTES_PER_ELEMENT);
 	for (i = 0; i < triangles.size(); i = i + 1) {
 		triangle = triangles[i];
 		for (j = 0; j < 3; j = j + 1) {
-			k = i * 9 + j * 3;
+			k = (i * 3 + j) * 6;
 			vertex = triangle[j][0];
 			normal = triangle[j][1];
-			array0[k] = vertex.x;
-			array0[k + 1] = vertex.y;
-			array0[k + 2] = vertex.z;
-			array1[k] = normal.x;
-			array1[k + 1] = normal.y;
-			array1[k + 2] = normal.z;
+			vertices[k] = vertex.x;
+			vertices[k + 1] = vertex.y;
+			vertices[k + 2] = vertex.z;
+			normals[k] = normal.x;
+			normals[k + 1] = normal.y;
+			normals[k + 2] = normal.z;
 		}
 	}
 	mesh = collada.Mesh();
-	mesh.primitives.push(collada.Triangles().create(triangles.size(), "Symbol", bytes0, bytes1, {}));
+	mesh.primitives.push(collada.Triangles().create(triangles.size(), "Symbol", bytes, stride, {}));
 	node = collada.Node().create();
 	node.geometries.push(collada.InstanceGeometry(null).create(resolve, shaders, mesh, {"Symbol": material}));
 	node;

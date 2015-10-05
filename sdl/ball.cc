@@ -49,25 +49,19 @@ std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>> f_sphere(size_t a
 
 std::unique_ptr<t_node> f_node(t_document& a_document, gl::t_shaders& a_shaders, const std::vector<std::array<std::tuple<t_vector3f, t_vector3f>, 3>>& a_triangles, const std::wstring& a_material)
 {
-	std::vector<float> array0(a_triangles.size() * 9);
-	std::vector<float> array1(a_triangles.size() * 9);
-	for (size_t i = 0; i < a_triangles.size(); ++i) {
-		const auto& triangle = a_triangles[i];
-		for (size_t j = 0; j < 3; ++j) {
-			size_t k = i * 9 + j * 3;
-			const auto& vertex = std::get<0>(triangle[j]);
-			const auto& normal = std::get<1>(triangle[j]);
-			array0[k] = vertex.v_x;
-			array0[k + 1] = vertex.v_y;
-			array0[k + 2] = vertex.v_z;
-			array1[k] = normal.v_x;
-			array1[k + 1] = normal.v_y;
-			array1[k + 2] = normal.v_z;
+	size_t stride = 6 * sizeof(float);
+	std::vector<char> bytes(a_triangles.size() * 3 * stride);
+	auto p = bytes.data();
+	for (auto& triangle : a_triangles) {
+		for (auto x : triangle) {
+			reinterpret_cast<t_vector3f*>(p)[0] = std::get<0>(x);
+			reinterpret_cast<t_vector3f*>(p)[1] = std::get<1>(x);
+			p += stride;
 		}
 	}
 	auto mesh = std::make_unique<t_mesh>();
 	auto triangles = std::make_unique<t_mesh_primitive>(GL_TRIANGLES, 3);
-	triangles->f_create(a_triangles.size(), L"Symbol", array0, array1, std::map<std::tuple<std::wstring, size_t>, std::vector<float>>());
+	triangles->f_create(a_triangles.size(), L"Symbol", bytes, stride, std::map<std::tuple<std::wstring, size_t>, size_t>());
 	mesh->v_primitives.push_back(std::move(triangles));
 	auto node = std::make_unique<t_node>();
 	auto geometry = std::make_unique<t_instance_geometry>(nullptr);

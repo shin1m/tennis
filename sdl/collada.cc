@@ -71,43 +71,55 @@ void t_primitive::f_dump(std::wostream& a_out, const std::wstring& a_indent) con
 	a_out << std::endl;
 }
 
-void t_primitive::f_input_buffer(const t_resolve& a_resolve, const t_input& a_input, t_source& a_source, size_t a_dimension, gl::t_buffer& a_buffer)
-{
-	a_source.f_build(a_resolve);
-	auto& accessor = dynamic_cast<t_accessor_of<float>&>(*a_source.v_accessor);
-	size_t n = v_count * v_unit;
-	std::vector<float> array(n * a_dimension);
-	assert(a_source.v_params.size() >= a_dimension);
-	std::vector<float> params(a_source.v_params.size());
-	size_t i = a_input.v_offset;
-	auto j = array.begin();
-	for (size_t k = 0; k < n; ++k) {
-		accessor.f_copy(v_indices[i], params.begin());
-		j = std::copy(params.begin(), params.begin() + a_dimension, j);
-		i += v_stride;
-	}
-	a_buffer.f_create();
-	gl::f_bind_buffer(GL_ARRAY_BUFFER, a_buffer);
-	gl::f_buffer_data(GL_ARRAY_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
-}
-
-void t_primitive::f_normal_and_others(const t_resolve& a_resolve)
+size_t t_primitive::f_estimate_normal_and_others(const t_resolve& a_resolve, size_t a_offset)
 {
 	auto i = v_inputs.find(std::make_tuple(L"NORMAL", 0));
 	if (i != v_inputs.end()) {
 		auto& source = dynamic_cast<t_source&>(*a_resolve[i->second.v_source_id]);
-		f_input_buffer(a_resolve, i->second, source, source.v_params.size(), v_normals);
+		source.f_build(a_resolve);
+		a_offset += 3 * sizeof(float);
+	}
+	for (const auto& x : v_inputs) {
+		if (std::get<0>(x.first) == L"VERTEX" || std::get<0>(x.first) == L"NORMAL") continue;
+		v_others.emplace(x.first, a_offset);
+		auto& source = dynamic_cast<t_source&>(*a_resolve[x.second.v_source_id]);
+		source.f_build(a_resolve);
+		a_offset += (x.second.v_semantic == L"TEXCOORD" ? 2 : source.v_params.size()) * sizeof(float);
+	}
+	return a_offset;
+}
+
+void t_primitive::f_input_buffer(const t_input& a_input, t_source& a_source, size_t a_dimension, char* a_bytes, size_t a_stride, size_t a_offset)
+{
+	auto& accessor = dynamic_cast<t_accessor_of<float>&>(*a_source.v_accessor);
+	size_t n = v_count * v_unit;
+	assert(a_source.v_params.size() >= a_dimension);
+	std::vector<float> params(a_source.v_params.size());
+	size_t i = a_input.v_offset;
+	a_bytes += a_offset;
+	for (size_t k = 0; k < n; ++k) {
+		accessor.f_copy(v_indices[i], params.begin());
+		std::copy(params.begin(), params.begin() + a_dimension, reinterpret_cast<float*>(a_bytes));
+		i += v_stride;
+		a_bytes += a_stride;
+	}
+}
+
+void t_primitive::f_normal_and_others(const t_resolve& a_resolve, char* a_bytes, size_t a_stride, size_t a_offset)
+{
+	auto i = v_inputs.find(std::make_tuple(L"NORMAL", 0));
+	if (i != v_inputs.end()) {
+		auto& source = dynamic_cast<t_source&>(*a_resolve[i->second.v_source_id]);
+		f_input_buffer(i->second, source, 3, a_bytes, a_stride, a_offset);
 	}
 	for (const auto& x : v_inputs) {
 		if (std::get<0>(x.first) == L"VERTEX" || std::get<0>(x.first) == L"NORMAL") continue;
 		auto& source = dynamic_cast<t_source&>(*a_resolve[x.second.v_source_id]);
-		auto i = v_others.emplace(x.first, gl::t_buffer()).first;
-		f_input_buffer(a_resolve, x.second, source, x.second.v_semantic == L"TEXCOORD" ? 2 : source.v_params.size(), i->second);
+		f_input_buffer(x.second, source, x.second.v_semantic == L"TEXCOORD" ? 2 : source.v_params.size(), a_bytes, a_stride, v_others.at(x.first));
 	}
-	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
 }
 
-const gl::t_buffer& t_primitive::f_input(const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds, const std::wstring& a_semantic)
+size_t t_primitive::f_input(const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds, const std::wstring& a_semantic) const
 {
 	const auto& key = a_binds.at(a_semantic);
 	auto i = v_others.find(key);
@@ -122,67 +134,65 @@ void t_mesh_primitive::f_build(const t_resolve& a_resolve)
 {
 	const auto& vertices = v_inputs.at(std::make_tuple(L"VERTEX", 0));
 	auto& source = dynamic_cast<t_source&>(*a_resolve[dynamic_cast<t_vertices&>(*a_resolve[vertices.v_source_id]).v_inputs.at(L"POSITION")]);
-	f_input_buffer(a_resolve, vertices, source, source.v_params.size(), v_vertices);
-	f_normal_and_others(a_resolve);
+	source.f_build(a_resolve);
+	v_vertices_stride = f_estimate_normal_and_others(a_resolve, 3 * sizeof(float));
+	std::vector<char> bytes(v_count * v_unit * v_vertices_stride);
+	f_input_buffer(vertices, source, 3, bytes.data(), v_vertices_stride, 0);
+	f_normal_and_others(a_resolve, bytes.data(), v_vertices_stride, 3 * sizeof(float));
+	v_vertices.f_create();
+	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_vertices);
+	gl::f_buffer_data(GL_ARRAY_BUFFER, bytes.size(), bytes.data(), GL_STATIC_DRAW);
+	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
 }
 
-void t_mesh_primitive::f_create(size_t a_count, const std::wstring& a_material, const std::vector<float>& a_vertices, const std::vector<float>& a_normals, const std::map<std::tuple<std::wstring, size_t>, std::vector<float>>& a_others)
+void t_mesh_primitive::f_create(size_t a_count, const std::wstring& a_material, const std::vector<char>& a_vertices, size_t a_stride, const std::map<std::tuple<std::wstring, size_t>, size_t>& a_others)
 {
 	v_count = a_count;
 	v_material = a_material;
 	v_vertices.f_create();
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_vertices);
-	gl::f_buffer_data(GL_ARRAY_BUFFER, a_vertices.size() * sizeof(float), a_vertices.data(), GL_STATIC_DRAW);
-	if (!a_normals.empty()) {
-		v_normals.f_create();
-		gl::f_bind_buffer(GL_ARRAY_BUFFER, v_normals);
-		gl::f_buffer_data(GL_ARRAY_BUFFER, a_normals.size() * sizeof(float), a_normals.data(), GL_STATIC_DRAW);
-	}
-	for (const auto& x : a_others) {
-		auto i = v_others.emplace(x.first, gl::t_buffer()).first;
-		i->second.f_create();
-		gl::f_bind_buffer(GL_ARRAY_BUFFER, i->second);
-		gl::f_buffer_data(GL_ARRAY_BUFFER, x.second.size() * sizeof(float), x.second.data(), GL_STATIC_DRAW);
-	}
+	gl::f_buffer_data(GL_ARRAY_BUFFER, a_vertices.size(), a_vertices.data(), GL_STATIC_DRAW);
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
+	v_vertices_stride = a_stride;
+	v_others = a_others;
 }
 
-void t_skin_primitive::f_vertex_buffer(const t_input& a_input, const std::vector<std::tuple<t_vector3f, std::vector<std::tuple<size_t, float>>>>& a_vertices, size_t a_weights)
+void t_skin_primitive::f_build(const t_resolve& a_resolve, const std::vector<std::tuple<t_vector3f, std::vector<std::tuple<size_t, float>>>>& a_vertices, size_t a_weights)
 {
+	size_t normals = sizeof(t_vector3f) + a_weights * sizeof(uint32_t) + a_weights * sizeof(float);
+	v_vertices_stride = f_estimate_normal_and_others(a_resolve, normals);
 	size_t n = v_count * v_unit;
-	std::vector<t_vector3f> array(n);
-	std::vector<float> jarray(n * a_weights);
-	std::vector<float> warray(n * a_weights);
-	size_t i = a_input.v_offset;
+	std::vector<char> bytes(n * v_vertices_stride);
+	auto p = bytes.data();
+	size_t i = v_inputs.at(std::make_tuple(L"VERTEX", 0)).v_offset;
 	for (size_t j = 0; j < n; ++j) {
 		const auto& x = a_vertices[v_indices[i]];
-		array[j] = std::get<0>(x);
+		*reinterpret_cast<t_vector3f*>(p) = std::get<0>(x);
 		const auto& bones = std::get<1>(x);
+		auto jarray = reinterpret_cast<uint32_t*>(p + sizeof(t_vector3f));
+		auto warray = reinterpret_cast<float*>(p + sizeof(t_vector3f) + a_weights * sizeof(uint32_t));
 		size_t k = 0;
 		for (; k < bones.size(); ++k) {
-			jarray[j * a_weights + k] = std::get<0>(bones[k]) + 1.0f;
-			warray[j * a_weights + k] = std::get<1>(bones[k]);
+			jarray[k] = std::get<0>(bones[k]) + 1;
+			warray[k] = std::get<1>(bones[k]);
 		}
 		if (k < 1) {
-			jarray[j * a_weights + k] = 0.0f;
-			warray[j * a_weights + k] = 1.0f;
+			jarray[k] = 0;
+			warray[k] = 1.0f;
 			k = 1;
 		}
 		for (; k < a_weights; ++k) {
-			jarray[j * a_weights + k] = 0.0f;
-			warray[j * a_weights + k] = 0.0f;
+			jarray[k] = 0;
+			warray[k] = 0.0f;
 		}
 		i += v_stride;
+		p += v_vertices_stride;
 	}
+	f_normal_and_others(a_resolve, bytes.data(), v_vertices_stride, normals);
 	v_vertices.f_create();
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_vertices);
-	gl::f_buffer_data(GL_ARRAY_BUFFER, array.size() * sizeof(t_vector3f), array.data(), GL_STATIC_DRAW);
-	v_joints.f_create();
-	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_joints);
-	gl::f_buffer_data(GL_ARRAY_BUFFER, jarray.size() * sizeof(float), jarray.data(), GL_STATIC_DRAW);
-	v_weights.f_create();
-	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_weights);
-	gl::f_buffer_data(GL_ARRAY_BUFFER, warray.size() * sizeof(float), warray.data(), GL_STATIC_DRAW);
+	gl::f_buffer_data(GL_ARRAY_BUFFER, bytes.size(), bytes.data(), GL_STATIC_DRAW);
+	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
 }
 
 void t_vertices::f_dump(std::wostream& a_out, const std::wstring& a_indent) const
@@ -336,13 +346,13 @@ void t_shading_model::f_build(const t_resolve& a_resolve, const std::map<std::ws
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_refraction_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
 	v_uniforms.v_refraction = dynamic_cast<t_common_float&>(*a_model->v_index_of_refraction).v_value;
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -360,14 +370,14 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_refraction_s
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_refraction_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
 	v_uniforms.v_refraction = dynamic_cast<t_common_float&>(*a_model->v_index_of_refraction).v_value;
-	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -385,8 +395,9 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_refraction
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_color_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
-	v_attributes.v_vertices = a_primitive.v_vertices;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -402,10 +413,10 @@ void t_shading_model::t_mesh_shader_of<gl::t_color_shader>::operator()(const t_m
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -423,11 +434,11 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_shader>::operator()(c
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
-	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -445,12 +456,12 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_shader>::operator()
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -468,13 +479,13 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_shader>::ope
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
-	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -492,6 +503,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_shader>::o
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_refraction_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
@@ -499,10 +511,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_refract
 	v_uniforms.v_refraction = dynamic_cast<t_common_float&>(*a_model->v_index_of_refraction).v_value;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -517,6 +526,8 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_refract
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_refraction_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
@@ -524,11 +535,7 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_refra
 	v_uniforms.v_refraction = dynamic_cast<t_common_float&>(*a_model->v_index_of_refraction).v_value;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
-	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -543,12 +550,11 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_refra
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_color_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -563,14 +569,12 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_color_shader>::operator()(cons
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -585,15 +589,13 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_shader>::operato
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
-	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -608,16 +610,14 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_shader>::opera
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_color&>(*a_model->v_diffuse);
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
@@ -632,17 +632,15 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_specular_shader>
 template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_texture_specular_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
 	v_uniforms.v_color = dynamic_cast<t_common_color&>(*a_model->v_emission) + dynamic_cast<t_common_color&>(*a_model->v_ambient) * 0.125f;
 	v_uniforms.v_diffuse = dynamic_cast<t_common_texture&>(*a_model->v_diffuse).v_texture->v_texture;
 	v_uniforms.v_specular = dynamic_cast<t_common_color&>(*a_model->v_specular);
 	v_uniforms.v_shininess = dynamic_cast<t_common_float&>(*a_model->v_shininess).v_value;
 	v_uniforms.v_vertices = a_vertices.data()->v_array;
 	v_uniforms.v_count = a_vertices.size();
-	v_attributes.v_vertices = a_primitive.v_vertices;
-	v_attributes.v_normals = a_primitive.v_normals;
-	v_attributes.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_diffuse).v_texcoord);
-	v_attributes.v_joints = a_primitive.v_joints;
-	v_attributes.v_weights = a_primitive.v_weights;
+	v_attributes = a_primitive.v_vertices;
 	v_mode = a_primitive.v_mode;
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }

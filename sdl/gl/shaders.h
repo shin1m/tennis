@@ -88,13 +88,13 @@ template<typename T>
 struct t_shader_of : T
 {
 	typedef typename T::t_uniforms t_uniforms;
-	typedef typename T::t_attributes t_attributes;
 
 	using T::T;
-	void operator()(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void operator()(const t_uniforms& a_uniforms, GLuint a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		f_use_program(T::v_program);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 		f_use_program(0);
 		f_bind_buffer(GL_ARRAY_BUFFER, 0);
 	};
@@ -114,6 +114,12 @@ protected:
 	}
 
 public:
+	struct t_uniforms
+	{
+		GLsizei v_stride;
+		GLsizei v_texcoords;
+	};
+
 	operator GLuint() const
 	{
 		return v_program;
@@ -122,14 +128,10 @@ public:
 
 struct t_mesh_shader : t_shader_base
 {
-	struct t_uniforms
+	struct t_uniforms : t_shader_base::t_uniforms
 	{
 		const GLfloat* v_projection;
 		const GLfloat* v_vertex;
-	};
-	struct t_attributes
-	{
-		GLuint v_vertices;
 	};
 
 private:
@@ -138,13 +140,12 @@ private:
 	GLint v_vertex;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		v_projection.f_matrix4(a_uniforms.v_projection);
 		v_vertex_matrix.f_matrix4(a_uniforms.v_vertex);
 		f_enable_vertex_attrib_array(v_vertex);
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_vertices);
-		f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, 0, 0);
+		f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, a_uniforms.v_stride, 0);
 		f_draw_arrays(a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_vertex);
 	}
@@ -166,25 +167,18 @@ struct t_with_normal : T
 	{
 		const GLfloat* v_normal;
 	};
-	struct t_attributes : T::t_attributes
-	{
-		GLuint v_normals;
-	};
 
 private:
 	GLint v_normal;
 	t_uniform_location v_normal_matrix;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
-		if (a_attributes.v_normals != 0) {
-			f_enable_vertex_attrib_array(v_normal);
-			f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_normals);
-			f_vertex_attrib_pointer(v_normal, 3, GL_FLOAT, false, 0, 0);
-			v_normal_matrix.f_matrix3(a_uniforms.v_normal);
-		}
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		f_enable_vertex_attrib_array(v_normal);
+		f_vertex_attrib_pointer(v_normal, 3, GL_FLOAT, false, a_uniforms.v_stride, 3 * sizeof(float));
+		v_normal_matrix.f_matrix3(a_uniforms.v_normal);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_normal);
 	}
 
@@ -204,17 +198,16 @@ struct t_with_color : T
 	{
 		t_vector4f v_color;
 	};
-	typedef typename T::t_attributes t_attributes;
 
 private:
 	t_uniform_location v_color;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		const auto& color = a_uniforms.v_color;
 		v_color.f_uniform(color.v_x, color.v_y, color.v_z, color.v_w);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 	}
 
 public:
@@ -233,25 +226,20 @@ struct t_with_texture : T
 	{
 		GLuint v_color;
 	};
-	struct t_attributes : T::t_attributes
-	{
-		GLuint v_texcoords;
-	};
 
 private:
 	GLint v_texcoord;
 	t_uniform_location v_color;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		f_enable_vertex_attrib_array(v_texcoord);
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_texcoords);
-		f_vertex_attrib_pointer(v_texcoord, 2, GL_FLOAT, false, 0, 0);
+		f_vertex_attrib_pointer(v_texcoord, 2, GL_FLOAT, false, a_uniforms.v_stride, a_uniforms.v_texcoords);
 		f_active_texture(GL_TEXTURE0);
 		f_bind_texture(GL_TEXTURE_2D, a_uniforms.v_color);
 		v_color.f_uniform(0);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_texcoord);
 		f_bind_texture(GL_TEXTURE_2D, 0);
 	}
@@ -273,17 +261,16 @@ struct t_with_diffuse_color : T
 	{
 		t_vector4f v_diffuse;
 	};
-	typedef typename T::t_attributes t_attributes;
 
 private:
 	t_uniform_location v_diffuse;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		const auto& diffuse = a_uniforms.v_diffuse;
 		v_diffuse.f_uniform(diffuse.v_x, diffuse.v_y, diffuse.v_z, diffuse.v_w);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 	}
 
 public:
@@ -302,25 +289,20 @@ struct t_with_diffuse_texture : T
 	{
 		GLuint v_diffuse;
 	};
-	struct t_attributes : T::t_attributes
-	{
-		GLuint v_texcoords;
-	};
 
 private:
 	GLint v_texcoord;
 	t_uniform_location v_diffuse;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		f_enable_vertex_attrib_array(v_texcoord);
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_texcoords);
-		f_vertex_attrib_pointer(v_texcoord, 2, GL_FLOAT, false, 0, 0);
+		f_vertex_attrib_pointer(v_texcoord, 2, GL_FLOAT, false, a_uniforms.v_stride, a_uniforms.v_texcoords);
 		f_active_texture(GL_TEXTURE0);
 		f_bind_texture(GL_TEXTURE_2D, a_uniforms.v_diffuse);
 		v_diffuse.f_uniform(0);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_texcoord);
 		f_bind_texture(GL_TEXTURE_2D, 0);
 	}
@@ -343,19 +325,18 @@ struct t_with_specular : T
 		t_vector4f v_specular;
 		float v_shininess;
 	};
-	typedef typename T::t_attributes t_attributes;
 
 private:
 	t_uniform_location v_specular;
 	t_uniform_location v_shininess;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		const auto& specular = a_uniforms.v_specular;
 		v_specular.f_uniform(specular.v_x, specular.v_y, specular.v_z, specular.v_w);
 		v_shininess.f_uniform(a_uniforms.v_shininess);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 	};
 
 public:
@@ -375,16 +356,15 @@ struct t_with_refraction : T
 	{
 		float v_refraction;
 	};
-	typedef typename T::t_attributes t_attributes;
 
 private:
 	t_uniform_location v_refraction;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		v_refraction.f_uniform(a_uniforms.v_refraction);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 	}
 
 public:
@@ -398,44 +378,32 @@ public:
 
 struct t_skin_shader : t_shader_base
 {
-	struct t_uniforms
+	struct t_uniforms : t_shader_base::t_uniforms
 	{
 		const GLfloat* v_projection;
 		const GLfloat* v_vertices;
 		size_t v_count;
 	};
-	struct t_attributes
-	{
-		GLuint v_vertices;
-		GLuint v_joints;
-		GLuint v_weights;
-	};
 
-private:
+protected:
 	t_uniform_location v_projection;
 	t_uniform_location v_vertex_matrices;
 	GLint v_vertex;
 	std::vector<GLint> v_joints;
 	std::vector<GLint> v_weights;
 
-protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		v_projection.f_matrix4(a_uniforms.v_projection);
 		v_vertex_matrices.f_matrix4(a_uniforms.v_vertices, a_uniforms.v_count);
 		f_enable_vertex_attrib_array(v_vertex);
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_vertices);
-		f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, 0, 0);
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_joints);
+		f_vertex_attrib_pointer(v_vertex, 3, GL_FLOAT, false, a_uniforms.v_stride, 0);
 		size_t n = v_joints.size();
 		for (size_t i = 0; i < n; ++i) {
 			f_enable_vertex_attrib_array(v_joints[i]);
-			f_vertex_attrib_pointer(v_joints[i], 1, GL_FLOAT, false, n * sizeof(float), i * sizeof(float));
-		}
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_weights);
-		for (size_t i = 0; i < n; ++i) {
+			f_vertex_attrib_pointer(v_joints[i], 1, GL_UNSIGNED_INT, false, a_uniforms.v_stride, 3 * sizeof(float) + i * sizeof(float));
 			f_enable_vertex_attrib_array(v_weights[i]);
-			f_vertex_attrib_pointer(v_weights[i], 1, GL_FLOAT, false, n * sizeof(float), i * sizeof(float));
+			f_vertex_attrib_pointer(v_weights[i], 1, GL_FLOAT, false, a_uniforms.v_stride, 3 * sizeof(float) + n * sizeof(uint32_t) + i * sizeof(float));
 		}
 		f_draw_arrays(a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_vertex);
@@ -467,21 +435,16 @@ template<typename T>
 struct t_with_skin_normal : T
 {
 	typedef typename T::t_uniforms t_uniforms;
-	struct t_attributes : T::t_attributes
-	{
-		GLuint v_normals;
-	};
 
 private:
 	GLint v_normal;
 
 protected:
-	void f_call(const t_uniforms& a_uniforms, const t_attributes& a_attributes, GLenum a_mode, GLint a_offset, GLsizei a_count)
+	void f_call(const t_uniforms& a_uniforms, GLenum a_mode, GLint a_offset, GLsizei a_count)
 	{
 		f_enable_vertex_attrib_array(v_normal);
-		f_bind_buffer(GL_ARRAY_BUFFER, a_attributes.v_normals);
-		f_vertex_attrib_pointer(v_normal, 3, GL_FLOAT, false, 0, 0);
-		T::f_call(a_uniforms, a_attributes, a_mode, a_offset, a_count);
+		f_vertex_attrib_pointer(v_normal, 3, GL_FLOAT, false, a_uniforms.v_stride, 3 * sizeof(float) + T::v_joints.size() * (sizeof(uint32_t) + sizeof(float)));
+		T::f_call(a_uniforms, a_mode, a_offset, a_count);
 		f_disable_vertex_attrib_array(v_normal);
 	}
 

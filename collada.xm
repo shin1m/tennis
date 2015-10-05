@@ -152,50 +152,60 @@ Source = Class() :: WithTree :: @{
 		}
 		m;
 	};
-	$create_array = @(n) {
-		type = $_source.:;
-		bytes = Bytes(n * type.BYTES_PER_ELEMENT);
-		x = type(bytes);
-		x.bytes = bytes;
-		x;
-	};
 };
 
 create_buffer = @(bytes) {
 	buffer = gl.Buffer();
 	gl.bind_buffer(gl.ARRAY_BUFFER, buffer);
 	gl.buffer_data(gl.ARRAY_BUFFER, bytes, gl.STATIC_DRAW);
+	gl.bind_buffer(gl.ARRAY_BUFFER, null);
 	buffer;
 };
 
-input_buffer = @(resolve, input, source, dimension) {
-	source.build(resolve);
-	n = $count * $unit;
-	array = source.create_array(n * dimension);
-	i = input.offset;
-	for (j = 0; j < n; j = j + 1) {
-		x = source[$indices[i]];
-		for (k = 0; k < dimension; k = k + 1) array[j * dimension + k] = x[k];
-		i = i + $stride;
-	}
-	create_buffer(array.bytes);
-};
-
-normal_and_others = @(resolve) {
+estimate_normal_and_others = @(resolve, offset) {
 	try {
 		normals = $inputs["NORMAL"];
 		source = resolve(normals.source);
-		$_normals = input_buffer[$](resolve, normals, source, source.params.size());
+		source.build(resolve);
+		offset = offset + 3 * gl.Float32Array.BYTES_PER_ELEMENT;
 	} catch (Throwable e) {
-		$_normals = null;
 	}
 	$_others = {};
 	$inputs.each(@(key, value) {
 		if (key == "VERTEX" || key == "NORMAL") return;
+		$_others[key] = offset;
 		source = resolve(value.source);
-		$_others[key] = input_buffer[$](resolve, value, source, value.semantic == "TEXCOORD" ? 2 : source.params.size());
+		source.build(resolve);
+		:offset = offset + (value.semantic == "TEXCOORD" ? 2 : source.params.size()) * gl.Float32Array.BYTES_PER_ELEMENT;
 	}[$]);
-	gl.bind_buffer(gl.ARRAY_BUFFER, null);
+	offset;
+};
+
+input_buffer = @(input, source, dimension, bytes, stride, offset) {
+	array = gl.Float32Array(bytes, offset);
+	stride = stride / gl.Float32Array.BYTES_PER_ELEMENT;
+	n = $count * $unit;
+	i = input.offset;
+	for (j = 0; j < n; j = j + 1) {
+		x = source[$indices[i]];
+		for (k = 0; k < dimension; k = k + 1) array[j * stride + k] = x[k];
+		i = i + $stride;
+	}
+};
+
+normal_and_others = @(resolve, bytes, stride, offset) {
+	try {
+		normals = $inputs["NORMAL"];
+		source = resolve(normals.source);
+		input_buffer[$](normals, source, 3, bytes, stride, offset);
+	} catch (Throwable e) {
+	}
+	$inputs.each(@(key, value) {
+		if (key == "VERTEX" || key == "NORMAL") return;
+		source = resolve(value.source);
+		dimension = value.semantic == "TEXCOORD" ? 2 : source.params.size();
+		input_buffer[$](value, source, dimension, bytes, stride, $_others[key]);
+	}[$]);
 };
 
 bound_input = @(binds, semantic) {
@@ -237,25 +247,25 @@ Primitive = Class() :: WithTree :: @{
 		$inputs.each(@(key, value) value.(symbol)());
 		$indices.(symbol)();
 	};
-	$destroy = @{
-		$_vertices.delete();
-		if ($_normals !== null) $_normals.delete();
-		$_others.each(@(key, value) value.delete());
-	};
+	$destroy = @() $_vertices.delete();
 	$build = @(resolve) {
 		vertices = $inputs["VERTEX"];
 		source = resolve(resolve(vertices.source).inputs["POSITION"]);
-		$_vertices = input_buffer[$](resolve, vertices, source, source.params.size());
-		normal_and_others[$](resolve);
+		source.build(resolve);
+		normals = 3 * gl.Float32Array.BYTES_PER_ELEMENT;
+		stride = estimate_normal_and_others[$](resolve, normals);
+		bytes = Bytes($count * $unit * stride);
+		input_buffer[$](vertices, source, 3, bytes, stride, 0);
+		normal_and_others[$](resolve, bytes, stride, normals);
+		$_vertices = create_buffer(bytes);
+		$_vertices_stride = stride;
 	};
-	$create = @(count, material, vertices, normals, others) {
+	$create = @(count, material, vertices, stride, others) {
 		$count = count;
 		$material = material;
 		$_vertices = create_buffer(vertices);
-		$_normals = normals === null ? null : create_buffer(normals);
-		$_others = {};
-		others.each((@(key, value) $_others[key] = create_buffer(value))[$]);
-		gl.bind_buffer(gl.ARRAY_BUFFER, null);
+		$_vertices_stride = stride;
+		$_others = others;
 		$;
 	};
 	$input = bound_input;
@@ -370,13 +380,13 @@ ShadingModel = Class() :: WithTree :: @{
 		$__initialize = @(shader, setup) {
 			$shader = shader;
 			$uniforms = glshaders.Uniforms();
-			$attributes = glshaders.Attributes();
 			$_setup = setup;
 		};
 		$setup = @(model, primitive, binds) {
 			$mode = primitive.mode;
 			$count = primitive.count * primitive.unit;
-			$attributes.vertices = primitive._vertices;
+			$uniforms.stride = primitive._vertices_stride;
+			$attributes = primitive._vertices;
 			$_setup[$](model, primitive, binds);
 		};
 	};
@@ -388,19 +398,10 @@ ShadingModel = Class() :: WithTree :: @{
 			$shader($uniforms, $attributes, $mode, 0, $count);
 		};
 	};
-	$MeshNormalShader = Class($MeshShader) :: @{
-		$setup = @(model, primitive, binds) {
-			:$^setup[$](model, primitive, binds);
-			$attributes.normals = primitive._normals;
-		};
-	};
 	$SkinShader = Class(Shader) :: @{
 		$setup = @(model, vertices, primitive, binds) {
 			:$^setup[$](model, primitive, binds);
 			$uniforms.vertices = vertices;
-			$attributes.normals = primitive._normals;
-			$attributes.joints = primitive._joints;
-			$attributes.weights = primitive._weights;
 		};
 		$__call = @(projection) {
 			$uniforms.projection = projection;
@@ -466,11 +467,11 @@ Blinn = Class(ShadingModel) :: @{
 		$uniforms.specular = model.specular;
 		$uniforms.shininess = model.shininess.value;
 		$uniforms.refraction = model.index_of_refraction.value;
-		if (model.diffuse.: === CommonTexture) $attributes.texcoords = primitive.input(binds, model.diffuse.texcoord);
+		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
 
 	$__string = @() "Blinn {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $MeshNormalShader($diffuse.: === CommonTexture ? shaders.blinn_texture() : shaders.blinn_color(), setup);
+	$mesh_shader = @(shaders) $MeshShader($diffuse.: === CommonTexture ? shaders.blinn_texture() : shaders.blinn_color(), setup);
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.: === CommonTexture ? shaders.skin_texture(joints, weights, 'blinn) : shaders.skin_color(joints, weights, 'blinn), setup);
 };
 
@@ -485,11 +486,11 @@ Lambert = Class(ShadingModel) :: @{
 	setup = @(model, primitive, binds) {
 		$uniforms.color = model.emission + model.ambient * 0.125;
 		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
-		if (model.diffuse.: === CommonTexture) $attributes.texcoords = primitive.input(binds, model.diffuse.texcoord);
+		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
 
 	$__string = @() "Lambert {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $MeshNormalShader($diffuse.: === CommonTexture ? shaders.lambert_texture() : shaders.lambert_color(), setup);
+	$mesh_shader = @(shaders) $MeshShader($diffuse.: === CommonTexture ? shaders.lambert_texture() : shaders.lambert_color(), setup);
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.: === CommonTexture ? shaders.skin_texture(joints, weights, 'lambert) : shaders.skin_color(joints, weights, 'lambert), setup);
 };
 
@@ -499,11 +500,11 @@ Phong = Class(ShadingModel) :: @{
 		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
 		$uniforms.specular = model.specular;
 		$uniforms.shininess = model.shininess.value;
-		if (model.diffuse.: === CommonTexture) $attributes.texcoords = primitive.input(binds, model.diffuse.texcoord);
+		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
 
 	$__string = @() "Phong {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $MeshNormalShader($diffuse.: === CommonTexture ? shaders.phong_texture() : shaders.phong_color(), setup);
+	$mesh_shader = @(shaders) $MeshShader($diffuse.: === CommonTexture ? shaders.phong_texture() : shaders.phong_color(), setup);
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.: === CommonTexture ? shaders.skin_texture(joints, weights, 'phong) : shaders.skin_color(joints, weights, 'phong), setup);
 };
 
@@ -849,51 +850,44 @@ SkinPrimitive = Class() :: WithTree :: @{
 		$inputs.each(@(key, value) value.(symbol)());
 		$indices.(symbol)();
 	};
-	$destroy = @{
-		$_vertices.delete();
-		$_joints.delete();
-		$_weights.delete();
-		if ($_normals !== null) $_normals.delete();
-		$_others.each(@(key, value) value.delete());
-	};
-	$vertex_buffer = @(input, vertices, weights) {
+	$destroy = @() $_vertices.delete();
+	$build = @(resolve, vertices, weights) {
+		normals = 3 * gl.Float32Array.BYTES_PER_ELEMENT + weights * gl.Int32Array.BYTES_PER_ELEMENT + weights * gl.Float32Array.BYTES_PER_ELEMENT;
+		stride = estimate_normal_and_others[$](resolve, normals);
 		n = $count * $unit;
-		bytes = Bytes(n * 3 * gl.Float32Array.BYTES_PER_ELEMENT);
-		array = gl.Float32Array(bytes);
-		jbytes = Bytes(n * weights * gl.Float32Array.BYTES_PER_ELEMENT);
-		jarray = gl.Float32Array(jbytes);
-		wbytes = Bytes(n * weights * gl.Float32Array.BYTES_PER_ELEMENT);
-		warray = gl.Float32Array(wbytes);
-		i = input.offset;
+		bytes = Bytes(n * stride);
+		varray = gl.Float32Array(bytes);
+		vstride = stride / gl.Float32Array.BYTES_PER_ELEMENT;
+		jarray = gl.Int32Array(bytes, 3 * gl.Float32Array.BYTES_PER_ELEMENT);
+		jstride = stride / gl.Int32Array.BYTES_PER_ELEMENT;
+		warray = gl.Float32Array(bytes, 3 * gl.Float32Array.BYTES_PER_ELEMENT + weights * gl.Int32Array.BYTES_PER_ELEMENT);
+		wstride = stride / gl.Float32Array.BYTES_PER_ELEMENT;
+		i = $inputs["VERTEX"].offset;
 		for (j = 0; j < n; j = j + 1) {
 			x = vertices[$indices[i]];
 			vertex = x[0];
 			bones = x[1];
-			array[j * 3] = vertex.x;
-			array[j * 3 + 1] = vertex.y;
-			array[j * 3 + 2] = vertex.z;
+			varray[j * vstride] = vertex.x;
+			varray[j * vstride + 1] = vertex.y;
+			varray[j * vstride + 2] = vertex.z;
 			for (k = 0; k < bones.size(); k = k + 1) {
-				jarray[j * weights + k] = bones[k][0] + 1.0;
-				warray[j * weights + k] = bones[k][1];
+				jarray[j * jstride + k] = bones[k][0] + 1;
+				warray[j * wstride + k] = bones[k][1];
 			}
 			if (k < 1) {
-				jarray[j * weights + k] = 0.0;
-				warray[j * weights + k] = 1.0;
+				jarray[j * jstride + k] = 0;
+				warray[j * wstride + k] = 1.0;
 				k = 1;
 			}
 			for (; k < weights; k = k + 1) {
-				jarray[j * weights + k] = 0.0;
-				warray[j * weights + k] = 0.0;
+				jarray[j * jstride + k] = 0;
+				warray[j * wstride + k] = 0.0;
 			}
 			i = i + $stride;
 		}
+		normal_and_others[$](resolve, bytes, stride, normals);
 		$_vertices = create_buffer(bytes);
-		$_joints = create_buffer(jbytes);
-		$_weights = create_buffer(wbytes);
-	};
-	$build = @(resolve, vertices, weights) {
-		$vertex_buffer($inputs["VERTEX"], vertices, weights);
-		normal_and_others[$](resolve);
+		$_vertices_stride = stride;
 	};
 	$input = bound_input;
 };
