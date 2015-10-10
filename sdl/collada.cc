@@ -357,12 +357,34 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_refraction_s
 	v_count = a_primitive.v_count * a_primitive.v_unit;
 }
 
+namespace
+{
+
+inline t_matrix3f f_invert4to3(const t_matrix4f& a_m)
+{
+	const auto& v = a_m.v;
+//	d = v[0][0] * v[1][1] * v[2][2] + v[1][0] * v[2][1] * v[0][2] + v[2][0] * v[0][1] * v[1][2] - v[0][0] * v[2][1] * v[1][2] - v[2][0] * v[1][1] * v[0][2] - v[1][0] * v[0][1] * v[2][2];
+	t_matrix3f m;
+	m.v[0][0] = v[1][1] * v[2][2] - v[1][2] * v[2][1];
+	m.v[0][1] = v[0][2] * v[2][1] - v[0][1] * v[2][2];
+	m.v[0][2] = v[0][1] * v[1][2] - v[0][2] * v[1][1];
+	m.v[1][0] = v[1][2] * v[2][0] - v[1][0] * v[2][2];
+	m.v[1][1] = v[0][0] * v[2][2] - v[0][2] * v[2][0];
+	m.v[1][2] = v[0][2] * v[1][0] - v[0][0] * v[1][2];
+	m.v[2][0] = v[1][0] * v[2][1] - v[1][1] * v[2][0];
+	m.v[2][1] = v[0][1] * v[2][0] - v[0][0] * v[2][1];
+	m.v[2][2] = v[0][0] * v[1][1] - v[0][1] * v[1][0];
+	return m;
+}
+
+}
+
 template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_refraction_shader>::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_viewing)
 {
 	v_uniforms.v_projection = a_projection.v_array;
 	v_uniforms.v_vertex = a_viewing.v_array;
-	auto normal = ~t_matrix3f(a_viewing);
+	auto normal = f_invert4to3(a_viewing);
 	v_uniforms.v_normal = normal.v_array;
 	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
 }
@@ -387,7 +409,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_refraction
 {
 	v_uniforms.v_projection = a_projection.v_array;
 	v_uniforms.v_vertex = a_viewing.v_array;
-	auto normal = ~t_matrix3f(a_viewing);
+	auto normal = f_invert4to3(a_viewing);
 	v_uniforms.v_normal = normal.v_array;
 	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
 }
@@ -445,7 +467,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_shader>::operator()(c
 {
 	v_uniforms.v_projection = a_projection.v_array;
 	v_uniforms.v_vertex = a_viewing.v_array;
-	auto normal = ~t_matrix3f(a_viewing);
+	auto normal = f_invert4to3(a_viewing);
 	v_uniforms.v_normal = normal.v_array;
 	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
 }
@@ -467,7 +489,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_shader>::operator()
 {
 	v_uniforms.v_projection = a_projection.v_array;
 	v_uniforms.v_vertex = a_viewing.v_array;
-	auto normal = ~t_matrix3f(a_viewing);
+	auto normal = f_invert4to3(a_viewing);
 	v_uniforms.v_normal = normal.v_array;
 	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
 }
@@ -490,7 +512,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_specular_shader>::ope
 {
 	v_uniforms.v_projection = a_projection.v_array;
 	v_uniforms.v_vertex = a_viewing.v_array;
-	auto normal = ~t_matrix3f(a_viewing);
+	auto normal = f_invert4to3(a_viewing);
 	v_uniforms.v_normal = normal.v_array;
 	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
 }
@@ -514,7 +536,7 @@ void t_shading_model::t_mesh_shader_of<gl::t_diffuse_texture_specular_shader>::o
 {
 	v_uniforms.v_projection = a_projection.v_array;
 	v_uniforms.v_vertex = a_viewing.v_array;
-	auto normal = ~t_matrix3f(a_viewing);
+	auto normal = f_invert4to3(a_viewing);
 	v_uniforms.v_normal = normal.v_array;
 	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
 }
@@ -828,7 +850,13 @@ void t_matrix_transform::f_dump(std::wostream& a_out, const std::wstring& a_inde
 
 void t_matrix_transform::operator()(t_matrix4f& a_x)
 {
-	a_x *= *this;
+	for (size_t i = 0; i < 3; ++i) {
+		float ds[3] = {a_x.v[0][i], a_x.v[1][i], a_x.v[2][i]};
+		a_x.v[0][i] = ds[0] * v[0][0] + ds[1] * v[0][1] + ds[2] * v[0][2];
+		a_x.v[1][i] = ds[0] * v[1][0] + ds[1] * v[1][1] + ds[2] * v[1][2];
+		a_x.v[2][i] = ds[0] * v[2][0] + ds[1] * v[2][1] + ds[2] * v[2][2];
+		a_x.v[3][i] += ds[0] * v[3][0] + ds[1] * v[3][1] + ds[2] * v[3][2];
+	}
 }
 
 void t_translate::f_dump(std::wostream& a_out, const std::wstring& a_indent) const
