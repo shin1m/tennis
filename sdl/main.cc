@@ -5,6 +5,8 @@
 
 #include "computer.h"
 
+//#define MEASURE_FPS
+
 void t_component::f_step()
 {
 }
@@ -1046,7 +1048,14 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 	glEnable(GL_CULL_FACE);
 	SDL_Event event;
 	bool dragging = false;
+#ifdef MEASURE_FPS
+	Uint64 start = SDL_GetPerformanceCounter();
+	size_t count = 0;
+#endif
 	while (true) {
+#ifdef MEASURE_FPS
+		++count;
+#endif
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT:
@@ -1062,6 +1071,12 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 				switch (event.key.keysym.sym) {
 				case SDLK_q:
 					return;
+#ifdef MEASURE_FPS
+				case SDLK_r:
+					start = SDL_GetPerformanceCounter();
+					count = 0;
+					break;
+#endif
 				case SDLK_AC_BACK:
 					main.v_screen->f_key_press(SDLK_ESCAPE);
 					break;
@@ -1129,6 +1144,12 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 #endif
 			case SDL_FINGERDOWN:
 				main.v_screen->f_finger_down(event.tfinger, width, height);
+#ifdef MEASURE_FPS
+				if (event.tfinger.x > 0.5f && event.tfinger.y < 0.5f) {
+					start = SDL_GetPerformanceCounter();
+					count = 0;
+				}
+#endif
 				break;
 			case SDL_FINGERUP:
 				main.v_screen->f_finger_up(event.tfinger, width, height);
@@ -1139,6 +1160,15 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			}
 		}
 		main.v_screen->f_render(width, height);
+#ifdef MEASURE_FPS
+		{
+			auto viewing = static_cast<t_matrix4f>(t_translate(-0.5f, 0.5f, 0.0f)) * t_scale3f(0.1f, 0.1f, 0.1f);
+			float fps = static_cast<float>(count) * SDL_GetPerformanceFrequency() / (SDL_GetPerformanceCounter() - start);
+			wchar_t cs[32];
+			std::swprintf(cs, sizeof(cs) / sizeof(wchar_t), L"%.1f fps", fps);
+			main.v_font(main.v_projection, viewing, cs);
+		}
+#endif
 		SDL_GL_SwapWindow(a_window);
 		main.v_screen->f_step();
 	}
