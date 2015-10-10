@@ -281,10 +281,17 @@ $__call = Class() :: @{
 uniform mat4 projection;
 uniform mat4 vertexMatrix;
 attribute vec3 vertex;
+#ifdef USE_TEXTURE
+attribute vec2 texcoord;
+varying vec2 varyingTexcoord;
+#endif
 
 void main()
 {
 	gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));
+#ifdef USE_TEXTURE
+	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);
+#endif
 }
 ");
 	};

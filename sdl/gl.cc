@@ -13,10 +13,17 @@ void t_shaders::f_vertex_shader(t_shader& a_shader, const std::string& a_defines
 "uniform mat4 projection;\n"
 "uniform mat4 vertexMatrix;\n"
 "attribute vec3 vertex;\n"
+"#ifdef USE_TEXTURE\n"
+"attribute vec2 texcoord;\n"
+"varying vec2 varyingTexcoord;\n"
+"#endif\n"
 "\n"
 "void main()\n"
 "{\n"
 "	gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));\n"
+"#ifdef USE_TEXTURE\n"
+"	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);\n"
+"#endif\n"
 "}\n"
 	).c_str());
 }

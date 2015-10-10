@@ -411,6 +411,25 @@ void t_shading_model::t_mesh_shader_of<gl::t_color_shader>::operator()(const t_m
 }
 
 template<>
+void t_shading_model::t_mesh_shader_of<gl::t_texture_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
+{
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_emission).v_texcoord);
+	v_uniforms.v_color = dynamic_cast<t_common_texture&>(*a_model->v_emission).v_texture->v_texture;
+	v_attributes = a_primitive.v_vertices;
+	v_mode = a_primitive.v_mode;
+	v_count = a_primitive.v_count * a_primitive.v_unit;
+}
+
+template<>
+void t_shading_model::t_mesh_shader_of<gl::t_texture_shader>::operator()(const t_matrix4f& a_projection, const t_matrix4f& a_viewing)
+{
+	v_uniforms.v_projection = a_projection.v_array;
+	v_uniforms.v_vertex = a_viewing.v_array;
+	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
+}
+
+template<>
 void t_shading_model::t_mesh_shader_of<gl::t_diffuse_color_shader>::f_setup(t_shading_model* a_model, t_mesh_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
 	v_uniforms.v_stride = a_primitive.v_vertices_stride;
@@ -567,6 +586,26 @@ void t_shading_model::t_skin_shader_of<gl::t_skin_color_shader>::operator()(cons
 }
 
 template<>
+void t_shading_model::t_skin_shader_of<gl::t_skin_texture_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
+{
+	v_uniforms.v_stride = a_primitive.v_vertices_stride;
+	v_uniforms.v_texcoords = a_primitive.f_input(a_binds, static_cast<t_common_texture&>(*a_model->v_emission).v_texcoord);
+	v_uniforms.v_color = dynamic_cast<t_common_texture&>(*a_model->v_emission).v_texture->v_texture;
+	v_uniforms.v_vertices = a_vertices.data()->v_array;
+	v_uniforms.v_count = a_vertices.size();
+	v_attributes = a_primitive.v_vertices;
+	v_mode = a_primitive.v_mode;
+	v_count = a_primitive.v_count * a_primitive.v_unit;
+}
+
+template<>
+void t_shading_model::t_skin_shader_of<gl::t_skin_texture_shader>::operator()(const t_matrix4f& a_projection)
+{
+	v_uniforms.v_projection = a_projection.v_array;
+	v_shader(v_uniforms, v_attributes, v_mode, 0, v_count);
+}
+
+template<>
 void t_shading_model::t_skin_shader_of<gl::t_skin_diffuse_color_shader>::f_setup(t_shading_model* a_model, const std::vector<t_matrix4f>& a_vertices, t_skin_primitive& a_primitive, const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds)
 {
 	v_uniforms.v_stride = a_primitive.v_vertices_stride;
@@ -678,11 +717,13 @@ void t_constant::f_dump(std::wostream& a_out, const std::wstring& a_indent) cons
 
 std::unique_ptr<t_shading_model::t_mesh_shader> t_constant::f_mesh_shader(gl::t_shaders& a_shaders)
 {
+	if (dynamic_cast<t_common_texture*>(v_emission.get())) return std::make_unique<t_mesh_texture_shader>(a_shaders.f_constant_texture());
 	return std::make_unique<t_mesh_color_shader>(a_shaders.f_constant_color());
 }
 
 std::unique_ptr<t_shading_model::t_skin_shader> t_constant::f_skin_shader(gl::t_shaders& a_shaders, size_t a_joints, size_t a_weights)
 {
+	if (dynamic_cast<t_common_texture*>(v_emission.get())) return std::make_unique<t_skin_texture_shader>(a_shaders.f_skin_texture_constant(a_joints, a_weights));
 	return std::make_unique<t_skin_color_shader>(a_shaders.f_skin_color_constant(a_joints, a_weights));
 }
 

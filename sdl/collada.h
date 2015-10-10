@@ -416,7 +416,9 @@ struct t_blinn : t_shading_model
 struct t_constant : t_shading_model
 {
 	typedef t_mesh_shader_of<gl::t_color_shader> t_mesh_color_shader;
+	typedef t_mesh_shader_of<gl::t_texture_shader> t_mesh_texture_shader;
 	typedef t_skin_shader_of<gl::t_skin_color_shader> t_skin_color_shader;
+	typedef t_skin_shader_of<gl::t_skin_texture_shader> t_skin_texture_shader;
 
 	virtual void f_dump(std::wostream& a_out, const std::wstring& a_indent) const;
 	virtual std::unique_ptr<t_mesh_shader> f_mesh_shader(gl::t_shaders& a_shaders);

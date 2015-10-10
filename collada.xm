@@ -462,12 +462,12 @@ ShadingModel = Class() :: WithTree :: @{
 
 Blinn = Class(ShadingModel) :: @{
 	setup = @(model, primitive, binds) {
+		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 		$uniforms.color = model.emission + model.ambient * 0.125;
 		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
 		$uniforms.specular = model.specular;
 		$uniforms.shininess = model.shininess.value;
 		$uniforms.refraction = model.index_of_refraction.value;
-		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
 
 	$__string = @() "Blinn {" + :$^__string[$]() + "}";
@@ -476,17 +476,24 @@ Blinn = Class(ShadingModel) :: @{
 };
 
 Constant = Class(ShadingModel) :: @{
-	setup = @(model, primitive, binds) $uniforms.color = model.emission + model.ambient * 0.125;
+	setup = @(model, primitive, binds) {
+		if (model.emission.: === CommonTexture) {
+			$uniforms.texcoords = primitive.input(binds, model.emission.texcoord);
+			$uniforms.color = model.emission._texture._texture;
+		} else {
+			$uniforms.color = model.emission + model.ambient * 0.125;
+		}
+	};
 
 	$__string = @() "Constant {" + :$^__string[$]() + "}";
-	$mesh_shader = @(shaders) $MeshShader(shaders.constant_color(), setup);
+	$mesh_shader = @(shaders) $MeshShader($emission.: === CommonTexture ? shaders.constant_texture() : shaders.constant_color(), setup);
 };
 
 Lambert = Class(ShadingModel) :: @{
 	setup = @(model, primitive, binds) {
+		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 		$uniforms.color = model.emission + model.ambient * 0.125;
 		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
-		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
 
 	$__string = @() "Lambert {" + :$^__string[$]() + "}";
@@ -496,11 +503,11 @@ Lambert = Class(ShadingModel) :: @{
 
 Phong = Class(ShadingModel) :: @{
 	setup = @(model, primitive, binds) {
+		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 		$uniforms.color = model.emission + model.ambient * 0.125;
 		$uniforms.diffuse = model.diffuse.: === CommonTexture ? model.diffuse._texture._texture : model.diffuse;
 		$uniforms.specular = model.specular;
 		$uniforms.shininess = model.shininess.value;
-		if (model.diffuse.: === CommonTexture) $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord);
 	};
 
 	$__string = @() "Phong {" + :$^__string[$]() + "}";
