@@ -115,7 +115,18 @@ void t_primitive::f_normal_and_others(const t_resolve& a_resolve, char* a_bytes,
 	for (const auto& x : v_inputs) {
 		if (std::get<0>(x.first) == L"VERTEX" || std::get<0>(x.first) == L"NORMAL") continue;
 		auto& source = dynamic_cast<t_source&>(*a_resolve[x.second.v_source_id]);
-		f_input_buffer(x.second, source, x.second.v_semantic == L"TEXCOORD" ? 2 : source.v_params.size(), a_bytes, a_stride, v_others.at(x.first));
+		size_t offset = v_others.at(x.first);
+		if (x.second.v_semantic == L"TEXCOORD") {
+			f_input_buffer(x.second, source, 2, a_bytes, a_stride, offset);
+			auto p = a_bytes + offset;
+			size_t n = v_count * v_unit;
+			for (size_t i = 0; i < n; ++i) {
+				reinterpret_cast<float*>(p)[1] *= -1.0f;
+				p += a_stride;
+			}
+		} else {
+			f_input_buffer(x.second, source, source.v_params.size(), a_bytes, a_stride, offset);
+		}
 	}
 }
 

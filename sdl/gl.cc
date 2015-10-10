@@ -22,7 +22,7 @@ void t_shaders::f_vertex_shader(t_shader& a_shader, const std::string& a_defines
 "{\n"
 "	gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));\n"
 "#ifdef USE_TEXTURE\n"
-"	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);\n"
+"	varyingTexcoord = texcoord;\n"
 "#endif\n"
 "}\n"
 	).c_str());
@@ -48,7 +48,7 @@ void t_shaders::f_vertex_shader_normal(t_shader& a_shader, const std::string& a_
 "	gl_Position = projection * (vertexMatrix * vec4(vertex, 1.0));\n"
 "	varyingNormal = normalize(normal * normalMatrix);\n"
 "#ifdef USE_TEXTURE\n"
-"	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);\n"
+"	varyingTexcoord = texcoord;\n"
 "#endif\n"
 "}\n"
 	).c_str());
@@ -269,7 +269,7 @@ void t_shaders::f_skin_shader(t_shader& a_shader, size_t a_joints, size_t a_weig
 "	gl_Position = projection * (vm * v);\n"
 "	varyingNormal = normalize(normal * invert4to3(vm));\n"
 "#ifdef USE_TEXTURE\n"
-"	varyingTexcoord = vec2(texcoord.x, 1.0 - texcoord.y);\n"
+"	varyingTexcoord = texcoord;\n"
 "#endif\n"
 "}\n"
 	).c_str());
