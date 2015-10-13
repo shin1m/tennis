@@ -61,6 +61,9 @@ class Stage
       loader.load 'data/court.dae', (collada) =>
         collada.scene.traverse (child) -> child.material?.alphaTest = 0.5
         @scene = new THREE.Scene
+        @scene.add new THREE.AmbientLight 0x333333
+        @directionalLight = new THREE.DirectionalLight 0xffffff
+        @scene.add @directionalLight
         @scene.add collada.scene
         @camera0 = new THREE.PerspectiveCamera 12.0, 1.0, 10.0, 200.0
         @camera1 = new THREE.PerspectiveCamera 12.0, 1.0, 10.0, 200.0
@@ -107,11 +110,13 @@ class Stage
       @camera0.aspect = width / height
       @camera0.setViewOffset width, height, 0, 0, width, height
       renderer.setViewport 0, 0, width, height
+    @directionalLight.position.set 1.0, 1.0, (if @camera0.position.z > 0.0 then 0.5 else -0.5)
     renderer.render @scene, @camera0
     if @dual
       @camera1.aspect = width * 0.5 / height
       @camera1.setViewOffset width * 0.5, height, 0, 0, width * 0.5, height
       renderer.setViewport width * 0.5, 0, width * 0.5, height
+      @directionalLight.position.set 1.0, 1.0, (if @camera1.position.z > 0.0 then 0.5 else -0.5)
       renderer.render @scene, @camera1
   key_press: (key) ->
     handler = @state.key_press[key]
