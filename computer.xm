@@ -128,6 +128,7 @@ $__get_at = @(stage) @(controller, player) {
 			v.normalize();
 			whichhand = player.whichhand(v);
 			actions = player.actions.swing;
+			swing = null;
 			t = projected_time_for_y(position.y, velocity.y, player.smash_height(), 1.0);
 			if (t !== null) {
 				hand = whichhand > player.smash_hand ? actions.forehand : actions.backhand;
