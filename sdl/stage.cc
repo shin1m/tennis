@@ -64,13 +64,13 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	v_state_ready.v_key_release = [](t_stage& a_stage, SDL_Keycode a_key)
 	{
 	};
-	v_state_ready.v_render = [](t_stage& a_stage, size_t a_width, size_t a_height)
+	v_state_ready.v_render = [](t_stage& a_stage)
 	{
 	};
-	v_state_ready.v_finger_down = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	v_state_ready.v_finger_down = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 	};
-	v_state_ready.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	v_state_ready.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		if (a_event.y > 0.25f) return;
 		if (a_event.x < 0.5f)
@@ -78,7 +78,7 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 		else
 			a_stage.f_transit_play();
 	};
-	v_state_ready.v_finger_motion = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	v_state_ready.v_finger_motion = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 	};
 	v_state_play.v_step = [](t_stage& a_stage)
@@ -104,13 +104,13 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	v_state_play.v_key_release = [](t_stage& a_stage, SDL_Keycode a_key)
 	{
 	};
-	v_state_play.v_render = [](t_stage& a_stage, size_t a_width, size_t a_height)
+	v_state_play.v_render = [](t_stage& a_stage)
 	{
 	};
-	v_state_play.v_finger_down = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	v_state_play.v_finger_down = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 	};
-	v_state_play.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	v_state_play.v_finger_up = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		if (a_event.y > 0.25f) return;
 		if (a_event.x < 0.5f)
@@ -118,7 +118,7 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 		else
 			a_stage.f_next();
 	};
-	v_state_play.v_finger_motion = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	v_state_play.v_finger_motion = [](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 	};
 	a_controller0(v_state_play, *v_player0);
@@ -130,17 +130,17 @@ void t_stage::f_step()
 	v_state->v_step(*this);
 }
 
-void t_stage::f_render(size_t a_width, size_t a_height)
+void t_stage::f_render()
 {
-	glViewport(0, 0, a_width, a_height);
+	glViewport(0, 0, v_main.v_width, v_main.v_height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	v_ball->f_setup();
 	v_mark->f_setup();
 	v_player0->f_setup();
 	v_player1->f_setup();
 	glEnable(GL_DEPTH_TEST);
-	if (v_dual) glViewport(0, 0, a_width / 2, a_height);
-	float pw = a_width * (v_dual ? 0.5f : 1.0f) / a_height;
+	if (v_dual) glViewport(0, 0, v_main.v_width / 2, v_main.v_height);
+	float pw = v_main.v_width * (v_dual ? 0.5f : 1.0f) / v_main.v_height;
 	float ph = 1.0f;
 	if (pw < 0.75f) {
 		ph = 0.75f / pw;
@@ -149,9 +149,9 @@ void t_stage::f_render(size_t a_width, size_t a_height)
 	auto projection = f_frustum(-pw, pw, -ph, ph, 10.0f, 200.0f);
 	v_scene.f_render(projection, v_camera0.f_viewing());
 	if (v_dual) {
-		glViewport(a_width / 2, 0, a_width - a_width / 2, a_height);
+		glViewport(v_main.v_width / 2, 0, v_main.v_width - v_main.v_width / 2, v_main.v_height);
 		v_scene.f_render(projection, v_camera1.f_viewing());
-		glViewport(0, 0, a_width, a_height);
+		glViewport(0, 0, v_main.v_width, v_main.v_height);
 	}
 	glDisable(GL_DEPTH_TEST);
 	float y = v_message.size() * 0.5f - 1.0f;
@@ -160,7 +160,7 @@ void t_stage::f_render(size_t a_width, size_t a_height)
 		v_main.v_font(v_main.v_projection, viewing, line);
 		y -= 1.0f;
 	}
-	v_state->v_render(*this, a_width, a_height);
+	v_state->v_render(*this);
 }
 
 void t_stage::f_key_press(SDL_Keycode a_key)
@@ -173,17 +173,17 @@ void t_stage::f_key_release(SDL_Keycode a_key)
 	v_state->v_key_release(*this, a_key);
 }
 
-void t_stage::f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+void t_stage::f_finger_down(const SDL_TouchFingerEvent& a_event)
 {
-	v_state->v_finger_down(*this, a_event, a_width, a_height);
+	v_state->v_finger_down(*this, a_event);
 }
 
-void t_stage::f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+void t_stage::f_finger_up(const SDL_TouchFingerEvent& a_event)
 {
-	v_state->v_finger_up(*this, a_event, a_width, a_height);
+	v_state->v_finger_up(*this, a_event);
 }
 
-void t_stage::f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+void t_stage::f_finger_motion(const SDL_TouchFingerEvent& a_event)
 {
-	v_state->v_finger_motion(*this, a_event, a_width, a_height);
+	v_state->v_finger_motion(*this, a_event);
 }

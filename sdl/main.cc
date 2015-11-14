@@ -44,21 +44,24 @@ t_main::t_main(const std::wstring& a_prefix, bool a_show_pad) : v_prefix(a_prefi
 	v_font.f_create(f_path(L"font.ttf.png"));
 	f_load(v_sound_cursor, L"cursor.wav");
 	f_load(v_sound_select, L"select.wav");
+#ifndef __ANDROID__
+	int n = SDL_GameControllerAddMappingsFromFile(f_convert(f_path(L"gamecontrollerdb.txt")).c_str());
+	if (n == -1) throw std::runtime_error((std::string("SDL_GameControllerAddMappingsFromFile Error: ") + SDL_GetError()).c_str());
+#endif
+	f_setup_controllers();
 	std::array<float, 12> array{
 		0.0f, 2.0f, 0.0f,
 		-1.0f, 0.0f, 0.0f,
 		1.0f, 0.0f, 0.0f,
 		0.0f, 2.0f, 0.0f
 	};
-	v_triangle.f_create();
-	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_triangle);
+	v_pad.v_triangle.f_create();
+	gl::f_bind_buffer(GL_ARRAY_BUFFER, v_pad.v_triangle);
 	gl::f_buffer_data(GL_ARRAY_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
 	gl::f_bind_buffer(GL_ARRAY_BUFFER, 0);
-#ifndef __ANDROID__
-	int n = SDL_GameControllerAddMappingsFromFile(f_convert(f_path(L"gamecontrollerdb.txt")).c_str());
-	if (n == -1) throw std::runtime_error((std::string("SDL_GameControllerAddMappingsFromFile Error: ") + SDL_GetError()).c_str());
-#endif
-	f_setup_controllers();
+	v_pad.v_uniforms.v_stride = 3 * sizeof(float);
+	v_pad.v_uniforms.v_projection = v_projection.v_array;
+	v_pad.v_uniforms.v_color = t_vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 std::unique_ptr<xmlParserInputBuffer, void (*)(xmlParserInputBufferPtr)> t_main::f_input(const std::wstring& a_name)
@@ -160,6 +163,26 @@ void t_main::f_hat(const SDL_JoyHatEvent& a_hat)
 	}
 }
 #endif
+
+void t_main::f_resize(size_t a_width, size_t a_height)
+{
+	v_width = a_width;
+	v_height = a_height;
+	float a = static_cast<float>(v_width) / v_height;
+	v_aspect = a;
+	v_projection = f_orthographic(-a, a, -1.0f, 1.0f, -1.0f, 1.0f);
+	v_text_scale = v_width < v_height ? t_scale3f(a, a, 1.0f) : t_scale3f(1.0f, 1.0f, 1.0f);
+	v_pad.v_inverse = ~v_projection;
+	float size = v_pad.v_size = std::min(a * 0.875f, 1.0f);
+	v_pad.v_left_center = t_vector3f(size * 0.5f - a, size * 0.5f - 1.0f, 0.0f);
+	t_matrix4f triangle = t_translate3f(0.0f, size * 0.25f, 0.0f);
+	triangle *= t_scale3f(size * 0.1f, size * 0.1f, 1.0f);
+	t_matrix4f center = t_translate3f(v_pad.v_left_center);
+	for (size_t i = 0; i < 8; ++i) v_pad.v_left_marks[i] = center * t_rotate3f(t_vector3f(0.0f, 0.0f, 1.0f), static_cast<float>(M_PI / 4.0f) * i) * triangle;
+	v_pad.v_right_center = t_vector3f(a - size * 0.5f, size * 0.5f - 1.0f, 0.0f);
+	center = t_translate3f(v_pad.v_right_center);
+	for (size_t i = 0; i < 4; ++i) v_pad.v_right_marks[i] = center * t_rotate3f(t_vector3f(0.0f, 0.0f, 1.0f), static_cast<float>(M_PI / 2.0) * i) * triangle;
+};
 
 void t_match::f_new_game()
 {
@@ -268,13 +291,13 @@ const t_stage::t_state t_match::v_state_close{
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
 	},
-	[](t_stage& a_stage, size_t a_width, size_t a_height)
+	[](t_stage& a_stage)
 	{
 	},
-	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 	},
-	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		if (a_event.y > 0.25f) return;
 		t_match& stage = static_cast<t_match&>(a_stage);
@@ -283,7 +306,7 @@ const t_stage::t_state t_match::v_state_close{
 		else
 			stage.f_new_set();
 	},
-	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 	}
 };
@@ -431,13 +454,13 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 				key_press(a_stage, a_key);
 			}
 		};
-		a_state.v_finger_up = [this, finger_up = std::move(a_state.v_finger_up)](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+		a_state.v_finger_up = [this, finger_up = std::move(a_state.v_finger_up)](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 		{
 			if (a_event.x > 0.5f && a_event.y < 0.5f) {
 				v_side = -v_side;
 				f_transit_ready();
 			} else {
-				finger_up(a_stage, a_event, a_width, a_height);
+				finger_up(a_stage, a_event);
 			}
 		};
 	};
@@ -560,22 +583,22 @@ const t_stage::t_state t_training::v_state_select{
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
 	},
-	[](t_stage& a_stage, size_t a_width, size_t a_height)
+	[](t_stage& a_stage)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_render(stage.f_transform());
 	},
-	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_finger_down(stage.f_transform(), a_event);
 	},
-	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_finger_up(stage.f_transform(), a_event);
 	},
-	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		t_training& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_finger_motion(stage.f_transform(), a_event);
@@ -618,20 +641,20 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 		switch (a_key) {
 		case SDLK_1:
 		case SDLK_j:
-			a_player.f_do(&t_player::t_shots::v_topspin);
+			a_player.f_do(a_stage.v_main.v_pad.v_shot = &t_player::t_shots::v_topspin);
 			break;
 		case SDLK_SPACE:
 		case SDLK_2:
 		case SDLK_l:
-			a_player.f_do(&t_player::t_shots::v_flat);
+			a_player.f_do(a_stage.v_main.v_pad.v_shot = &t_player::t_shots::v_flat);
 			break;
 		case SDLK_VOLUMEUP:
 		case SDLK_i:
-			a_player.f_do(&t_player::t_shots::v_lob);
+			a_player.f_do(a_stage.v_main.v_pad.v_shot = &t_player::t_shots::v_lob);
 			break;
 		case SDLK_VOLUMEDOWN:
 		case SDLK_m:
-			a_player.f_do(&t_player::t_shots::v_slice);
+			a_player.f_do(a_stage.v_main.v_pad.v_shot = &t_player::t_shots::v_slice);
 			break;
 		case SDLK_LEFT:
 		case SDLK_s:
@@ -656,6 +679,17 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 	a_state.v_key_release = [key_release = std::move(a_state.v_key_release), &a_player](t_stage& a_stage, SDL_Keycode a_key)
 	{
 		switch (a_key) {
+		case SDLK_1:
+		case SDLK_j:
+		case SDLK_SPACE:
+		case SDLK_2:
+		case SDLK_l:
+		case SDLK_VOLUMEUP:
+		case SDLK_i:
+		case SDLK_VOLUMEDOWN:
+		case SDLK_m:
+			a_stage.v_main.v_pad.v_shot = nullptr;
+			break;
 		case SDLK_LEFT:
 		case SDLK_s:
 			a_player.v_left = false;
@@ -676,47 +710,49 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			key_release(a_stage, a_key);
 		}
 	};
-	const float pad_size = 1.0f;
 	if (a_player.v_stage.v_main.v_show_pad) {
-		a_state.v_render = [render = std::move(a_state.v_render), &a_player, pad_size](t_stage& a_stage, size_t a_width, size_t a_height)
+		a_state.v_render = [render = std::move(a_state.v_render), &a_player](t_stage& a_stage)
 		{
 			if (a_stage.v_main.v_controllers[0]) {
-				render(a_stage, a_width, a_height);
+				render(a_stage);
 				return;
 			}
 			auto& shader = a_stage.v_main.v_shaders.f_constant_color();
-			std::remove_reference<decltype(shader)>::type::t_uniforms uniforms;
-			uniforms.v_stride = 3 * sizeof(float);
-			uniforms.v_projection = a_stage.v_main.v_projection.v_array;
-			uniforms.v_color = t_vector4f(1.0f, 1.0f, 1.0f, 1.0f);
-			float a = static_cast<float>(a_width) / a_height;
-			float size = std::min(a * 0.875f, pad_size);
-			t_matrix4f triangle = t_translate3f(0.0f, size * 0.25f, 0.0f);
-			triangle *= t_scale3f(size * 0.1f, size * 0.1f, 1.0f);
-			t_matrix4f pad = t_translate3f(size * 0.5f - a, size * 0.5f - 1.0f, 0.0f);
+			auto& pad = a_stage.v_main.v_pad;
+			size_t pressed;
+			if (a_player.v_forward)
+				pressed = a_player.v_left ? 1 : a_player.v_right ? 7 : 0;
+			else if (a_player.v_backward)
+				pressed = a_player.v_left ? 3 : a_player.v_right ? 5 : 4;
+			else
+				pressed = a_player.v_left ? 2 : a_player.v_right ? 6 : 8;
 			for (size_t i = 0; i < 8; ++i) {
-				auto m = pad * t_rotate3f(t_vector3f(0.0f, 0.0f, 1.0f), static_cast<float>(M_PI / 4.0f) * i) * triangle;
-				uniforms.v_vertex = m.v_array;
-				shader(uniforms, a_stage.v_main.v_triangle, GL_LINE_STRIP, 0, 4);
+				pad.v_uniforms.v_vertex = pad.v_left_marks[i].v_array;
+				shader(pad.v_uniforms, pad.v_triangle, i == pressed ? GL_TRIANGLES : GL_LINE_STRIP, 0, i == pressed ? 3 : 4);
 			}
-			pad = t_translate3f(a - size * 0.5f, size * 0.5f - 1.0f, 0.0f);
+			if (pad.v_shot == &t_player::t_shots::v_lob)
+				pressed = 0;
+			else if (pad.v_shot == &t_player::t_shots::v_topspin)
+				pressed = 1;
+			else if (pad.v_shot == &t_player::t_shots::v_slice)
+				pressed = 2;
+			else if (pad.v_shot == &t_player::t_shots::v_flat)
+				pressed = 3;
+			else
+				pressed = 4;
 			for (size_t i = 0; i < 4; ++i) {
-				auto m = pad * t_rotate3f(t_vector3f(0.0f, 0.0f, 1.0f), static_cast<float>(M_PI / 2.0) * i) * triangle;
-				uniforms.v_vertex = m.v_array;
-				shader(uniforms, a_stage.v_main.v_triangle, GL_LINE_STRIP, 0, 4);
+				pad.v_uniforms.v_vertex = pad.v_right_marks[i].v_array;
+				shader(pad.v_uniforms, pad.v_triangle, i == pressed ? GL_TRIANGLES : GL_LINE_STRIP, 0, i == pressed ? 3 : 4);
 			}
-			render(a_stage, a_width, a_height);
+			render(a_stage);
 		};
 	}
-	auto left_pad = [&a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	auto left_pad = [&a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
-		float a = static_cast<float>(a_width) / a_height;
-		float size = std::min(a * 0.875f, pad_size);
-		auto m = ~a_stage.v_main.v_projection;
-		auto v = f_affine(m, t_vector3f(a_event.x * 2.0f - 1.0f, a_event.y * -2.0f + 1.0f, 0.0f));
-		auto u = v - t_vector3f(size * 0.5f - a, size * 0.5f - 1.0f, 0.0f);
+		auto& pad = a_stage.v_main.v_pad;
+		auto u = f_affine(pad.v_inverse, t_vector3f(a_event.x * 2.0f - 1.0f, a_event.y * -2.0f + 1.0f, 0.0f)) - pad.v_left_center;
 		a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
-		if (u.f_length() < size / 8.0f) return;
+		if (u.f_length() < pad.v_size / 8.0f) return;
 		if (u.v_x == 0.0f) {
 			(u.v_y < 0.0f ? a_player.v_backward : a_player.v_forward) = true;
 		} else {
@@ -725,30 +761,30 @@ void f_controller0(t_stage::t_state& a_state, t_player& a_player)
 			if (a > std::tan(static_cast<float>(M_PI) * 0.125f)) (u.v_y < 0.0f ? a_player.v_backward : a_player.v_forward) = true;
 		}
 	};
-	a_state.v_finger_down = [left_pad, finger_down = std::move(a_state.v_finger_down), &a_player, pad_size](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	a_state.v_finger_down = [left_pad, finger_down = std::move(a_state.v_finger_down), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		if (a_event.x < 0.5f) {
-			left_pad(a_stage, a_event, a_width, a_height);
+			left_pad(a_stage, a_event);
 		} else {
-			float a = static_cast<float>(a_width) / a_height;
-			float size = std::min(a * 0.875f, pad_size);
-			auto m = ~a_stage.v_main.v_projection;
-			auto v = f_affine(m, t_vector3f(a_event.x * 2.0f - 1.0f, a_event.y * -2.0f + 1.0f, 0.0f));
-			auto u = v - t_vector3f(a - size * 0.5f, size * 0.5f - 1.0f, 0.0f);
-			auto shot = std::fabs(u.v_x) < std::fabs(u.v_y) ? (u.v_y < 0.0f ? &t_player::t_shots::v_slice : &t_player::t_shots::v_lob) : (u.v_x < 0.0f ? &t_player::t_shots::v_topspin : &t_player::t_shots::v_flat);
-			a_player.f_do(shot);
+			auto& pad = a_stage.v_main.v_pad;
+			auto u = f_affine(pad.v_inverse, t_vector3f(a_event.x * 2.0f - 1.0f, a_event.y * -2.0f + 1.0f, 0.0f)) - pad.v_right_center;
+			pad.v_shot = std::fabs(u.v_x) < std::fabs(u.v_y) ? (u.v_y < 0.0f ? &t_player::t_shots::v_slice : &t_player::t_shots::v_lob) : (u.v_x < 0.0f ? &t_player::t_shots::v_topspin : &t_player::t_shots::v_flat);
+			a_player.f_do(pad.v_shot);
 		}
-		if (a_event.y < 0.5f) finger_down(a_stage, a_event, a_width, a_height);
+		if (a_event.y < 0.5f) finger_down(a_stage, a_event);
 	};
-	a_state.v_finger_up = [finger_up = std::move(a_state.v_finger_up), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	a_state.v_finger_up = [finger_up = std::move(a_state.v_finger_up), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
-		if (a_event.x < 0.5f) a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
-		if (a_event.y < 0.5f) finger_up(a_stage, a_event, a_width, a_height);
+		if (a_event.x < 0.5f)
+			a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
+		else
+			a_stage.v_main.v_pad.v_shot = nullptr;
+		if (a_event.y < 0.5f) finger_up(a_stage, a_event);
 	};
-	a_state.v_finger_motion = [left_pad, finger_motion = std::move(a_state.v_finger_motion), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+	a_state.v_finger_motion = [left_pad, finger_motion = std::move(a_state.v_finger_motion), &a_player](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
-		if (a_event.x < 0.5f) left_pad(a_stage, a_event, a_width, a_height);
-		if (a_event.y < 0.5f) finger_motion(a_stage, a_event, a_width, a_height);
+		if (a_event.x < 0.5f) left_pad(a_stage, a_event);
+		if (a_event.y < 0.5f) finger_motion(a_stage, a_event);
 	};
 }
 
@@ -973,9 +1009,9 @@ void t_main_screen::f_step()
 	v_container.f_step();
 }
 
-void t_main_screen::f_render(size_t a_width, size_t a_height)
+void t_main_screen::f_render()
 {
-	glViewport(0, 0, a_width, a_height);
+	glViewport(0, 0, v_main.v_width, v_main.v_height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	v_container.f_render(t_matrix4f(1.0f));
 #if 0
@@ -997,17 +1033,17 @@ void t_main_screen::f_key_release(SDL_Keycode a_key)
 {
 }
 
-void t_main_screen::f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+void t_main_screen::f_finger_down(const SDL_TouchFingerEvent& a_event)
 {
 	v_container.f_finger_down(t_matrix4f(1.0f), a_event);
 }
 
-void t_main_screen::f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+void t_main_screen::f_finger_up(const SDL_TouchFingerEvent& a_event)
 {
 	v_container.f_finger_up(t_matrix4f(1.0f), a_event);
 }
 
-void t_main_screen::f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height)
+void t_main_screen::f_finger_motion(const SDL_TouchFingerEvent& a_event)
 {
 	v_container.f_finger_motion(t_matrix4f(1.0f), a_event);
 }
@@ -1020,16 +1056,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 	int width;
 	int height;
 	SDL_GetWindowSize(a_window, &width, &height);
-	auto f_resize = [&](int a_width, int a_height)
-	{
-		width = a_width;
-		height = a_height;
-		float a = static_cast<float>(width) / height;
-		main.v_aspect = a;
-		main.v_projection = f_orthographic(-a, a, -1.0f, 1.0f, -1.0f, 1.0f);
-		main.v_text_scale = width < height ? t_scale3f(a, a, 1.0f) : t_scale3f(1.0f, 1.0f, 1.0f);
-	};
-	f_resize(width, height);
+	main.f_resize(width, height);
 #ifdef __ANDROID__
 	SDL_SetEventFilter([](void* a_user, SDL_Event* a_event)
 	{
@@ -1063,7 +1090,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			case SDL_WINDOWEVENT:
 				switch (event.window.event) {
 				case SDL_WINDOWEVENT_RESIZED:
-					f_resize(event.window.data1, event.window.data2);
+					main.f_resize(event.window.data1, event.window.data2);
 					break;
 				}
 				break;
@@ -1091,27 +1118,27 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 			case SDL_MOUSEMOTION:
 				if (dragging) {
 					SDL_TouchFingerEvent tfinger;
-					tfinger.x = static_cast<float>(event.motion.x) / width;
-					tfinger.y = static_cast<float>(event.motion.y) / height;
-					main.v_screen->f_finger_motion(tfinger, width, height);
+					tfinger.x = static_cast<float>(event.motion.x) / main.v_width;
+					tfinger.y = static_cast<float>(event.motion.y) / main.v_height;
+					main.v_screen->f_finger_motion(tfinger);
 				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				if (!dragging) {
 					dragging = true;
 					SDL_TouchFingerEvent tfinger;
-					tfinger.x = static_cast<float>(event.button.x) / width;
-					tfinger.y = static_cast<float>(event.button.y) / height;
-					main.v_screen->f_finger_down(tfinger, width, height);
+					tfinger.x = static_cast<float>(event.button.x) / main.v_width;
+					tfinger.y = static_cast<float>(event.button.y) / main.v_height;
+					main.v_screen->f_finger_down(tfinger);
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
 				if (dragging) {
 					dragging = false;
 					SDL_TouchFingerEvent tfinger;
-					tfinger.x = static_cast<float>(event.button.x) / width;
-					tfinger.y = static_cast<float>(event.button.y) / height;
-					main.v_screen->f_finger_up(tfinger, width, height);
+					tfinger.x = static_cast<float>(event.button.x) / main.v_width;
+					tfinger.y = static_cast<float>(event.button.y) / main.v_height;
+					main.v_screen->f_finger_up(tfinger);
 				}
 				break;
 #endif
@@ -1143,7 +1170,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 				break;
 #endif
 			case SDL_FINGERDOWN:
-				main.v_screen->f_finger_down(event.tfinger, width, height);
+				main.v_screen->f_finger_down(event.tfinger);
 #ifdef MEASURE_FPS
 				if (event.tfinger.x > 0.5f && event.tfinger.y < 0.5f) {
 					start = SDL_GetPerformanceCounter();
@@ -1152,14 +1179,14 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 #endif
 				break;
 			case SDL_FINGERUP:
-				main.v_screen->f_finger_up(event.tfinger, width, height);
+				main.v_screen->f_finger_up(event.tfinger);
 				break;
 			case SDL_FINGERMOTION:
-				main.v_screen->f_finger_motion(event.tfinger, width, height);
+				main.v_screen->f_finger_motion(event.tfinger);
 				break;
 			}
 		}
-		main.v_screen->f_render(width, height);
+		main.v_screen->f_render();
 #ifdef MEASURE_FPS
 		{
 			auto viewing = static_cast<t_matrix4f>(t_translate(-0.5f, 0.5f, 0.0f)) * t_scale3f(0.1f, 0.1f, 0.1f);
@@ -1185,6 +1212,7 @@ int main(int argc, char* argv[])
 		t_sdl_ttf ttf;
 		t_sdl_audio audio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
 		t_window window("Tennis", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+//		t_window window("Tennis", 0, 0, 640, 360, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 		t_gl_context context(window);
 #ifdef __ANDROID__
 		f_loop(window, std::wstring(), true);

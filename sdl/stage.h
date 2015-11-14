@@ -17,12 +17,12 @@ struct t_screen
 	}
 	virtual ~t_screen() = default;
 	virtual void f_step() = 0;
-	virtual void f_render(size_t a_width, size_t a_height) = 0;
+	virtual void f_render() = 0;
 	virtual void f_key_press(SDL_Keycode a_key) = 0;
 	virtual void f_key_release(SDL_Keycode a_key) = 0;
-	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height) = 0;
-	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height) = 0;
-	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height) = 0;
+	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event) = 0;
+	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event) = 0;
+	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event) = 0;
 };
 
 struct t_stage : t_screen
@@ -32,10 +32,10 @@ struct t_stage : t_screen
 		std::function<void (t_stage&)> v_step;
 		std::function<void (t_stage&, SDL_Keycode)> v_key_press;
 		std::function<void (t_stage&, SDL_Keycode)> v_key_release;
-		std::function<void (t_stage&, size_t, size_t)> v_render;
-		std::function<void (t_stage&, const SDL_TouchFingerEvent&, size_t, size_t)> v_finger_down;
-		std::function<void (t_stage&, const SDL_TouchFingerEvent&, size_t, size_t)> v_finger_up;
-		std::function<void (t_stage&, const SDL_TouchFingerEvent&, size_t, size_t)> v_finger_motion;
+		std::function<void (t_stage&)> v_render;
+		std::function<void (t_stage&, const SDL_TouchFingerEvent&)> v_finger_down;
+		std::function<void (t_stage&, const SDL_TouchFingerEvent&)> v_finger_up;
+		std::function<void (t_stage&, const SDL_TouchFingerEvent&)> v_finger_motion;
 	};
 
 	bool v_dual;
@@ -96,12 +96,12 @@ struct t_stage : t_screen
 
 	t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<void (t_stage::t_state&, t_player&)>& a_controller0, const std::wstring& a_player0, const std::function<void (t_stage::t_state&, t_player&)>& a_controller1, const std::wstring& a_player1);
 	virtual void f_step();
-	virtual void f_render(size_t a_width, size_t a_height);
+	virtual void f_render();
 	virtual void f_key_press(SDL_Keycode a_key);
 	virtual void f_key_release(SDL_Keycode a_key);
-	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
-	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
-	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
+	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event);
+	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event);
+	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event);
 };
 
 #endif

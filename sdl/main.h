@@ -89,10 +89,11 @@ struct t_main
 	gl::t_font v_font;
 	t_chunk v_sound_cursor;
 	t_chunk v_sound_select;
+	size_t v_width;
+	size_t v_height;
 	float v_aspect;
 	t_matrix4f v_projection;
 	t_scale3f v_text_scale{1.0f, 1.0f, 1.0f};
-	gl::t_buffer v_triangle;
 	std::unique_ptr<t_screen> v_screen;
 #ifdef __ANDROID__
 	t_joystick v_controllers[2];
@@ -100,6 +101,18 @@ struct t_main
 #else
 	t_game_controller v_controllers[2];
 #endif
+	struct
+	{
+		gl::t_buffer v_triangle;
+		gl::t_color_shader::t_uniforms v_uniforms;
+		t_matrix4f v_inverse;
+		float v_size;
+		t_vector3f v_left_center;
+		t_matrix4f v_left_marks[8];
+		t_vector3f v_right_center;
+		t_matrix4f v_right_marks[4];
+		t_player::t_swing t_player::t_shots::* v_shot = nullptr;
+	} v_pad;
 
 	t_main(const std::wstring& a_prefix, bool a_show_pad);
 	std::wstring f_path(const std::wstring& a_name) const
@@ -122,6 +135,7 @@ struct t_main
 #ifdef __ANDROID__
 	void f_hat(const SDL_JoyHatEvent& a_hat);
 #endif
+	void f_resize(size_t a_width, size_t a_height);
 };
 
 template<typename T_event>
@@ -452,12 +466,12 @@ struct t_main_screen : t_screen
 
 	t_main_screen(t_main& a_main);
 	virtual void f_step();
-	virtual void f_render(size_t a_width, size_t a_height);
+	virtual void f_render();
 	virtual void f_key_press(SDL_Keycode a_key);
 	virtual void f_key_release(SDL_Keycode a_key);
-	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
-	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
-	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event, size_t a_width, size_t a_height);
+	virtual void f_finger_down(const SDL_TouchFingerEvent& a_event);
+	virtual void f_finger_up(const SDL_TouchFingerEvent& a_event);
+	virtual void f_finger_motion(const SDL_TouchFingerEvent& a_event);
 };
 
 #endif
