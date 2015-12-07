@@ -4,4 +4,9 @@
 	<player name="Red" path="red" />
 	<player name="Green" path="green" />
 	<player name="Yellow" path="yellow" />
+	<player name="Miku" path="../extra/miku" />
+	<player name="Rin" path="../extra/rin" />
+	<player name="Ren" path="../extra/ren" />
+	<player name="Haku" path="../extra/haku" />
+	<player name="Naruto" path="../extra/naruto" />
 </players>
