@@ -259,12 +259,26 @@ $Ball = Class() :: @
 		spin.z = w1z * d
 	$bounce = @() $calculate_bounce($velocity, $spin
 	$projected_time_for_y = @(y, sign) projected_time_for_y($position.y, $velocity.y, y, sign
+	$create_record = @
+		record = Object(
+		record.position = null
+		record.velocity = null
+		record.spin = null
+		record
+	$record = @(to)
+		to.position = +$position
+		to.velocity = +$velocity
+		to.spin = +$spin
+	$replay = @(from)
+		$position = +from.position
+		$velocity = +from.velocity
+		$spin = +from.spin
 
 $Mark = Class() :: @
 	radius = 0.0625
 
 	$__initialize = @(stage, shaders, shadow)
-		$duration = 0.0
+		$duration = 0
 		$stretch = 1.0
 		$node = node(stage.scene.resolve, shaders, circle(8), shadow
 		$placement = Placement(
@@ -274,17 +288,31 @@ $Mark = Class() :: @
 		$node.transforms.push($scale
 		node__render = $node.render
 		$node.render = (@(projection, viewing, joints)
-			if $duration > 0.0: node__render(projection, viewing, joints
+			if $duration > 0: node__render(projection, viewing, joints
 		)[$]
 		stage.scene.scene.instance_visual_scene._scene.nodes.push($node
 	$setup = @
 		$placement.validate(
 		$scale.z = radius * $stretch
-	$step = @() $duration > 0.0 && ($duration = $duration - 1.0)
+	$step = @() if $duration > 0: $duration = $duration - 1
 	$mark = @(ball)
-		$duration = 2.0 * 64.0
+		$duration = 2 * 64
 		$placement.position.x = ball.position.x
 		$placement.position.z = ball.position.z
 		$placement.toward = Vector3(ball.velocity.x, 0.0, ball.velocity.z
 		$placement.valid = false
 		$stretch = 1.0 + $placement.toward.length() * 8.0
+	$create_record = @
+		record = Object(
+		record.duration = null
+		record.stretch = null
+		record.placement = Placement(
+		record
+	$record = @(to)
+		to.duration = $duration
+		to.stretch = $stretch
+		$placement.copy(to.placement
+	$replay = @(from)
+		$duration = from.duration
+		$stretch = from.stretch
+		from.placement.copy($placement

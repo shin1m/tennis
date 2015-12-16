@@ -154,6 +154,7 @@ Matrix = @(N) Class() :: @
 		v = $v
 		for i = 0; i < NN; i = i + 1: v[i] = -v[i]
 		$
+	$__plus = @() :$($
 	$__minus = @() :$($).negate(
 	$add = @(value)
 		v0 = $v
@@ -262,6 +263,7 @@ Vector3 = Class() :: @
 		$x = (1.0 - t) * $x + t * value.x
 		$y = (1.0 - t) * $y + t * value.y
 		$z = (1.0 - t) * $z + t * value.z
+	$__plus = @() Vector3($x, $y, $z
 	$__minus = @() Vector3(-$x, -$y, -$z
 	$__add = @(value) Vector3($x + value.x, $y + value.y, $z + value.z
 	$__subtract = @(value) Vector3($x - value.x, $y - value.y, $z - value.z
@@ -320,6 +322,7 @@ Vector4 = Class() :: @
 		$y = (1.0 - t) * $y + t * value.y
 		$z = (1.0 - t) * $z + t * value.z
 		$w = (1.0 - t) * $w + t * value.w
+	$__plus = @() Vector4($x, $y, $z, $w
 	$__minus = @() Vector4(-$x, -$y, -$z, -$w
 	$__add = @(value) Vector4($x + value.x, $y + value.y, $z + value.z, $w + value.w
 	$__subtract = @(value) Vector4($x - value.x, $y - value.y, $z - value.z, $w - value.w

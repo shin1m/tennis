@@ -65,3 +65,8 @@ $Placement = Class($Posture) :: @
 		v[13] = -(v[1] * $position.x + v[5] * $position.y + v[9] * $position.z)
 		v[14] = -(v[2] * $position.x + v[6] * $position.y + v[10] * $position.z)
 		m
+	$copy = @(to)
+		to.toward = +$toward
+		to.upward = +$upward
+		to.position = +$position
+		to.valid = false

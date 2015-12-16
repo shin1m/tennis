@@ -36,11 +36,7 @@ $Stage = Class() :: @
 	$ball_out = @
 		$mark.mark($ball
 		$ball.serving() ? $serve_miss() : $miss("OUT")
-	$step_things = @
-		$ball.step(
-		$mark.step(
-		$player0.step(
-		$player1.step(
+	$set_cameras = @
 		target = $ball.position * 0.25
 		if $fixed
 			$camera0.position.x = target.x
@@ -52,6 +48,12 @@ $Stage = Class() :: @
 			$camera0.position.z = 48.0 * $player0.end + target.z
 			$camera1.position.x = target.x + $player1.root_position().x * 0.5
 			$camera1.position.z = 48.0 * $player1.end + target.z
+	$step_things = @
+		$ball.step(
+		$mark.step(
+		$player0.step(
+		$player1.step(
+		$set_cameras(
 
 	$__initialize = @(main, dual, fixed, controller0, player0, controller1, player1)
 		$main = main
@@ -91,8 +93,8 @@ $Stage = Class() :: @
 		$player0.opponent = $player1
 		$player1.opponent = $player0
 		$state_ready = $State(@
-			if $duration <= 0.0: return $transit_play(
-			$duration = $duration - 1.0
+			if $duration <= 0: return $transit_play(
+			$duration = $duration - 1
 		, {
 			xraft.Key.RETURN: @() $transit_play(
 			xraft.Key.ESCAPE: @() $back(
@@ -100,8 +102,8 @@ $Stage = Class() :: @
 		$state_play = $State(@
 			$step_things(
 			if !$ball.done: return
-			if $duration <= 0.0: return $next(
-			$duration = $duration - 1.0
+			if $duration <= 0: return $next(
+			$duration = $duration - 1
 		, {
 			xraft.Key.RETURN: @() $next(
 			xraft.Key.ESCAPE: @() $back(

@@ -71,8 +71,8 @@ $Player = Class() :: @
 			$end_position = Vector3(root.vertex.v[12], 0.0, root.vertex.v[14]
 			$end_toward = Vector3(root.vertex.v[8], 0.0, root.vertex.v[10]
 		$merge = @(player)
-			placement = player.placement
-			placement.position = placement.validate() * $end_position
+			placement = player.placement.validate(
+			placement.position = placement * $end_position
 			placement.toward = placement * $end_toward
 			placement.valid = false
 	Run = Class(Action) :: @
@@ -260,7 +260,8 @@ $Player = Class() :: @
 		$actions.serve.set.rewind(
 		$lefty = $root.transforms[1].v[12] < 0.0 ? -1.0 : 1.0
 		$smash_hand = -0.25 * $lefty
-		$motion = null
+		$motion = RunMotion($actions.ready.default, $placement.toward, $
+		$ready = null
 		$reset(1.0, $state_default
 		scene = stage.scene.scene.instance_visual_scene._scene
 		scene.nodes.push($node
@@ -268,10 +269,10 @@ $Player = Class() :: @
 	$transit = @(state)
 		$state = state
 		$state.enter[$](
-	$reset = @(end, state)
+	$reset = @(end = null, state = null)
 		$left = $right = $forward = $backward = false
-		$end = end
-		$transit(state
+		if end !== null: $end = end
+		if state !== null: $transit(state
 	$setup = @() $placement.validate(
 	$root_position = @
 		v = $root.transforms[1].v
@@ -305,6 +306,28 @@ $Player = Class() :: @
 	$do = @(shot) $state.do[$](shot
 	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward)
 	$smash_height = @() $actions.swing.forehand.smash.spot[13] - 0.25
+	$create_record = @
+		record = Object(
+		record.placement = Placement(
+		record.root = Matrix4(
+		record.action = null
+		record.time = null
+		record.ready = null
+		record
+	$record = @(to)
+		$placement.copy(to.placement
+		bytes = $root.transforms[1].bytes
+		bytes.copy(0, bytes.size(), to.root.bytes, 0
+		to.action = $motion.action
+		to.time = $motion.time
+		to.ready = $ready
+	$replay = @(from)
+		from.placement.copy($placement
+		bytes = from.root.bytes
+		bytes.copy(0, bytes.size(), $root.transforms[1].bytes, 0
+		if from.ready !== null: from.ready.rewind(
+		from.action.rewind(
+		from.action.forward(from.time
 	$state_default = State(@
 		v = $ball.position - $placement.position
 		v.y = 0.0
@@ -353,14 +376,17 @@ $Player = Class() :: @
 			if actions === $actions.run: run = hand.lowers[($left ? 1 : $right ? 2 : 0) + ($forward ? 4 : $backward ? 8 : 0)]
 		if actions === $actions.ready
 			$motion = RunMotion(action, v, $
+			$ready = null
 		else
 			if $motion.action !== run || d != $motion.toward: $motion = RunMotion(run, d, $
 			if $motion.time >= run.end: $motion.rewind(
+			$ready = action
 			action.rewind(
 			$placement.position = $placement.position + d
 		$motion(
 		$placement.valid = false
 	, @(shot)
+		$ready = null
 		$placement.toward = $shot_direction(
 		$placement.valid = false
 		actions = $actions.swing
@@ -394,6 +420,7 @@ $Player = Class() :: @
 		$transit($state_swing
 	$state_serve_set = State(@
 		$motion = Motion($actions.serve.set
+		$ready = null
 	, @
 		speed = 2.0 / 64.0
 		if $left: $ball.position.x = $ball.position.x - speed * $end
@@ -487,7 +514,7 @@ $Player = Class() :: @
 	, @
 		v = $shot_direction(
 		if $motion.time <= $motion.action.impact
-			$placement.toward = v * 1.0
+			$placement.toward = +v
 			$placement.valid = false
 		$swing_impact(v
 	, @(shot)
@@ -496,7 +523,7 @@ $Player = Class() :: @
 	, @
 		v = $shot_direction(
 		if $motion.time <= $motion.action.impact
-			$placement.toward = v * 1.0
+			$placement.toward = +v
 			$placement.valid = false
 		if math.fabs($motion.time - $motion.action.impact) < 0.5 / 60.0
 			ball = $relative_ball($motion.action

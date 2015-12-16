@@ -11,6 +11,7 @@ cairo = Module("cairo"
 xraft = Module("xraft"
 collada = Module("collada"
 placement = Module("placement"
+ball = Module("ball"
 player = Module("player"
 stage = Module("stage"
 computer = Module("computer"
@@ -23,6 +24,8 @@ print_time = false
 Matrix4 = glmatrix.Matrix4
 Vector3 = glmatrix.Vector3
 Posture = placement.Posture
+Ball = ball.Ball
+Mark = ball.Mark
 Player = player.Player
 
 Container = Class() :: @
@@ -35,14 +38,14 @@ Container = Class() :: @
 	$step = @
 		if $transit_from !== null
 			if $t < $duration
-				$t = $t + 1.0
+				$t = $t + 1
 			else
 				if $transit_from.?destroy: $transit_from.destroy(
 				$transit_from = null
 		$content.step(
 	$render = @(viewing)
 		if $transit_from !== null
-			t = $t / $duration
+			t = Float($t) / $duration
 			$transit_from.render(Matrix4(viewing).translate($slide * t, 0.0, 0.0
 			viewing = Matrix4(viewing).translate($slide * (t - 1.0), 0.0, 0.0
 		if $content !== null: $content.render(viewing
@@ -51,8 +54,8 @@ Container = Class() :: @
 		$transit_from = $content
 		$content = content
 		$slide = slide
-		$duration = 30.0
-		$t = 0.0
+		$duration = 30
+		$t = 0
 
 Menu = Class() :: @
 	$Item = @(label, do)
@@ -132,12 +135,12 @@ Match = Class(stage.Stage) :: @
 	$ball_ace = @
 		$second = false
 		$point($ball.hitter
-		$duration = 2.0 * 64.0
+		$transit_replay(
 		$sound_ace.play(
 	$ball_let = @
 		$mark.mark($ball
 		$message = ["LET"
-		$duration = 2.0 * 64.0
+		$duration = 2 * 64
 	$serve_miss = @
 		if $second
 			$message = ["DOUBLE FAULT"
@@ -146,18 +149,19 @@ Match = Class(stage.Stage) :: @
 		else
 			$message = ["FAULT"
 			$second = true
-		$duration = 2.0 * 64.0
+		$duration = 2 * 64
 		$sound_miss.play(
 	$ball_serve_air = $serve_miss
 	$miss = @(message)
 		$message = [message
 		$second = false
 		$point($ball.hitter.opponent
-		$duration = 2.0 * 64.0
+		$duration = 2 * 64
 		$sound_miss.play(
 	points0 = [" 0", "15", "30", "40"
 	points1 = ["0 ", "15", "30", "40"
 	$transit_ready = @
+		$reset(
 		$state = $state_ready
 		if $player0.point + $player1.point < 6
 			game = points0[$player0.point] + " - " + points1[$player1.point]
@@ -170,7 +174,7 @@ Match = Class(stage.Stage) :: @
 		$message = [
 			"P1 " + $player0.game + " - " + $player1.game + " P2"
 			($player0 === $server ? "* " : "  ") + game + ($player1 === $server ? " *" : "  ")
-		$duration = 1.0 * 64.0
+		$duration = 64
 		$step_things(
 	state_close = $State(@
 		$step_things(
@@ -179,6 +183,10 @@ Match = Class(stage.Stage) :: @
 		xraft.Key.ESCAPE: @() $back(
 	}, {}, @(width, height)
 	$transit_close = @
+		$player0.reset(
+		$player1.reset(
+		$reset_cameras(
+		$set_cameras(
 		$state = state_close
 		$message = [
 			($player0.game > $player1.game ? "P1" : "P2") + " WON!"
@@ -189,28 +197,66 @@ Match = Class(stage.Stage) :: @
 	$transit_play = @
 		$state = $state_play
 		$message = [
-	$reset = @
-		$side = ($player0.point + $player1.point) % 2 == 0 ? 1.0 : -1.0
-		$ball.reset($side, 2 * 12 * 0.0254 * $end * $side, 0.875, 39 * 12 * 0.0254 * $end
-		$mark.duration = 0.0
-		$server.reset($end, Player.state_serve_set
-		$receiver.placement.position = Vector3(-9 * 12 * 0.0254 * $end * $side, 0.0, -39 * 12 * 0.0254 * $end
-		$receiver.placement.valid = false
-		$receiver.reset(-$end, Player.state_default
+	state_replay = $State(@
+		if $duration <= 0: return $next(
+		$duration = $duration - 1
+		if $duration % 2 == 0: return
+		record = $records.shift(
+		$ball.replay(record.ball
+		$mark.replay(record.mark
+		$player0.replay(record.player0
+		$player1.replay(record.player1
+		$records.push(record
+		$camera0.position = Vector3(($ball.position.x + $ball.hitter.root_position().x) * 0.5, 4.0, ($ball.position.z + 40.0 * $ball.hitter.opponent.end) * 0.5
+		$camera0.toward = Vector3(0.0, -6.0, -40.0 * $ball.hitter.opponent.end
+		$camera1.position = Vector3(($ball.position.x + $ball.hitter.opponent.root_position().x) * 0.5, 4.0, ($ball.position.z + 40.0 * $ball.hitter.end) * 0.5
+		$camera1.toward = Vector3(0.0, -6.0, -40.0 * $ball.hitter.end
+	, {
+		xraft.Key.RETURN: @() $next(
+		xraft.Key.ESCAPE: @() $back(
+	}, {}, @(width, height)
+	$transit_replay = @
+		$state = state_replay
+		$duration = $records.size() * 2
+	$reset_cameras = @
 		$camera0.position = Vector3(0.0, 14.0, 0.0
 		$camera0.toward = Vector3(0.0, -12.0, -40.0 * ($fixed ? 1.0 : $player0.end)
 		$camera1.position = Vector3(0.0, 14.0, 0.0
 		$camera1.toward = Vector3(0.0, -12.0, -40.0 * ($fixed ? -1.0 : $player1.end)
+	$reset = @
+		$side = ($player0.point + $player1.point) % 2 == 0 ? 1.0 : -1.0
+		$ball.reset($side, 2 * 12 * 0.0254 * $end * $side, 0.875, 39 * 12 * 0.0254 * $end
+		$mark.duration = 0
+		$server.reset($end, Player.state_serve_set
+		$receiver.placement.position = Vector3(-9 * 12 * 0.0254 * $end * $side, 0.0, -39 * 12 * 0.0254 * $end
+		$receiver.placement.valid = false
+		$receiver.reset(-$end, Player.state_default
+		$reset_cameras(
+	$step_things = @
+		:$^step_things[$](
+		record = $records.shift(
+		$ball.record(record.ball
+		$mark.record(record.mark
+		$player0.record(record.player0
+		$player1.record(record.player1
+		$records.push(record
 
 	$__initialize = @(main, dual, fixed, controller0, player0, controller1, player1, back)
 		:$^__initialize[$](main, dual, fixed, controller0, player0, controller1, player1
 		$back = back
+		$records = [
+		for i = 0; i < 150; i = i + 1
+			record = Object(
+			record.ball = Ball.create_record(
+			record.mark = Mark.create_record(
+			record.player0 = Player.create_record(
+			record.player1 = Player.create_record(
+			$records.push(record
 		$new_set(
 	$new_set = @
 		$closed = false
 		$player0.game = $player1.game = 0
 		$new_game(
-		$reset(
 		$transit_ready(
 	$next = @
 		if !$ball.done: return
@@ -221,7 +267,6 @@ Match = Class(stage.Stage) :: @
 		else if $closed
 			$transit_close(
 		else
-			$reset(
 			$transit_ready(
 
 Training = Class(stage.Stage) :: @
@@ -231,22 +276,22 @@ Training = Class(stage.Stage) :: @
 		o.play = play
 		o
 
-	$ball_ace = @() $duration = 0.5 * 64.0
+	$ball_ace = @() $duration = 32
 	$ball_let = @
 		$mark.mark($ball
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
 		$message = ["LET"
-		$duration = 0.5 * 64.0
+		$duration = 32
 	$serve_miss = @
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
 		$message = ["FAULT"
-		$duration = 0.5 * 64.0
+		$duration = 32
 		$sound_miss.play(
 	$ball_serve_air = $serve_miss
 	$miss = @(message)
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
 		$message = [message
-		$duration = 0.5 * 64.0
+		$duration = 32
 		$sound_miss.play(
 	$ball_in = @
 		$mark.mark($ball
@@ -288,7 +333,7 @@ Training = Class(stage.Stage) :: @
 		$menu.items = '(
 			Item(" SERVE ", (@() $transit_ready())[$], (@
 				$ball.reset($side, 2 * 12 * 0.0254 * $side, 0.875, 39 * 12 * 0.0254
-				$mark.duration = 0.0
+				$mark.duration = 0
 				$player0.reset(1.0, Player.state_serve_set
 				$player1.placement.position = Vector3(-9 * 12 * 0.0254 * $side, 0.0, -39 * 12 * 0.0254
 				$player1.placement.valid = false
@@ -305,25 +350,25 @@ Training = Class(stage.Stage) :: @
 					"       SECOND      "
 					"    SPIN * FLAT    "
 					"       SLICE       "
-				$duration = 0.0 * 64.0
+				$duration = 0
 			)[$], @
 			Item(" STROKE", (@() $transit_ready())[$], (@
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0
 				$message = toss_message
-				$duration = 0.5 * 64.0
+				$duration = 32
 			)[$], (@() $toss('toss))[$]
 			Item(" VOLLEY", (@() $transit_ready())[$], (@
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0
 				$message = toss_message
-				$duration = 0.5 * 64.0
+				$duration = 32
 			)[$], (@() $toss('toss))[$]
 			Item(" SMASH ", (@() $transit_ready())[$], (@
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), 'toss_lob
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0
 				$message = toss_message
-				$duration = 0.5 * 64.0
+				$duration = 32
 			)[$], (@() $toss('toss_lob))[$]
 		keys = {
 		Menu.keys.each(@(key, value) keys[key] = @() value[$menu](
@@ -332,7 +377,7 @@ Training = Class(stage.Stage) :: @
 	$next = @() if $ball.done: $transit_ready(
 	$reset = @(x, y, z, position, shot)
 		$ball.reset($side, x, y, z, false
-		$mark.duration = 0.0
+		$mark.duration = 0
 		$player0.placement.position = position
 		$player0.placement.valid = false
 		$player0.reset(1.0, Player.state_default
@@ -354,7 +399,7 @@ Training = Class(stage.Stage) :: @
 		$state = $state_select
 		$side = 1.0
 		$ball.reset($side, 2 * 12 * 0.0254, $ball.radius + 0.01, 2 * 12 * 0.0254
-		$mark.duration = 0.0
+		$mark.duration = 0
 		$player0.placement.position = Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254
 		$player0.placement.valid = false
 		$player0.reset(1.0, Player.state_default
@@ -363,7 +408,7 @@ Training = Class(stage.Stage) :: @
 		$player1.reset(-1.0, Player.state_default
 		$step_things(
 		$message = [
-		$duration = 0.0 * 64.0
+		$duration = 0
 	$transit_ready = @
 		$state = $state_ready
 		selected = $menu.items[$menu.selected]

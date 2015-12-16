@@ -16,29 +16,28 @@ random = @() Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]
 
 $__get_at = @(stage) @(controller, player)
 	ball = stage.ball
-	duration = 1.0 * 64.0
+	duration = 64
 	decided0 = decided1 = left = right = forward = backward = false
 	shot = 'flat
 	net = false
 	reset_decision = @
 		:decided0 = :decided1 = :left = :right = :forward = :backward = false
 		:shot = 'flat
-	reset_move = @() player.left = player.right = player.forward = player.backward = false
 	super__step = controller.step[stage]
 	controller.step = @
 		if ball.done
-			reset_move(
+			player.reset(
 			reset_decision(
 			:net = false
 		else if ball.hitter === null
 			if player === stage.server
 				if player.state === Player.state_serve_set
-					reset_move(
-					if duration <= 0.0
+					player.reset(
+					if duration <= 0
 						player.do('flat
-						:duration = 1.0 * 64.0
+						:duration = 64
 					else
-						:duration = duration - 1.0
+						:duration = duration - 1
 				else if player.state === Player.state_serve_toss
 					if stage.second
 						:shot = 'lob
@@ -65,12 +64,12 @@ $__get_at = @(stage) @(controller, player)
 							else if i % 8 > (stage.second ? 5 : 4)
 								player.right = true
 			else
-				reset_move(
+				player.reset(
 		else if ball.hitter.end == player.end
 			if !decided0
 				:decided0 = true
 				if !net: :net = random() % 10 > 6
-			reset_move(
+			player.reset(
 			point = Vector3(ball.position.x, 0.0, ball.position.z
 			side0 = Vector3(-(13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end
 			side1 = Vector3((13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end
@@ -142,7 +141,7 @@ $__get_at = @(stage) @(controller, player)
 					t0 = bound_t
 					position = bound_position
 					velocity = Vector3(velocity.x, velocity.y - G * bound_t, velocity.z
-					ball.calculate_bounce(velocity, ball.spin * 1.0
+					ball.calculate_bounce(velocity, +ball.spin
 				if net && !ball.in
 					point = player.placement.position - Vector3(-v.z, 0.0, v.x) * ix + v * iz
 					t = reach_range(position, velocity, point, player.speed, 0.0, -1.0) + 1.0
@@ -160,7 +159,7 @@ $__get_at = @(stage) @(controller, player)
 			if t1 >= 0.0 && t1 < tt: tt = t1
 			if tt < -1.0
 			else if (ball.in || bound_position.x > -(13 * 12 + 6) * 0.0254 - 0.125 && bound_position.x < (13 * 12 + 6) * 0.0254 + 0.125 && bound_position.z * player.end < 39 * 12 * 0.0254 + 0.5) && tt < (swing.impact - swing.start) * 60.0 + 1.0
-				reset_move(
+				player.reset(
 				player.left = left
 				player.right = right
 				player.forward = forward
@@ -169,7 +168,7 @@ $__get_at = @(stage) @(controller, player)
 				reset_decision(
 				:net = player.placement.position.z * player.end < 26 * 12 * 0.0254
 			else
-				reset_move(
+				player.reset(
 				point = Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t
 				v = shot_direction(point, player.end, left, right, forward, backward
 				v.normalize(
