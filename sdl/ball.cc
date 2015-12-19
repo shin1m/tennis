@@ -292,7 +292,7 @@ t_mark::t_mark(t_stage& a_stage, const std::wstring& a_shadow)
 
 void t_mark::f_setup()
 {
-	v_placement->v_position.v_y = (v_duration > 0.0f ? 1.0f : -1.0f) / 64.0f;
+	v_placement->v_position.v_y = (v_duration > 0 ? 1.0f : -1.0f) / 64.0f;
 	v_placement->v_valid = false;
 	v_placement->f_validate();
 	v_scale->v_value.v_z = c_radius * v_stretch;
@@ -300,7 +300,7 @@ void t_mark::f_setup()
 
 void t_mark::f_mark(const t_ball& a_ball)
 {
-	v_duration = 2.0f * 64.0f;
+	v_duration = 2 * 64;
 	v_placement->v_position.v_x = a_ball.v_position.v_x;
 	v_placement->v_position.v_z = a_ball.v_position.v_z;
 	v_placement->v_toward = t_vector3f(a_ball.v_velocity.v_x, 0.0f, a_ball.v_velocity.v_z);

@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <deque>
 #include <gl/image.h>
 
 #include "portable.h"
@@ -25,15 +26,15 @@ struct t_container : t_component
 	T_component v_content = nullptr;
 	T_component v_transit = nullptr;
 	float v_slide;
-	float v_duration;
-	float v_t;
+	size_t v_duration;
+	size_t v_t;
 
 	virtual void f_step()
 	{
 		if (v_content) v_content->f_step();
 		if (!v_transit) return;
 		if (v_t < v_duration)
-			v_t += 1.0f;
+			++v_t;
 		else
 			v_transit = nullptr;
 	}
@@ -41,7 +42,7 @@ struct t_container : t_component
 	{
 		auto viewing = a_viewing;
 		if (v_transit) {
-			float t = v_t / v_duration;
+			float t = static_cast<float>(v_t) / v_duration;
 			v_transit->f_render(viewing * t_translate3f(v_slide * t, 0.0f, 0.0f));
 			viewing *= t_translate3f(v_slide * (t - 1.0f), 0.0f, 0.0f);
 		}
@@ -76,8 +77,8 @@ struct t_container : t_component
 		v_transit = std::move(v_content);
 		v_content = std::move(a_content);
 		v_slide = a_slide;
-		v_duration = 30.0f;
-		v_t = 0.0f;
+		v_duration = 30;
+		v_t = 0;
 	}
 };
 
@@ -340,12 +341,21 @@ struct t_menu_item
 
 struct t_match : t_stage
 {
+	struct t_record
+	{
+		t_ball::t_record v_ball;
+		t_mark::t_record v_mark;
+		t_player::t_record v_player0;
+		t_player::t_record v_player1;
+	};
+
 	std::function<void ()> v_back;
 	bool v_closed;
 	bool v_second;
 	float v_end;
 	t_player* v_server;
 	t_player* v_receiver;
+	std::deque<t_record> v_records{150};
 
 	void f_new_game();
 	void f_point(t_player& a_player);
@@ -359,9 +369,13 @@ struct t_match : t_stage
 	void f_transit_ready();
 	static const t_state v_state_close;
 	void f_transit_close();
+	static const t_state v_state_replay;
+	void f_transit_replay();
+	virtual void f_step_things();
 	virtual void f_next();
 	virtual void f_back();
 	virtual void f_transit_play();
+	void f_reset_cameras();
 	void f_reset();
 
 	t_match(t_main& a_main, bool a_dual, bool a_fixed, const std::function<void (t_stage::t_state&, t_player&)>& a_controller0, const std::wstring& a_player0, const std::function<void (t_stage::t_state&, t_player&)>& a_controller1, const std::wstring& a_player1, const std::function<void ()>& a_back) : t_stage(a_main, a_dual, a_fixed, a_controller0, a_player0, a_controller1, a_player1), v_back(a_back)

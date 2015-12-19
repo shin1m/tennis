@@ -21,6 +21,13 @@ struct t_stage;
 
 struct t_ball
 {
+	struct t_record
+	{
+		t_vector3f v_position{0.0f, 0.0f, 0.0f};
+		t_vector3f v_velocity{0.0f, 0.0f, 0.0f};
+		t_vector3f v_spin{0.0f, 0.0f, 0.0f};
+	};
+
 	static constexpr float c_radius = 0.0625f;
 	static std::array<float, 3> v_rally;
 
@@ -89,13 +96,32 @@ struct t_ball
 	{
 		return ::f_projected_time_for_y(v_position.v_y, v_velocity.v_y, a_y, a_sign);
 	}
+	void f_record(t_record& a_to) const
+	{
+		a_to.v_position = v_position;
+		a_to.v_velocity = v_velocity;
+		a_to.v_spin = v_spin;
+	}
+	void f_replay(const t_record& a_from)
+	{
+		v_position = a_from.v_position;
+		v_velocity = a_from.v_velocity;
+		v_spin = a_from.v_spin;
+	}
 };
 
 struct t_mark
 {
+	struct t_record
+	{
+		size_t v_duration = 0;
+		float v_stretch = 1.0f;
+		t_placement v_placement;
+	};
+
 	static constexpr float c_radius = 0.0625f;
 
-	float v_duration = 0.0f;
+	size_t v_duration = 0;
 	float v_stretch = 1.0f;
 	std::unique_ptr<t_node> v_node;
 	t_placement* v_placement;
@@ -105,9 +131,21 @@ struct t_mark
 	void f_setup();
 	void f_step()
 	{
-		if (v_duration > 0.0f) v_duration -= 1.0f;
+		if (v_duration > 0) --v_duration;
 	}
 	void f_mark(const t_ball& a_ball);
+	void f_record(t_record& a_to) const
+	{
+		a_to.v_duration = v_duration;
+		a_to.v_stretch = v_stretch;
+		a_to.v_placement = *v_placement;
+	}
+	void f_replay(const t_record& a_from)
+	{
+		v_duration = a_from.v_duration;
+		v_stretch = a_from.v_stretch;
+		*v_placement = a_from.v_placement;
+	}
 };
 
 #endif

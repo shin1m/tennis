@@ -416,6 +416,7 @@ t_player::t_player(t_stage& a_stage, const std::wstring& a_model) : v_stage(a_st
 	v_actions.v_serve.v_set.f_rewind();
 	v_lefty = dynamic_cast<t_matrix_transform&>(*v_root->v_transforms[1])[3][0] < 0.0f ? -1.0f : 1.0f;
 	v_smash_hand = -0.25f * v_lefty;
+	v_motion = std::make_unique<t_run_motion>(v_actions.v_ready.v_default, v_placement->v_toward, *this);
 	f_reset(1.0f, v_state_default);
 	auto scene = a_stage.v_scene.v_scene.v_instance_visual_scene.v_scene;
 	scene->v_instance_nodes.push_back(v_node);
@@ -467,6 +468,7 @@ const t_player::t_state t_player::v_state_default{
 			auto g = [&](auto v, auto& action)
 			{
 				a_player.v_motion = std::make_unique<t_run_motion>(action, v, a_player);
+				a_player.v_ready = nullptr;
 			};
 			f(a_player.v_actions.v_ready, [&](auto v, auto& action)
 			{
@@ -483,6 +485,7 @@ const t_player::t_state t_player::v_state_default{
 			{
 				if (&a_player.v_motion->v_action != &run || d != static_cast<t_run_motion&>(*a_player.v_motion).v_toward) a_player.v_motion = std::make_unique<t_run_motion>(run, d, a_player);
 				if (a_player.v_motion->v_time >= run.v_end) a_player.v_motion->f_rewind();
+				a_player.v_ready = &action;
 				action.f_rewind();
 				a_player.v_placement->v_position = a_player.v_placement->v_position + d;
 			};
@@ -511,6 +514,7 @@ const t_player::t_state t_player::v_state_default{
 	},
 	[](t_player& a_player, t_swing t_shots::* a_shot)
 	{
+		a_player.v_ready = nullptr;
 		a_player.v_placement->v_toward = a_player.f_shot_direction();
 		a_player.v_placement->v_valid = false;
 		auto& actions = a_player.v_actions.v_swing;
@@ -555,6 +559,7 @@ const t_player::t_state t_player::v_state_serve_set{
 	[](t_player& a_player)
 	{
 		a_player.v_motion = std::make_unique<t_motion>(a_player.v_actions.v_serve.v_set);
+		a_player.v_ready = nullptr;
 	},
 	[](t_player& a_player)
 	{

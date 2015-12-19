@@ -56,7 +56,7 @@ struct t_stage : t_screen
 	std::unique_ptr<t_player> v_player0;
 	std::unique_ptr<t_player> v_player1;
 	const t_state* v_state;
-	float v_duration;
+	size_t v_duration;
 	t_state v_state_ready;
 	t_state v_state_play;
 	t_matrix4f v_text_viewing = static_cast<t_matrix4f>(t_scale3f(0.25f, 0.25f, 1.0f));
@@ -89,6 +89,7 @@ struct t_stage : t_screen
 		v_mark->f_mark(*v_ball);
 		v_ball->f_serving() ? f_serve_miss() : f_miss(L"OUT");
 	}
+	void f_set_cameras();
 	virtual void f_step_things();
 	virtual void f_next() = 0;
 	virtual void f_back() = 0;

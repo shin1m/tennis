@@ -7,12 +7,8 @@ void t_stage::f_ball_in()
 	v_mark->f_mark(*v_ball);
 }
 
-void t_stage::f_step_things()
+void t_stage::f_set_cameras()
 {
-	v_ball->f_step();
-	v_mark->f_step();
-	v_player0->f_step();
-	v_player1->f_step();
 	auto target = v_ball->v_position * 0.25f;
 	if (v_fixed) {
 		v_camera0.v_position.v_x = target.v_x;
@@ -25,6 +21,15 @@ void t_stage::f_step_things()
 		v_camera1.v_position.v_x = target.v_x + v_player1->f_root_position().v_x * 0.5f;
 		v_camera1.v_position.v_z = 48.0f * v_player1->v_end + target.v_z;
 	}
+}
+
+void t_stage::f_step_things()
+{
+	v_ball->f_step();
+	v_mark->f_step();
+	v_player0->f_step();
+	v_player1->f_step();
+	f_set_cameras();
 }
 
 t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<void (t_stage::t_state&, t_player&)>& a_controller0, const std::wstring& a_player0, const std::function<void (t_stage::t_state&, t_player&)>& a_controller1, const std::wstring& a_player1) : t_screen(a_main), v_dual(a_dual), v_fixed(a_fixed)
@@ -45,8 +50,8 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	v_player1->v_opponent = v_player0.get();
 	v_state_ready.v_step = [](t_stage& a_stage)
 	{
-		if (a_stage.v_duration > 0.0f)
-			a_stage.v_duration -= 1.0f;
+		if (a_stage.v_duration > 0)
+			--a_stage.v_duration;
 		else
 			a_stage.f_transit_play();
 	};
@@ -85,8 +90,8 @@ t_stage::t_stage(t_main& a_main, bool a_dual, bool a_fixed, const std::function<
 	{
 		a_stage.f_step_things();
 		if (!a_stage.v_ball->v_done) return;
-		if (a_stage.v_duration > 0.0f)
-			a_stage.v_duration -= 1.0f;
+		if (a_stage.v_duration > 0)
+			--a_stage.v_duration;
 		else
 			a_stage.f_next();
 	};

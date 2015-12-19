@@ -209,7 +209,7 @@ void t_match::f_ball_ace()
 {
 	v_second = false;
 	f_point(*v_ball->v_hitter);
-	v_duration = 2.0f * 64.0f;
+	f_transit_replay();
 	v_sound_ace.f_play();
 
 }
@@ -217,7 +217,7 @@ void t_match::f_ball_let()
 {
 	v_mark->f_mark(*v_ball);
 	v_message = std::vector<std::wstring>{L"LET"};
-	v_duration = 2.0f * 64.0f;
+	v_duration = 2 * 64;
 }
 
 void t_match::f_serve_miss()
@@ -230,7 +230,7 @@ void t_match::f_serve_miss()
 		v_message = std::vector<std::wstring>{L"FAULT"};
 		v_second = true;
 	}
-	v_duration = 2.0f * 64.0f;
+	v_duration = 2 * 64;
 	v_sound_miss.f_play();
 }
 
@@ -244,7 +244,7 @@ void t_match::f_miss(const std::wstring& a_message)
 	v_message = std::vector<std::wstring>{a_message};
 	v_second = false;
 	f_point(*v_ball->v_hitter->v_opponent);
-	v_duration = 2.0f * 64.0f;
+	v_duration = 2 * 64;
 	v_sound_miss.f_play();
 }
 
@@ -253,6 +253,7 @@ std::wstring t_match::v_points1[] = {L"0 ", L"15", L"30", L"40"};
 
 void t_match::f_transit_ready()
 {
+	f_reset();
 	v_state = &v_state_ready;
 	std::wstring game;
 	if (v_player0->v_point + v_player1->v_point < 6)
@@ -267,7 +268,7 @@ void t_match::f_transit_ready()
 		L"P1 " + std::to_wstring(v_player0->v_game) + L" - " + std::to_wstring(v_player1->v_game) + L" P2",
 		(v_player0.get() == v_server ? L"* " : L"  ") + game + (v_player1.get() == v_server ? L" *" : L"  ")
 	};
-	v_duration = 1.0f * 64.0f;
+	v_duration = 64;
 	f_step_things();
 }
 
@@ -278,7 +279,7 @@ const t_stage::t_state t_match::v_state_close{
 	},
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
-		t_match& stage = static_cast<t_match&>(a_stage);
+		auto& stage = static_cast<t_match&>(a_stage);
 		switch (a_key) {
 		case SDLK_RETURN:
 			stage.f_new_set();
@@ -300,7 +301,7 @@ const t_stage::t_state t_match::v_state_close{
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
 		if (a_event.y > 0.25f) return;
-		t_match& stage = static_cast<t_match&>(a_stage);
+		auto& stage = static_cast<t_match&>(a_stage);
 		if (a_event.x < 0.5f)
 			a_stage.f_back();
 		else
@@ -313,6 +314,10 @@ const t_stage::t_state t_match::v_state_close{
 
 void t_match::f_transit_close()
 {
+	v_player0->f_reset();
+	v_player1->f_reset();
+	f_reset_cameras();
+	f_set_cameras();
 	v_state = &v_state_close;
 	v_message = std::vector<std::wstring>{
 		std::wstring(v_player0->v_game > v_player1->v_game ? L"P1" : L"P2") + L" WON!",
@@ -321,6 +326,79 @@ void t_match::f_transit_close()
 		L"TO PLAY AGAIN"
 	};
 	v_sound_ace.f_play();
+}
+
+const t_stage::t_state t_match::v_state_replay{
+	[](t_stage& a_stage)
+	{
+		if (a_stage.v_duration <= 0) {
+			a_stage.f_next();
+			return;
+		}
+		if (--a_stage.v_duration % 2 == 0) return;
+		auto& stage = static_cast<t_match&>(a_stage);
+		auto record = stage.v_records.front();
+		stage.v_records.pop_front();
+		auto& ball = *stage.v_ball;
+		ball.f_replay(record.v_ball);
+		stage.v_mark->f_replay(record.v_mark);
+		stage.v_player0->f_replay(record.v_player0);
+		stage.v_player1->f_replay(record.v_player1);
+		stage.v_records.push_back(record);
+		stage.v_camera0.v_position = t_vector3f((ball.v_position.v_x + ball.v_hitter->f_root_position().v_x) * 0.5f, 4.0f, (ball.v_position.v_z + 40.0f * ball.v_hitter->v_opponent->v_end) * 0.5f);
+		stage.v_camera0.v_toward = t_vector3f(0.0f, -6.0f, -40.0f * ball.v_hitter->v_opponent->v_end);
+		stage.v_camera1.v_position = t_vector3f((ball.v_position.v_x + ball.v_hitter->v_opponent->f_root_position().v_x) * 0.5f, 4.0f, (ball.v_position.v_z + 40.0f * ball.v_hitter->v_end) * 0.5f);
+		stage.v_camera1.v_toward = t_vector3f(0.0f, -6.0f, -40.0f * ball.v_hitter->v_end);
+	},
+	[](t_stage& a_stage, SDL_Keycode a_key)
+	{
+		switch (a_key) {
+		case SDLK_RETURN:
+			a_stage.f_next();
+			break;
+		case SDLK_ESCAPE:
+			a_stage.f_back();
+			break;
+		}
+	},
+	[](t_stage& a_stage, SDL_Keycode a_key)
+	{
+	},
+	[](t_stage& a_stage)
+	{
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
+	{
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
+	{
+		if (a_event.y > 0.25f) return;
+		if (a_event.x < 0.5f)
+			a_stage.f_back();
+		else
+			a_stage.f_next();
+	},
+	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
+	{
+	}
+};
+
+void t_match::f_transit_replay()
+{
+	v_state = &v_state_replay;
+	v_duration = v_records.size() * 2;
+}
+
+void t_match::f_step_things()
+{
+	t_stage::f_step_things();
+	auto record = v_records.front();
+	v_records.pop_front();
+	v_ball->f_record(record.v_ball);
+	v_mark->f_record(record.v_mark);
+	v_player0->f_record(record.v_player0);
+	v_player1->f_record(record.v_player1);
+	v_records.push_back(record);
 }
 
 void t_match::f_next()
@@ -333,7 +411,6 @@ void t_match::f_next()
 	} else if (v_closed) {
 		f_transit_close();
 	} else {
-		f_reset();
 		f_transit_ready();
 	}
 }
@@ -349,19 +426,24 @@ void t_match::f_transit_play()
 	v_message.clear();
 }
 
-void t_match::f_reset()
+void t_match::f_reset_cameras()
 {
-	v_side = (v_player0->v_point + v_player1->v_point) % 2 == 0 ? 1.0f : -1.0f;
-	v_ball->f_reset(v_side, 2 * 12 * 0.0254f * v_end * v_side, 0.875f, 39 * 12 * 0.0254f * v_end);
-	v_mark->v_duration = 0.0f;
-	v_server->f_reset(v_end, t_player::v_state_serve_set);
-	v_receiver->v_placement->v_position = t_vector3f(-9 * 12 * 0.0254f * v_end * v_side, 0.0f, -39 * 12 * 0.0254f * v_end);
-	v_receiver->v_placement->v_valid = false;
-	v_receiver->f_reset(-v_end, t_player::v_state_default);
 	v_camera0.v_position = t_vector3f(0.0f, 14.0f, 0.0f);
 	v_camera0.v_toward = t_vector3f(0.0f, -12.0f, -40.0f * (v_fixed ? 1.0f : v_player0->v_end));
 	v_camera1.v_position = t_vector3f(0.0f, 14.0f, 0.0f);
 	v_camera1.v_toward = t_vector3f(0.0f, -12.0f, -40.0f * (v_fixed ? -1.0f : v_player1->v_end));
+}
+
+void t_match::f_reset()
+{
+	v_side = (v_player0->v_point + v_player1->v_point) % 2 == 0 ? 1.0f : -1.0f;
+	v_ball->f_reset(v_side, 2 * 12 * 0.0254f * v_end * v_side, 0.875f, 39 * 12 * 0.0254f * v_end);
+	v_mark->v_duration = 0;
+	v_server->f_reset(v_end, t_player::v_state_serve_set);
+	v_receiver->v_placement->v_position = t_vector3f(-9 * 12 * 0.0254f * v_end * v_side, 0.0f, -39 * 12 * 0.0254f * v_end);
+	v_receiver->v_placement->v_valid = false;
+	v_receiver->f_reset(-v_end, t_player::v_state_default);
+	f_reset_cameras();
 }
 
 void t_match::f_new_set()
@@ -369,7 +451,6 @@ void t_match::f_new_set()
 	v_closed = false;
 	v_player0->v_game = v_player1->v_game = 0;
 	f_new_game();
-	f_reset();
 	f_transit_ready();
 }
 
@@ -385,7 +466,7 @@ const std::vector<std::wstring> t_training::v_toss_message{
 
 void t_training::f_ball_ace()
 {
-	v_duration = 0.5f * 64.0f;
+	v_duration = 32;
 }
 
 void t_training::f_ball_let()
@@ -393,14 +474,14 @@ void t_training::f_ball_let()
 	v_mark->f_mark(*v_ball);
 	v_text_viewing = t_scale3f(0.25f, 0.25f, 1.0f);
 	v_message = std::vector<std::wstring>{L"LET"};
-	v_duration = 0.5f * 64.0f;
+	v_duration = 32;
 }
 
 void t_training::f_serve_miss()
 {
 	v_text_viewing = t_scale3f(0.25f, 0.25f, 1.0f);
 	v_message = std::vector<std::wstring>{L"FAULT"};
-	v_duration = 0.5f * 64.0f;
+	v_duration = 32;
 	v_sound_miss.f_play();
 }
 
@@ -413,7 +494,7 @@ void t_training::f_miss(const std::wstring& a_message)
 {
 	v_text_viewing = t_scale3f(0.25f, 0.25f, 1.0f);
 	v_message = std::vector<std::wstring>{a_message};
-	v_duration = 0.5f * 64.0f;
+	v_duration = 32;
 	v_sound_miss.f_play();
 }
 
@@ -476,7 +557,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 		}, [this]
 		{
 			v_ball->f_reset(v_side, 2 * 12 * 0.0254f * v_side, 0.875f, 39 * 12 * 0.0254f);
-			v_mark->v_duration = 0.0f;
+			v_mark->v_duration = 0;
 			v_player0->f_reset(1.0f, t_player::v_state_serve_set);
 			v_player1->v_placement->v_position = t_vector3f(-9 * 12 * 0.0254f * v_side, 0.0f, -39 * 12 * 0.0254f);
 			v_player1->v_placement->v_valid = false;
@@ -494,7 +575,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 				L"    SPIN * FLAT    ",
 				L"       SLICE       "
 			};
-			v_duration = 0.0f * 64.0f;
+			v_duration = 0;
 		}, [] {}},
 		t_item{L" STROKE", [this]
 		{
@@ -504,7 +585,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_reset(3 * 12 * 0.0254f * v_side, 1.0f, -39 * 12 * 0.0254f, t_vector3f((0.0f - 3.2f * v_side) * 12 * 0.0254f, 0.0f, 39 * 12 * 0.0254f), v_player1->v_actions.v_swing.v_toss);
 			v_text_viewing = t_matrix4f(1.0f) * t_translate3f(0.0f, -0.5f, 0.0f) * t_scale3f(1.5f / 16.0f, 1.5f / 16.0f, 1.0f);
 			v_message = v_toss_message;
-			v_duration = 0.5f * 64.0f;
+			v_duration = 32;
 		}, [this]
 		{
 			f_toss(v_player1->v_actions.v_swing.v_toss);
@@ -517,7 +598,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_reset(3 * 12 * 0.0254f * v_side, 1.0f, -39 * 12 * 0.0254f, t_vector3f((0.1f - 2.0f * v_side) * 12 * 0.0254f, 0.0f, 13 * 12 * 0.0254f), v_player1->v_actions.v_swing.v_toss);
 			v_text_viewing = t_matrix4f(1.0f) * t_translate3f(0.0f, -0.5f, 0.0f) * t_scale3f(1.5f / 16.0f, 1.5f / 16.0f, 1.0f);
 			v_message = v_toss_message;
-			v_duration = 0.5f * 64.0f;
+			v_duration = 32;
 		}, [this]
 		{
 			f_toss(v_player1->v_actions.v_swing.v_toss);
@@ -530,7 +611,7 @@ t_training::t_training(t_main& a_main, const std::function<void (t_stage::t_stat
 			f_reset(3 * 12 * 0.0254f * v_side, 1.0f, -39 * 12 * 0.0254f, t_vector3f((0.4f - 0.4f * v_side) * 12 * 0.0254f, 0.0f, 9 * 12 * 0.0254f), v_player1->v_actions.v_swing.v_toss_lob);
 			v_text_viewing = t_matrix4f(1.0f) * t_translate3f(0.0f, -0.5f, 0.0f) * t_scale3f(1.5f / 16.0f, 1.5f / 16.0f, 1.0f);
 			v_message = v_toss_message;
-			v_duration = 0.5f * 64.0f;
+			v_duration = 32;
 		}, [this]
 		{
 			f_toss(v_player1->v_actions.v_swing.v_toss_lob);
@@ -547,7 +628,7 @@ void t_training::f_next()
 void t_training::f_reset(float a_x, float a_y, float a_z, const t_vector3f& a_position, const t_player::t_swing& a_shot)
 {
 	v_ball->f_reset(v_side, a_x, a_y, a_z, false);
-	v_mark->v_duration = 0.0f;
+	v_mark->v_duration = 0;
 	v_player0->v_placement->v_position = a_position;
 	v_player0->v_placement->v_valid = false;
 	v_player0->f_reset(1.0f, t_player::v_state_default);
@@ -577,7 +658,7 @@ const t_stage::t_state t_training::v_state_select{
 	[](t_stage& a_stage) {},
 	[](t_stage& a_stage, SDL_Keycode a_key)
 	{
-		t_training& stage = static_cast<t_training&>(a_stage);
+		auto& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_key_press(a_key);
 	},
 	[](t_stage& a_stage, SDL_Keycode a_key)
@@ -585,22 +666,22 @@ const t_stage::t_state t_training::v_state_select{
 	},
 	[](t_stage& a_stage)
 	{
-		t_training& stage = static_cast<t_training&>(a_stage);
+		auto& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_render(stage.f_transform());
 	},
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
-		t_training& stage = static_cast<t_training&>(a_stage);
+		auto& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_finger_down(stage.f_transform(), a_event);
 	},
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
-		t_training& stage = static_cast<t_training&>(a_stage);
+		auto& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_finger_up(stage.f_transform(), a_event);
 	},
 	[](t_stage& a_stage, const SDL_TouchFingerEvent& a_event)
 	{
-		t_training& stage = static_cast<t_training&>(a_stage);
+		auto& stage = static_cast<t_training&>(a_stage);
 		stage.v_menu.f_finger_motion(stage.f_transform(), a_event);
 	}
 };
@@ -616,7 +697,7 @@ void t_training::f_transit_select()
 	v_state = &v_state_select;
 	v_side = 1.0f;
 	v_ball->f_reset(v_side, 2 * 12 * 0.0254f, t_ball::c_radius + 0.01f, 2 * 12 * 0.0254f);
-	v_mark->v_duration = 0.0f;
+	v_mark->v_duration = 0;
 	v_player0->v_placement->v_position = t_vector3f((0.1f - 2.0f * v_side) * 12 * 0.0254f, 0.0f, 13 * 12 * 0.0254f);
 	v_player0->v_placement->v_valid = false;
 	v_player0->f_reset(1.0f, t_player::v_state_default);
@@ -625,7 +706,7 @@ void t_training::f_transit_select()
 	v_player1->f_reset(-1.0f, t_player::v_state_default);
 	f_step_things();
 	v_message.clear();
-	v_duration = 0.0f * 64.0f;
+	v_duration = 0;
 }
 
 void t_training::f_transit_ready()

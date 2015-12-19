@@ -29,22 +29,18 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			v_shot = &t_player::t_shots::v_flat;
 		}
 	};
-	auto f_reset_move = [&a_player]
-	{
-		a_player.v_left = a_player.v_right = a_player.v_forward = a_player.v_backward = false;
-	};
-	a_state.v_step = [state = t_state(), f_reset_move, step = std::move(a_state.v_step), &a_player](t_stage& a_stage) mutable
+	a_state.v_step = [state = t_state(), step = std::move(a_state.v_step), &a_player](t_stage& a_stage) mutable
 	{
 		auto& stage = dynamic_cast<t_match&>(a_stage);
 		auto& ball = *stage.v_ball;
 		if (ball.v_done) {
-			f_reset_move();
+			a_player.f_reset();
 			state.f_reset_decision();
 			state.v_net = false;
 		} else if (ball.v_hitter == nullptr) {
 			if (&a_player == stage.v_server) {
 				if (a_player.v_state == &t_player::v_state_serve_set) {
-					f_reset_move();
+					a_player.f_reset();
 					if (state.v_duration <= 0.0f) {
 						a_player.f_do(&t_player::t_shots::v_flat);
 						state.v_duration = 1.0f * 64.0f;
@@ -81,14 +77,14 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 					}
 				}
 			} else {
-				f_reset_move();
+				a_player.f_reset();
 			}
 		} else if (ball.v_hitter->v_end == a_player.v_end) {
 			if (!state.v_decided0) {
 				state.v_decided0 = true;
 				if (!state.v_net) state.v_net = f_random() % 10 > 6;
 			}
-			f_reset_move();
+			a_player.f_reset();
 			t_vector3f point(ball.v_position.v_x, 0.0f, ball.v_position.v_z);
 			t_vector3f side0(-(13 * 12 + 6) * 0.0254f, 0.0f, 21 * 12 * 0.0254f * a_player.v_end);
 			t_vector3f side1((13 * 12 + 6) * 0.0254f, 0.0f, 21 * 12 * 0.0254f * a_player.v_end);
@@ -189,7 +185,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			if (t1 >= 0.0f && t1 < tt) tt = t1;
 			if (tt < -1.0f) {
 			} else if ((ball.v_in || bound_position.v_x > -(13 * 12 + 6) * 0.0254f - 0.125f && bound_position.v_x < (13 * 12 + 6) * 0.0254f + 0.125f && bound_position.v_z * a_player.v_end < 39 * 12 * 0.0254f + 0.5f) && tt < (swing->v_impact - swing->v_start) * 60.0f + 1.0f) {
-				f_reset_move();
+				a_player.f_reset();
 				a_player.v_left = state.v_left;
 				a_player.v_right = state.v_right;
 				a_player.v_forward = state.v_forward;
@@ -198,7 +194,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 				state.f_reset_decision();
 				state.v_net = a_player.v_placement->v_position.v_z * a_player.v_end < 26 * 12 * 0.0254f;
 			} else {
-				f_reset_move();
+				a_player.f_reset();
 				point = t_vector3f(position.v_x + velocity.v_x * t, 0.0f, position.v_z + velocity.v_z * t);
 				v = f_shot_direction(point, a_player.v_end, state.v_left, state.v_right, state.v_forward, state.v_backward).f_normalized();
 				auto target = point + t_vector3f(-v.v_z, 0.0f, v.v_x) * ix - v * iz;

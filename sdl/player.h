@@ -99,6 +99,14 @@ struct t_player
 		std::function<void (t_player&)> v_step;
 		std::function<void (t_player&, t_swing t_shots::*)> v_do;
 	};
+	struct t_record
+	{
+		t_placement v_placement;
+		t_matrix4f v_root;
+		t_action* v_action = nullptr;
+		float v_time = 0.0f;
+		t_action* v_ready = nullptr;
+	};
 
 	static const std::set<std::wstring> v_lowers;
 
@@ -157,6 +165,7 @@ struct t_player
 	float v_lefty;
 	float v_smash_hand;
 	std::unique_ptr<t_motion> v_motion;
+	t_action* v_ready = nullptr;
 	bool v_left;
 	bool v_right;
 	bool v_forward;
@@ -173,9 +182,13 @@ struct t_player
 		v_state = &a_state;
 		v_state->v_enter(*this);
 	}
-	void f_reset(float a_end, const t_state& a_state)
+	void f_reset()
 	{
 		v_left = v_right = v_forward = v_backward = false;
+	}
+	void f_reset(float a_end, const t_state& a_state)
+	{
+		f_reset();
 		v_end = a_end;
 		f_transit(a_state);
 	}
@@ -238,6 +251,22 @@ struct t_player
 	float f_smash_height() const
 	{
 		return v_actions.v_swing.v_forehand.v_smash.v_spot[3][1] - 0.25f;
+	}
+	void f_record(t_record& a_to) const
+	{
+		a_to.v_placement = *v_placement;
+		a_to.v_root = static_cast<const t_matrix_transform&>(*v_root->v_transforms[1]);
+		a_to.v_action = &v_motion->v_action;
+		a_to.v_time = v_motion->v_time;
+		a_to.v_ready = v_ready;
+	}
+	void f_replay(const t_record& a_from)
+	{
+		*v_placement = a_from.v_placement;
+		static_cast<t_matrix_transform&>(*v_root->v_transforms[1]) = a_from.v_root;
+		if (a_from.v_ready) a_from.v_ready->f_rewind();
+		a_from.v_action->f_rewind();
+		a_from.v_action->f_forward(a_from.v_time);
 	}
 	static const t_state v_state_default;
 	static const t_state v_state_serve_set;
