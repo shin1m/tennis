@@ -310,9 +310,7 @@ $Player = Class() :: @
 		record = Object(
 		record.placement = Placement(
 		record.root = Matrix4(
-		record.action = null
-		record.time = null
-		record.ready = null
+		$record(record
 		record
 	$record = @(to)
 		$placement.copy(to.placement

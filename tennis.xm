@@ -24,8 +24,6 @@ print_time = false
 Matrix4 = glmatrix.Matrix4
 Vector3 = glmatrix.Vector3
 Posture = placement.Posture
-Ball = ball.Ball
-Mark = ball.Mark
 Player = player.Player
 
 Container = Class() :: @
@@ -247,10 +245,10 @@ Match = Class(stage.Stage) :: @
 		$records = [
 		for i = 0; i < 150; i = i + 1
 			record = Object(
-			record.ball = Ball.create_record(
-			record.mark = Mark.create_record(
-			record.player0 = Player.create_record(
-			record.player1 = Player.create_record(
+			record.ball = $ball.create_record(
+			record.mark = $mark.create_record(
+			record.player0 = $player0.create_record(
+			record.player1 = $player1.create_record(
 			$records.push(record
 		$new_set(
 	$new_set = @

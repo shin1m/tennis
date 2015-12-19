@@ -261,9 +261,7 @@ $Ball = Class() :: @
 	$projected_time_for_y = @(y, sign) projected_time_for_y($position.y, $velocity.y, y, sign
 	$create_record = @
 		record = Object(
-		record.position = null
-		record.velocity = null
-		record.spin = null
+		$record(record
 		record
 	$record = @(to)
 		to.position = +$position
@@ -304,9 +302,8 @@ $Mark = Class() :: @
 		$stretch = 1.0 + $placement.toward.length() * 8.0
 	$create_record = @
 		record = Object(
-		record.duration = null
-		record.stretch = null
 		record.placement = Placement(
+		$record(record
 		record
 	$record = @(to)
 		to.duration = $duration
