@@ -230,26 +230,28 @@ class Player
         @actions.serve.set.play()
         @lefty = if @root.position.x < 0.0 then -1.0 else 1.0
         @smash_hand = -0.25 * @lefty
-        @motion = null
+        @motion = new RunMotion @actions.ready.default, new THREE.Vector3(0.0, 0.0, 1.0), @
+        @ready = null
         @blend_last = null
         @blend_duration = 0.0
         @blend_current = 0.0
+        @suspended = null
         @reset 1.0, @state_default
         next()
   set_motion: (motion, blend = 0.0) ->
     @blend_last?.stop()
-    @blend_last = @motion?.action.animation
+    @blend_last = @motion.action.animation
     @blend_duration = blend
     @blend_current = blend
     @motion = motion
-    @motion?.play()
+    @motion.play()
   transit: (state) ->
     @state = state
     @state.enter.call @
   reset: (end, state) ->
     @left = @right = @forward = @backward = false
-    @end = end
-    @transit state
+    @end = end if end
+    @transit state if state
   setup: ->
   root_position: ->
     @node.updateMatrixWorld false
@@ -268,15 +270,16 @@ class Player
     z = p.z - swing.spot.elements[14]
     if swing.spot.elements[8] < 0.0 then new THREE.Vector3(-x, y, -z) else new THREE.Vector3(x, y, z)
   step: ->
+    return if @suspended
     @state.step.call @
     if @blend_current > 0.0
       @blend_last?.weight = @blend_current / @blend_duration
-      @motion?.action.animation.weight = (@blend_duration - @blend_current) / @blend_duration
+      @motion.action.animation.weight = (@blend_duration - @blend_current) / @blend_duration
       @blend_current -= 1.0 / 64.0
     else
       @blend_last?.stop()
       @blend_last = null
-    @motion?.step?()
+    @motion.step?()
     position = @node.position
     if position.x < -30 * 12 * 0.0254
       position.x = -30 * 12 * 0.0254
@@ -293,6 +296,42 @@ class Player
     else
       shot_direction @ball.position, @end, @left, @right, @forward, @backward
   smash_height: -> @actions.swing.forehand.smash.spot.elements[13] - 0.25
+  create_record: ->
+    record = {}
+    @record record
+    record
+  record_animation = (animation) ->
+    animation: animation
+    time: animation?.currentTime
+    weight: animation?.weight
+  record: (to) ->
+    to.position = @node.position.clone()
+    to.quaternion = @node.quaternion.clone()
+    to.root = @root.matrix.clone()
+    to.animations = [record_animation @motion.action.animation]
+    to.animations.push record_animation(@blend_last) if @blend_last
+    to.animations.push record_animation(@ready.animation) if @ready
+  replay: (from) ->
+    for x in from.animations
+      x.animation.weight = x.weight
+      x.animation.play x.time
+      x.animation.resetBlendWeights()
+    x.animation.update 0.0 for x in from.animations
+    x.animation.stop() for x in from.animations
+    @node.position.copy from.position
+    @node.quaternion.copy from.quaternion
+    @root.matrix.copy from.root
+    @root.applyMatrix new THREE.Matrix4
+  suspend: ->
+    @suspended =
+      action: @motion.action.animation.currentTime
+      blend: @blend_last?.currentTime
+    @blend_last?.stop()
+    @motion.action.animation.stop()
+  resume: ->
+    @blend_last?.play @suspended.blend
+    @motion.action.animation.play @suspended.action
+    @suspended = null
   state_default: State ->
     v = @ball.position.clone().setY(0.0)
     @node.lookAt v
@@ -339,12 +378,15 @@ class Player
         run = hand.lowers[(if @left then 1 else if @right then 2 else 0) + (if @forward then 4 else if @backward then 8 else 0)]
     if actions == @actions.ready
       @set_motion new RunMotion(action, v, @), 4.0 / 64.0
+      @ready = null
     else
       @set_motion new RunMotion(run, d, @), 4.0 / 64.0 if @motion.action != run || !d.equals(@motion.toward)
       @motion.play() unless @motion.playing()
+      @ready = action
       action.play()
       @node.position.add(d)
   , (shot) ->
+    @ready = null
     @node.lookAt @shot_direction().add(@node.position)
     @node.updateMatrixWorld false
     actions = @actions.swing
@@ -378,6 +420,7 @@ class Player
     @transit @state_swing
   state_serve_set: State ->
     @set_motion new Motion @actions.serve.set
+    @ready = null
   , ->
     speed = 2.0 / 64.0
     @ball.position.x = @ball.position.x - speed * @end if @left

@@ -19,11 +19,7 @@ class Stage
   ball_out: ->
     @mark.mark @ball
     if @ball.serving() then @serve_miss() else @miss('OUT')
-  step_things: ->
-    @ball.step()
-    @mark.step()
-    @player0.step()
-    @player1.step()
+  set_cameras: ->
     tx = @ball.position.x * 0.25
     tz = @ball.position.z * 0.25
     if @fixed
@@ -36,6 +32,12 @@ class Stage
       @camera0.position.z = 48.0 * @player0.end + tz
       @camera1.position.x = tx + @player1.root_position().x * 0.5
       @camera1.position.z = 48.0 * @player1.end + tz
+  step_things: ->
+    @ball.step()
+    @mark.step()
+    @player0.step()
+    @player1.step()
+    @set_cameras()
   load_sound: (url, field, next) ->
     @audio.load url, (source) =>
       @[field] = source
@@ -77,8 +79,8 @@ class Stage
             @player1.opponent = @player0
             @scene.add @ball.node, @mark.node, @player0.node, @player1.node
             @state_ready = State(->
-              return @transit_play() if @duration <= 0.0
-              @duration -= 1.0
+              return @transit_play() if @duration <= 0
+              --@duration
             ,
               13: -> @transit_play()
               27: -> @back()
@@ -86,8 +88,8 @@ class Stage
             @state_play = State(->
               @step_things()
               return unless @ball.done
-              return @next() if @duration <= 0.0
-              @duration -= 1.0
+              return @next() if @duration <= 0
+              --@duration
             ,
               13: -> @next()
               27: -> @back()

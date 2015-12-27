@@ -20,12 +20,12 @@ class Match extends Stage
   ball_ace: ->
     @second = false
     @point @ball.hitter
-    @duration = 2.0 * 64.0
+    @transit_replay()
     @sound_ace.play()
   ball_let: ->
     @mark.mark @ball
     @set_message ['LET']
-    @duration = 2.0 * 64.0
+    @duration = 2 * 64
   serve_miss: ->
     if @second
       @set_message ['DOUBLE FAULT']
@@ -34,18 +34,19 @@ class Match extends Stage
     else
       @set_message ['FAULT']
       @second = true
-    @duration = 2.0 * 64.0
+    @duration = 2 * 64
     @sound_miss.play()
   ball_serve_air: -> @serve_miss()
   miss: (message) ->
     @set_message [message]
     @second = false
     @point @ball.hitter.opponent
-    @duration = 2.0 * 64.0
+    @duration = 2 * 64
     @sound_miss.play()
   points0 = [' 0', '15', '30', '40']
   points1 = ['0 ', '15', '30', '40']
   transit_ready: ->
+    @reset()
     @state = @state_ready
     if @player0.point + @player1.point < 6
       game = points0[@player0.point] + ' - ' + points1[@player1.point]
@@ -59,7 +60,7 @@ class Match extends Stage
       'P1 ' + @player0.game + ' - ' + @player1.game + ' P2'
       (if @player0 == @server then '* ' else '  ') + game + (if @player1 == @server then ' *' else '  ')
     ]
-    @duration = 1.0 * 64.0
+    @duration = 64
     @step_things()
   state_close = Stage::State ->
     @step_things()
@@ -68,6 +69,10 @@ class Match extends Stage
     27: -> @back()
   , {}
   transit_close: ->
+    @player0.reset()
+    @player1.reset()
+    @reset_cameras()
+    @set_cameras()
     @state = state_close
     @set_message [
       (if @player0.game > @player1.game then 'P1' else 'P2') + ' WON!'
@@ -79,17 +84,56 @@ class Match extends Stage
   transit_play: ->
     @state = @state_play
     @set_message []
-  reset: ->
-    @side = if (@player0.point + @player1.point) % 2 == 0 then 1.0 else -1.0
-    @ball.reset @side, 2 * 12 * 0.0254 * @end * @side, 0.875, 39 * 12 * 0.0254 * @end
-    @mark.duration = 0.0
-    @server.reset @end, Player::state_serve_set
-    @receiver.node.position.set -9 * 12 * 0.0254 * @end * @side, 0.0, -39 * 12 * 0.0254 * @end
-    @receiver.reset -@end, Player::state_default
+  state_replay = Stage::State ->
+    if @duration <= 0
+      @player0.resume()
+      @player1.resume()
+      return @next()
+    --@duration
+    return if @duration % 2 == 0
+    record = @records.shift()
+    @ball.replay record.ball
+    @mark.replay record.mark
+    @player0.replay record.player0
+    @player1.replay record.player1
+    @records.push record
+    @camera0.position.set (@ball.position.x + @ball.hitter.root_position().x) * 0.5, 4.0, (@ball.position.z + 40.0 * @ball.hitter.opponent.end) * 0.5
+    @camera0.lookAt new THREE.Vector3(0.0, -6.0, -40.0 * @ball.hitter.opponent.end).add(@camera0.position)
+    @camera1.position.set (@ball.position.x + @ball.hitter.opponent.root_position().x) * 0.5, 4.0, (@ball.position.z + 40.0 * @ball.hitter.opponent.end) * 0.5
+    @camera1.lookAt new THREE.Vector3(0.0, -6.0, -40.0 * @ball.hitter.opponent.end).add(@camera1.position)
+  ,
+    13: ->
+      @player0.resume()
+      @player1.resume()
+      @next()
+    27: -> @back()
+  , {}
+  transit_replay: ->
+    @player0.suspend()
+    @player1.suspend()
+    @state = state_replay
+    @duration = @records.length * 2
+  reset_cameras: ->
     @camera0.position.set 0.0, 14.0, 0.0
     @camera0.lookAt new THREE.Vector3(0.0, -12.0, -40.0 * (if @fixed then 1.0 else @player0.end)).add(@camera0.position)
     @camera1.position.set 0.0, 14.0, 0.0
     @camera1.lookAt new THREE.Vector3(0.0, -12.0, -40.0 * (if @fixed then -1.0 else @player1.end)).add(@camera1.position)
+  reset: ->
+    @side = if (@player0.point + @player1.point) % 2 == 0 then 1.0 else -1.0
+    @ball.reset @side, 2 * 12 * 0.0254 * @end * @side, 0.875, 39 * 12 * 0.0254 * @end
+    @mark.duration = 0
+    @server.reset @end, Player::state_serve_set
+    @receiver.node.position.set -9 * 12 * 0.0254 * @end * @side, 0.0, -39 * 12 * 0.0254 * @end
+    @receiver.reset -@end, Player::state_default
+    @reset_cameras()
+  step_things: ->
+    super()
+    record = @records.shift()
+    @ball.record record.ball
+    @mark.record record.mark
+    @player0.record record.player0
+    @player1.record record.player1
+    @records.push record
 
   initialize: (controller0, player0, controller1, player1, container, next) ->
     super controller0, player0, controller1, player1, =>
@@ -104,13 +148,17 @@ class Match extends Stage
         else
           @next()
       @container.addEventListener 'click', @onclick
+      @records = for i in [0...150]
+        ball: @ball.create_record()
+        mark: @mark.create_record()
+        player0: @player0.create_record()
+        player1: @player1.create_record()
       @new_set()
       next()
   new_set: ->
     @closed = false
     @player0.game = @player1.game = 0
     @new_game()
-    @reset()
     @transit_ready()
   next: ->
     return unless @ball.done
@@ -121,7 +169,6 @@ class Match extends Stage
     else if @closed
       @transit_close()
     else
-      @reset()
       @transit_ready()
   back: ->
     @container.removeEventListener 'click', @onclick
@@ -134,19 +181,19 @@ class Training extends Stage
     @mark.mark @ball
     return if @ball.hitter != @player0
     @set_message ['IN']
-  ball_ace: -> @duration = 0.5 * 64.0
+  ball_ace: -> @duration = 32
   ball_let: ->
     @mark.mark @ball
     @set_message ['LET']
-    @duration = 0.5 * 64.0
+    @duration = 32
   serve_miss: ->
     @set_message ['FAULT']
-    @duration = 0.5 * 64.0
+    @duration = 32
     @sound_miss.play()
   ball_serve_air: -> @serve_miss()
   miss: (message) ->
     @set_message [message]
-    @duration = 0.5 * 64.0
+    @duration = 32
     @sound_miss.play()
   step_things: ->
     super()
@@ -192,7 +239,7 @@ class Training extends Stage
   next: -> @ball.done && @transit_ready()
   reset: (x, y, z, position, shot) ->
     @ball.reset @side, x, y, z, false
-    @mark.duration = 0.0
+    @mark.duration = 0
     @player0.node.position.copy position
     @player0.reset 1.0, Player::state_default
     @player1.node.position.copy(@ball.position).sub(new THREE.Vector3(0.0, 0.0, 0.0).applyMatrix4(@player1.actions.swing[shot].spot))
@@ -215,7 +262,7 @@ class Training extends Stage
     serve:
       reset: ->
         @ball.reset @side, 2 * 12 * 0.0254 * @side, 0.875, 39 * 12 * 0.0254
-        @mark.duration = 0.0
+        @mark.duration = 0
         @player0.reset 1.0, Player::state_serve_set
         @player1.node.position.set -9 * 12 * 0.0254 * @side, 0.0, -39 * 12 * 0.0254
         @player1.reset -1.0, Player::state_default
@@ -230,25 +277,25 @@ class Training extends Stage
           '     SPIN * FLAT    '
           '        SLICE       '
         ]
-        @duration = 0.0 * 64.0
+        @duration = 0
       play: ->
     stroke:
       reset: ->
         @reset 3 * 12 * 0.0254 * @side, 1.0, -39 * 12 * 0.0254, new THREE.Vector3((0.0 - 3.2 * @side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss'
         @set_instruction toss_message
-        @duration = 0.5 * 64.0
+        @duration = 32
       play: -> @toss 'toss'
     volley:
       reset: ->
         @reset 3 * 12 * 0.0254 * @side, 1.0, -39 * 12 * 0.0254, new THREE.Vector3((0.1 - 2.0 * @side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss'
         @set_instruction toss_message
-        @duration = 0.5 * 64.0
+        @duration = 32
       play: -> @toss 'toss'
     smash:
       reset: ->
         @reset 3 * 12 * 0.0254 * @side, 1.0, -39 * 12 * 0.0254, new THREE.Vector3((0.4 - 0.4 * @side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), 'toss_lob'
         @set_instruction toss_message
-        @duration = 0.5 * 64.0
+        @duration = 32
       play: -> @toss 'toss_lob'
   back: -> @transit_select()
   exit: ->
@@ -263,7 +310,7 @@ class Training extends Stage
     @current = null
     @side = 1.0
     @ball.reset @side, 2 * 12 * 0.0254, @ball.radius + 0.01, 2 * 12 * 0.0254
-    @mark.duration = 0.0
+    @mark.duration = 0
     @player0.node.position.set (0.1 - 2.0 * @side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254
     @player0.reset 1.0, Player::state_default
     @player1.node.position.set (0.1 + 2.0 * @side) * 12 * 0.0254, 0.0, -13 * 12 * 0.0254

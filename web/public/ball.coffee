@@ -192,24 +192,50 @@ class Ball
     spin.z = w1z * d
   bounce: -> @calculate_bounce @velocity, @spin
   projected_time_for_y: (y, sign) -> projected_time_for_y @position.y, @velocity.y, y, sign
+  create_record: ->
+    record = {}
+    @record record
+    record
+  record: (to) ->
+    to.position = @position.clone()
+    to.velocity = @velocity.clone()
+    to.spin = @spin.clone()
+  replay: (from) ->
+    @position.copy from.position
+    @velocity.copy from.velocity
+    @spin.copy from.spin
 exports.Ball = Ball
 
 class Mark
   constructor: ->
-    @duration = 0.0
+    @duration = 0
     @stretch = 1.0
     @node = new THREE.Mesh new THREE.CircleGeometry(radius), new THREE.MeshBasicMaterial({color: 0x000000})
     @node.position.y = 1.0 / 64.0
     node__render = @node.render
   setup: ->
-    @node.visible = @duration > 0.0
+    @node.visible = @duration > 0
     @node.scale.y = @stretch
-  step: -> @duration -= 1.0 if @duration > 0.0
+  step: -> --@duration if @duration > 0
   mark: (ball) ->
-    @duration = 2.0 * 64.0
+    @duration = 2 * 64
     @node.position.x = ball.position.x
     @node.position.z = ball.position.z
     v = @node.up.set(ball.velocity.x, 0.0, ball.velocity.z)
     @stretch = 1.0 + v.length() * 8.0
     @node.lookAt new THREE.Vector3(0.0, 1.0, 0.0).add(@node.position)
+  create_record: ->
+    record = {}
+    @record record
+    record
+  record: (to) ->
+    to.duration = @duration
+    to.stretch = @stretch
+    to.position = @node.position.clone()
+    to.quaternion = @node.quaternion.clone()
+  replay: (from) ->
+    @duration = from.duration
+    @stretch = from.stretch
+    @node.position.copy from.position
+    @node.quaternion.copy from.quaternion
 exports.Mark = Mark

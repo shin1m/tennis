@@ -12,29 +12,28 @@ random = -> Math.round(24.0 * 60.0 * 60.0 * (Date.now() / 1000.0 % 1))
 
 exports.controller = (controller, player) ->
   ball = @ball
-  duration = 1.0 * 64.0
+  duration = 64
   decided0 = decided1 = left = right = forward = backward = false
   shot = 'flat'
   net = false
   reset_decision = ->
     decided0 = decided1 = left = right = forward = backward = false
     shot = 'flat'
-  reset_move = -> player.left = player.right = player.forward = player.backward = false
   super__step = controller.step
   controller.step = =>
     if ball.done
-      reset_move()
+      player.reset()
       reset_decision()
       net = false
     else if ball.hitter == null
       if player == @server
         if player.state == Player::state_serve_set
-          reset_move()
-          if duration <= 0.0
+          player.reset()
+          if duration <= 0
             player.perform 'flat'
-            duration = 1.0 * 64.0
+            duration = 64
           else
-            duration -= 1.0
+            --duration
         else if player.state == Player::state_serve_toss
           if @second
             shot = 'lob'
@@ -61,12 +60,12 @@ exports.controller = (controller, player) ->
               else if i % 8 > (if @second then 5 else 4)
                 player.right = true
       else
-        reset_move()
+        player.reset()
     else if ball.hitter.end == player.end
       unless decided0
         decided0 = true
         net = random() % 10 > 6 unless net
-      reset_move()
+      player.reset()
       point = new THREE.Vector3(ball.position.x, 0.0, ball.position.z)
       side0 = new THREE.Vector3(-(13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end).sub(point).normalize()
       side1 = new THREE.Vector3((13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end).sub(point).normalize()
@@ -153,7 +152,7 @@ exports.controller = (controller, player) ->
       tt = t1 if t1 >= 0.0 && t1 < tt
       if tt < -1.0
       else if (ball.in || bound_position.x > -(13 * 12 + 6) * 0.0254 - 0.125 && bound_position.x < (13 * 12 + 6) * 0.0254 + 0.125 && bound_position.z * player.end < 39 * 12 * 0.0254 + 0.5) && tt < (swing.impact - swing.start) * 60.0 + 1.0
-        reset_move()
+        player.reset()
         player.left = left
         player.right = right
         player.forward = forward
@@ -162,7 +161,7 @@ exports.controller = (controller, player) ->
         reset_decision()
         net = player.node.position.z * player.end < 26 * 12 * 0.0254
       else
-        reset_move()
+        player.reset()
         point = new THREE.Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t)
         v = shot_direction(point, player.end, left, right, forward, backward).normalize()
         target = new THREE.Vector3(-v.z, 0.0, v.x).multiplyScalar(ix).sub(v.multiplyScalar(iz)).add(point)
