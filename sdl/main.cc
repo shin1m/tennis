@@ -1133,7 +1133,7 @@ void f_loop(SDL_Window* a_window, const std::wstring& a_prefix, bool a_show_pad)
 {
 	t_main main(a_prefix, a_show_pad);
 	main.v_screen = std::make_unique<t_main_screen>(main);
-	if (SDL_GL_SetSwapInterval(-1) != 0) SDL_GL_SetSwapInterval(1);
+	SDL_GL_SetSwapInterval(1);
 	int width;
 	int height;
 	SDL_GetWindowSize(a_window, &width, &height);
