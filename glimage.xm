@@ -167,6 +167,9 @@ void main()
 		try
 			context = cairo.Context(image
 			try
+				context.set_operator(cairo.Operator.CLEAR
+				context.paint(
+				context.set_operator(cairo.Operator.OVER
 				context.select_font_face("Monospace", cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD
 				context.set_font_size(48
 				for i = 32; i < 127; i = i + 1
