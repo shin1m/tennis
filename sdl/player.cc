@@ -328,6 +328,23 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 			}
 		}
 	};
+	const std::map<std::wstring, std::function<void(t_volley&)>> swing_volley_elements{
+		{L"middle", [&](t_volley& a_x)
+			{
+				reader.f_parse_elements(shot_swing_elements, a_x.v_middle);
+			}
+		},
+		{L"high", [&](t_volley& a_x)
+			{
+				reader.f_parse_elements(shot_swing_elements, a_x.v_high);
+			}
+		},
+		{L"low", [&](t_volley& a_x)
+			{
+				reader.f_parse_elements(shot_swing_elements, a_x.v_low);
+			}
+		}
+	};
 	const std::map<std::wstring, std::function<void(t_swings&)>> swing_action_elements{
 		{L"stroke", [&](t_swings& a_x)
 			{
@@ -336,7 +353,7 @@ void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstrin
 		},
 		{L"volley", [&](t_swings& a_x)
 			{
-				reader.f_parse_elements(shot_swing_elements, a_x.v_volley);
+				reader.f_parse_elements(swing_volley_elements, a_x.v_volley);
 			}
 		},
 		{L"smash", [&](t_swings& a_x)
@@ -531,19 +548,24 @@ const t_player::t_state t_player::v_state_default{
 				}
 			}
 		}
-		t = a_player.v_ball.v_in ? 0.0f : a_player.v_ball.f_projected_time_for_y(t_ball::c_radius, 1.0f);
 		auto& hand = whichhand > 0.0f ? actions.v_forehand : actions.v_backhand;
 		if (a_player.v_ball.v_done) {
-			a_player.v_motion = std::make_unique<t_motion>((a_player.v_placement->v_position.v_z * a_player.v_end > 21 * 12 * 0.0254f ? hand.v_stroke : hand.v_volley).*a_shot);
+			a_player.v_motion = std::make_unique<t_motion>((a_player.v_placement->v_position.v_z * a_player.v_end > 21 * 12 * 0.0254f ? hand.v_stroke : hand.v_volley.v_middle).*a_shot);
 		} else {
-			auto* shots = &hand.v_volley;
-			auto* swing = &(shots->*a_shot);
-			float impact = (swing->v_impact - swing->v_start) * 60.0f;
-			if (t < impact) {
+			auto* swing = &(hand.v_volley.v_middle.*a_shot);
+			float y = a_player.v_ball.v_in ? -1.0f : a_player.v_ball.f_projected_y_in((swing->v_impact - swing->v_start) * 60.0f);
+			float volley_height = a_player.f_volley_height();
+			t_shots* shots;
+			if (y > volley_height + 0.375f)
+				shots = &hand.v_volley.v_high;
+			else if (y > volley_height - 0.375f)
+				shots = &hand.v_volley.v_middle;
+			else if (y > 0.0f)
+				shots = &hand.v_volley.v_low;
+			else
 				shots = &hand.v_stroke;
-				swing = &(shots->*a_shot);
-				impact = (swing->v_impact - swing->v_start) * 60.0f;
-			}
+			swing = &(shots->*a_shot);
+			float impact = (swing->v_impact - swing->v_start) * 60.0f;
 			auto ball = a_player.f_relative_ball(*swing, a_player.v_ball.v_position + a_player.v_ball.v_velocity * impact);
 			if (ball.v_x < -0.5f || (whichhand > 0.0f ? ball.v_z > 1.0f : ball.v_z < -1.0f)) {
 				a_player.v_motion = std::make_unique<t_motion>(shots->v_reach);

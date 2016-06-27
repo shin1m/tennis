@@ -96,6 +96,10 @@ struct t_ball
 	{
 		return ::f_projected_time_for_y(v_position.v_y, v_velocity.v_y, a_y, a_sign);
 	}
+	float f_projected_y_in(float a_t) const
+	{
+		return v_position.v_y + (v_velocity.v_y - 0.5f * G * a_t) * a_t;
+	}
 	void f_record(t_record& a_to) const
 	{
 		a_to.v_position = v_position;

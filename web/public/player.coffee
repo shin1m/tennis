@@ -169,9 +169,13 @@ class Player
       stroke: read_action e.querySelector('stroke'), is_upper
       volley: read_action e.querySelector('volley'), is_upper
       smash: read_action e.querySelector('smash'), is_upper
+    read_swing_volley = (e) ->
+      middle: read_shot_with_reach e.querySelector('middle')
+      high: read_shot_with_reach e.querySelector('high')
+      low: read_shot_with_reach e.querySelector('low')
     read_swing_actions = (e) ->
       stroke: read_shot_with_reach e.querySelector('stroke')
-      volley: read_shot_with_reach e.querySelector('volley')
+      volley: read_swing_volley e.querySelector('volley')
       smash: read_swing e.querySelector('smash')
     request = new XMLHttpRequest
     request.addEventListener 'load', ->
@@ -295,6 +299,7 @@ class Player
       new THREE.Vector3(0.0, 0.0, -@end)
     else
       shot_direction @ball.position, @end, @left, @right, @forward, @backward
+  volley_height: -> @actions.swing.forehand.volley.middle.flat.spot.elements[13]
   smash_height: -> @actions.swing.forehand.smash.spot.elements[13] - 0.25
   create_record: ->
     record = {}
@@ -400,18 +405,23 @@ class Player
         if Math.abs(ball.x) < 0.5
           @set_motion new Motion swing
           return @transit @state_smash_swing
-    t = if @ball.in then 0.0 else @ball.projected_time_for_y @ball.radius, 1.0
     hand = if whichhand > 0.0 then actions.forehand else actions.backhand
     if @ball.done
-      @set_motion new Motion (if @node.position.z * @end > 21 * 12 * 0.0254 then hand.stroke else hand.volley)[shot]
+      @set_motion new Motion (if @node.position.z * @end > 21 * 12 * 0.0254 then hand.stroke else hand.volley.middle)[shot]
     else
-      shots = hand.volley
+      swing = hand.volley.middle[shot]
+      y = if @ball.in then -1.0 else @ball.projected_y_in((swing.impact - swing.start) * 60.0)
+      volley_height = @volley_height()
+      if y > volley_height + 0.375
+        shots = hand.volley.high
+      else if y > volley_height - 0.375
+        shots = hand.volley.middle
+      else if y > 0.0
+        shots = hand.volley.low
+      else
+        shots = hand.stroke
       swing = shots[shot]
       impact = (swing.impact - swing.start) * 60.0
-      if t < impact
-        shots = hand.stroke
-        swing = shots[shot]
-        impact = (swing.impact - swing.start) * 60.0
       ball = @relative_ball(swing, @ball.velocity.clone().multiplyScalar(impact).add(@ball.position))
       if ball.x < -0.5 || (if whichhand > 0.0 then ball.z > 1.0 else ball.z < -1.0)
         @set_motion new Motion shots.reach

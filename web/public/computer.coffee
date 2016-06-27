@@ -126,7 +126,7 @@ exports.controller = (controller, player) ->
           t = velocity.y / G if t == null
       unless swing
         hand = if whichhand > 0.0 then actions.forehand else actions.backhand
-        swing = (if net && !ball.in then hand.volley else hand.stroke)[shot]
+        swing = (if net && !ball.in then hand.volley.middle else hand.stroke)[shot]
         ix = swing.spot.elements[12]
         iz = swing.spot.elements[14]
         if net || ball.in

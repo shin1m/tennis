@@ -198,13 +198,23 @@ $Player = Class() :: @
 			"backhand": @(x)
 				x.backhand = Object(
 				reader.parse_elements(run_action_elements, x.backhand
+		swing_volley_elements = {
+			"middle": @(x)
+				x.middle = Object(
+				reader.parse_elements(shot_swing_elements, x.middle
+			"high": @(x)
+				x.high = Object(
+				reader.parse_elements(shot_swing_elements, x.high
+			"low": @(x)
+				x.low = Object(
+				reader.parse_elements(shot_swing_elements, x.low
 		swing_action_elements = {
 			"stroke": @(x)
 				x.stroke = Object(
 				reader.parse_elements(shot_swing_elements, x.stroke
 			"volley": @(x)
 				x.volley = Object(
-				reader.parse_elements(shot_swing_elements, x.volley
+				reader.parse_elements(swing_volley_elements, x.volley
 			"smash": @(x) x.smash = read_swing(
 		swing_elements = {
 			"forehand": @(x)
@@ -305,6 +315,7 @@ $Player = Class() :: @
 			position.z = 60 * 12 * 0.0254 * $end
 	$do = @(shot) $state.do[$](shot
 	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward)
+	$volley_height = @() $actions.swing.forehand.volley.middle.flat.spot[13]
 	$smash_height = @() $actions.swing.forehand.smash.spot[13] - 0.25
 	$create_record = @
 		record = Object(
@@ -398,18 +409,23 @@ $Player = Class() :: @
 				if math.fabs(ball.x) < 0.5
 					$motion = Motion(swing
 					return $transit($state_smash_swing
-		t = $ball.in ? 0.0 : $ball.projected_time_for_y($ball.radius, 1.0)
 		hand = whichhand > 0.0 ? actions.forehand : actions.backhand
 		if $ball.done
-			$motion = Motion(($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke : hand.volley).(shot)
+			$motion = Motion(($placement.position.z * $end > 21 * 12 * 0.0254 ? hand.stroke : hand.volley.middle).(shot)
 		else
-			shots = hand.volley
+			swing = hand.volley.middle.(shot)
+			y = $ball.in ? -1.0 : $ball.projected_y_in((swing.impact - swing.start) * 60.0)
+			volley_height = $volley_height()
+			if y > volley_height + 0.375
+				shots = hand.volley.high
+			else if y > volley_height - 0.375
+				shots = hand.volley.middle
+			else if y > 0.0
+				shots = hand.volley.low
+			else
+				shots = hand.stroke
 			swing = shots.(shot)
 			impact = (swing.impact - swing.start) * 60.0
-			if t < impact
-				shots = hand.stroke
-				swing = shots.(shot)
-				impact = (swing.impact - swing.start) * 60.0
 			ball = $relative_ball(swing, $ball.position + $ball.velocity * impact
 			if ball.x < -0.5 || (whichhand > 0.0 ? ball.z > 1.0 : ball.z < -1.0)
 				$motion = Motion(shots.reach

@@ -57,10 +57,16 @@ struct t_player
 		t_action v_volley;
 		t_action v_smash;
 	};
+	struct t_volley
+	{
+		t_shots v_middle;
+		t_shots v_high;
+		t_shots v_low;
+	};
 	struct t_swings
 	{
 		t_shots v_stroke;
-		t_shots v_volley;
+		t_volley v_volley;
 		t_swing v_smash;
 	};
 	struct t_motion
@@ -247,6 +253,10 @@ struct t_player
 	t_vector3f f_shot_direction() const
 	{
 		return v_ball.v_position.v_z * v_end < 0.0f ? t_vector3f(0.0f, 0.0f, -v_end) : ::f_shot_direction(v_ball.v_position, v_end, v_left, v_right, v_forward, v_backward);
+	}
+	float f_volley_height() const
+	{
+		return v_actions.v_swing.v_forehand.v_volley.v_middle.v_flat.v_spot[3][1];
 	}
 	float f_smash_height() const
 	{

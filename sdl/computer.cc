@@ -155,7 +155,7 @@ void f_computer(t_stage::t_state& a_state, t_player& a_player)
 			}
 			if (swing == nullptr) {
 				const auto& hand = whichhand > 0.0f ? actions.v_forehand : actions.v_backhand;
-				swing = &((state.v_net && !ball.v_in ? hand.v_volley : hand.v_stroke).*state.v_shot);
+				swing = &((state.v_net && !ball.v_in ? hand.v_volley.v_middle : hand.v_stroke).*state.v_shot);
 				ix = swing->v_spot[3][0];
 				iz = swing->v_spot[3][2];
 				if (state.v_net || ball.v_in) {

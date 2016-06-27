@@ -132,7 +132,7 @@ $__get_at = @(stage) @(controller, player)
 					if t === null: t = velocity.y / G
 			if swing === null
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand
-				swing = (net && !ball.in ? hand.volley : hand.stroke).(shot)
+				swing = (net && !ball.in ? hand.volley.middle : hand.stroke).(shot)
 				ix = swing.spot[12]
 				iz = swing.spot[14]
 				if net || ball.in

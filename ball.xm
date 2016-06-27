@@ -259,6 +259,7 @@ $Ball = Class() :: @
 		spin.z = w1z * d
 	$bounce = @() $calculate_bounce($velocity, $spin
 	$projected_time_for_y = @(y, sign) projected_time_for_y($position.y, $velocity.y, y, sign
+	$projected_y_in = @(t) $position.y + ($velocity.y - 0.5 * G * t) * t
 	$create_record = @
 		record = Object(
 		$record(record
