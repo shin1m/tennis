@@ -1,14 +1,12 @@
 {
-    "name": "tennis-web"
-  , "version": "0.0.0"
-  , "private": true
-  , "scripts": {
-      "start": "coffee app.coffee"
-  }
-  , "dependencies": {
-      "coffee-script": "*"
-    , "express": "*"
-    , "morgan": "*"
-    , "errorhandler": "*"
+  "name": "tennis-web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "http-server -a localhost -p 3000 -c-1"
+  },
+  "dependencies": {
+    "coffee-script": "*",
+    "http-server": "*"
   }
 }
