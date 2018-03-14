@@ -18,14 +18,15 @@ Vector4 = glmatrix.Vector4
 
 find_index = @(text, i, predicate)
 	n = text.size(
-	for ; i < n; i = i + 1: if predicate(text.code_at(i)): break
+	for ; i < n; i = i + 1
+		predicate(text.code_at(i)) && break
 	i
 parse_texts = @(text, delimiter, callback)
 	not_delimiter = @(x) !delimiter(x
 	i = 0
 	while true
 		i = find_index(text, i, not_delimiter
-		if i >= text.size(): break
+		i < text.size() || break
 		j = find_index(text, i, delimiter
 		callback(text.substring(i, j - i
 		i = j
@@ -43,13 +44,14 @@ Reader = Class(libxml.TextReader) :: @
 	$__initialize = @(source)
 		:$^__initialize[$](source
 		$_type = null
-	$read_next = @() $_type = $read() ? $node_type() : null
-	$type = @() $_type
-	$move_to_tag = @() while $_type !== null && $_type != libxml.ReaderTypes.ELEMENT && $_type != libxml.ReaderTypes.END_ELEMENT: $read_next(
+	$read_next = @ $_type = $read() ? $node_type() : null
+	$type = @ $_type
+	$move_to_tag = @ while $_type !== null && $_type != libxml.ReaderTypes.ELEMENT && $_type != libxml.ReaderTypes.END_ELEMENT
+		$read_next(
 	$is_start_element = @(name)
 		$move_to_tag(
 		$_type == libxml.ReaderTypes.ELEMENT && $local_name() == name
-	$check_start_element = @(name) if !$is_start_element(name): throw Throwable("must be element: " + name
+	$check_start_element = @(name) $is_start_element(name) || throw Throwable("must be element: " + name
 	$start_element = @(name)
 		$check_start_element(name
 		b = $is_empty_element(
@@ -57,7 +59,7 @@ Reader = Class(libxml.TextReader) :: @
 		!b
 	$end_element = @
 		$move_to_tag(
-		if $_type != libxml.ReaderTypes.END_ELEMENT: throw Throwable("must be end of element."
+		$_type == libxml.ReaderTypes.END_ELEMENT || throw Throwable("must be end of element."
 		$read_next(
 	$read_element_text = @
 		if $is_empty_element()
@@ -82,7 +84,7 @@ Reader = Class(libxml.TextReader) :: @
 		$read_next(
 		while true
 			$move_to_tag(
-			if $_type != libxml.ReaderTypes.ELEMENT: break
+			$_type == libxml.ReaderTypes.ELEMENT || break
 			try
 				element = elements[$local_name()]
 			catch Throwable e
@@ -93,20 +95,19 @@ Reader = Class(libxml.TextReader) :: @
 $Reader = Reader
 
 WithTree = @
-	$share = @() $tree('share
-	$own = @() $tree('own
+	$share = @ $tree('share
+	$own = @ $tree('own
 
 Input = Class() :: @
-	$__string = @() "[" + $offset + "] " + $source
+	$__string = @ "[" + $offset + "] " + $source
 
 Source = Class() :: WithTree :: @
-	$__initialize = @() $built = false
-	$__string = @() "Source(" + $id + ")"
+	$__initialize = @ $built = false
+	$__string = @ "Source(" + $id + ")"
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$params.(symbol)(
-	$build = @(resolve)
-		if $built: return
+	$build = @(resolve) if !$built
 		$_source = resolve($source
 		$built = true
 	$__get_at = @(i)
@@ -122,7 +123,8 @@ Source = Class() :: WithTree :: @
 		m = Matrix4(
 		for k = 0; k < 4; k = k + 1
 			row = j + k * 4
-			for l = 0; l < 4; l = l + 1: m.v[l * 4 + k] = xs[row + l]
+			for l = 0; l < 4; l = l + 1
+				m.v[l * 4 + k] = xs[row + l]
 		m
 
 create_buffer = @(bytes)
@@ -140,8 +142,7 @@ estimate_normal_and_others = @(resolve, offset)
 		offset = offset + 3 * gl.Float32Array.BYTES_PER_ELEMENT
 	catch Throwable e
 	$_others = {
-	$inputs.each((@(key, value)
-		if key == "VERTEX" || key == "NORMAL": return
+	$inputs.each((@(key, value) if key != "VERTEX" && key != "NORMAL"
 		$_others[key] = offset
 		source = resolve(value.source
 		source.build(resolve
@@ -156,7 +157,8 @@ input_buffer = @(input, source, dimension, bytes, stride, offset)
 	i = input.offset
 	for j = 0; j < n; j = j + 1
 		x = source[$indices[i]]
-		for k = 0; k < dimension; k = k + 1: array[j * stride + k] = x[k]
+		for k = 0; k < dimension; k = k + 1
+			array[j * stride + k] = x[k]
 		i = i + $stride
 
 normal_and_others = @(resolve, bytes, stride, offset)
@@ -165,8 +167,7 @@ normal_and_others = @(resolve, bytes, stride, offset)
 		source = resolve(normals.source
 		input_buffer[$](normals, source, 3, bytes, stride, offset
 	catch Throwable e
-	$inputs.each((@(key, value)
-		if key == "VERTEX" || key == "NORMAL": return
+	$inputs.each((@(key, value) if key != "VERTEX" && key != "NORMAL"
 		source = resolve(value.source
 		dimension = value.semantic == "TEXCOORD" ? 2 : source.params.size()
 		input_buffer[$](value, source, dimension, bytes, stride, $_others[key]
@@ -174,8 +175,8 @@ normal_and_others = @(resolve, bytes, stride, offset)
 
 bound_input = @(binds, semantic)
 	key = binds[semantic]
-	if $_others.has(key): return $_others[key]
-	if $_others.has(key[0]): return $_others[key[0]]
+	$_others.has(key) && return $_others[key]
+	$_others.has(key[0]) && return $_others[key[0]]
 	throw Throwable("cannot find input"
 
 invert4to3 = @(m)
@@ -194,8 +195,8 @@ invert4to3 = @(m)
 	bytes
 
 Primitive = Class() :: WithTree :: @
-	$__initialize = @() $inputs = {
-	$__string = @() " " + {
+	$__initialize = @ $inputs = {
+	$__string = @ " " + {
 		"count": $count
 		"material": $material
 		"stride": $stride
@@ -206,7 +207,7 @@ Primitive = Class() :: WithTree :: @
 		$inputs.(symbol)(
 		$inputs.each(@(key, value) value.(symbol)(
 		$indices.(symbol)(
-	$destroy = @() $_vertices.delete(
+	$destroy = @ $_vertices.delete(
 	$build = @(resolve)
 		vertices = $inputs["VERTEX"]
 		source = resolve(resolve(vertices.source).inputs["POSITION"]
@@ -230,12 +231,12 @@ Primitive = Class() :: WithTree :: @
 Lines = Class(Primitive) :: @
 	$mode = gl.LINES
 	$unit = 2
-	$__string = @() "Lines" + :$^__string[$]()
+	$__string = @ "Lines" + :$^__string[$]()
 
 Triangles = Class(Primitive) :: @
 	$mode = gl.TRIANGLES
 	$unit = 3
-	$__string = @() "Triangles" + :$^__string[$]()
+	$__string = @ "Triangles" + :$^__string[$]()
 $Triangles = Triangles
 
 Mesh = Class() :: WithTree :: @
@@ -243,7 +244,7 @@ Mesh = Class() :: WithTree :: @
 		$sources = [
 		$primitives = [
 		$built = false
-	$__string = @() "Mesh(" + $id + ") " + $primitives
+	$__string = @ "Mesh(" + $id + ") " + $primitives
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$sources.(symbol)(
@@ -252,15 +253,14 @@ Mesh = Class() :: WithTree :: @
 		$vertices.inputs.(symbol)(
 		$primitives.(symbol)(
 		$primitives.each(@(x) x.(symbol)(
-	$destroy = @() if $built: $primitives.each(@(x) x.destroy(
-	$build = @(resolve)
-		if $built: return
+	$destroy = @ $built && $primitives.each(@(x) x.destroy(
+	$build = @(resolve) if !$built
 		$primitives.each(@(x) x.build(resolve
 		$built = true
 $Mesh = Mesh
 
 Surface = Class() :: @
-	$__string = @() "Surface(" + $sid + ") {type: " + $type + ", from: " + $from + "}"
+	$__string = @ "Surface(" + $sid + ") {type: " + $type + ", from: " + $from + "}"
 	$destroy = @
 	$build = @(resolve, sids)
 		$_from = resolve("#" + $from
@@ -271,10 +271,9 @@ Sampler2D = Class() :: @
 		$minfilter = "NONE"
 		$magfilter = "NONE"
 		$built = false
-	$__string = @() "Sampler2D(" + $sid + ") {source: " + $source + "}"
-	$destroy = @() if $built: $_texture.delete(
-	$build = @(resolve, sids)
-		if $built: return
+	$__string = @ "Sampler2D(" + $sid + ") {source: " + $source + "}"
+	$destroy = @ $built && $_texture.delete(
+	$build = @(resolve, sids) if !$built
 		$_source = sids[$source]
 		$_source.build(resolve, sids
 		from = $_source._from
@@ -283,32 +282,34 @@ Sampler2D = Class() :: @
 		gl.bind_texture(gl.TEXTURE_2D, $_texture
 		gl.tex_image2d(gl.TEXTURE_2D, 0, gl.RGBA, from.width, from.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, from.data
 		filter = gl.(Symbol($minfilter))
-		if filter === gl.NONE: filter = gl.NEAREST_MIPMAP_LINEAR
-		if filter === gl.NEAREST_MIPMAP_NEAREST || filter === gl.NEAREST_MIPMAP_LINEAR || filter === gl.LINEAR_MIPMAP_NEAREST || filter === gl.LINEAR_MIPMAP_LINEAR: gl.generate_mipmap(gl.TEXTURE_2D
+		if filter === gl.NONE
+			filter = gl.NEAREST_MIPMAP_LINEAR
+		(filter === gl.NEAREST_MIPMAP_NEAREST || filter === gl.NEAREST_MIPMAP_LINEAR || filter === gl.LINEAR_MIPMAP_NEAREST || filter === gl.LINEAR_MIPMAP_LINEAR) && gl.generate_mipmap(gl.TEXTURE_2D
 		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter
 		filter = gl.(Symbol($magfilter))
-		if filter === gl.NONE: filter = gl.LINEAR
+		if filter === gl.NONE
+			filter = gl.LINEAR
 		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter
 		gl.bind_texture(gl.TEXTURE_2D, null
 		$built = true
 
 CommonColor = Class(Vector4) :: @
-	$__string = @() "CommonColor(" + $x + ", " + $y + ", " + $z + ", " + $w + ")"
+	$__string = @ "CommonColor(" + $x + ", " + $y + ", " + $z + ", " + $w + ")"
 	$build = @(resolve, sids)
 
 CommonParam = Class() :: @
-	$__string = @() "CommonParam(" + $ref + ")"
+	$__string = @ "CommonParam(" + $ref + ")"
 	$build = @(resolve, sids) $_ref = sids[$ref]
 
 CommonTexture = Class() :: @
-	$__string = @() "CommonTexture(" + $texture + ") {texcoord: " + $texcoord + "}"
+	$__string = @ "CommonTexture(" + $texture + ") {texcoord: " + $texcoord + "}"
 	$build = @(resolve, sids)
 		$_texture = sids[$texture]
 		$_texture.build(resolve, sids
 
 CommonFloat = Class() :: @
 	$__initialize = @(value) $value = value
-	$__string = @() "CommonFloat(" + $value + ")"
+	$__string = @ "CommonFloat(" + $value + ")"
 	$build = @(resolve, sids)
 
 ShadingModel = Class() :: WithTree :: @
@@ -385,14 +386,15 @@ ShadingModel = Class() :: WithTree :: @
 
 Blinn = Class(ShadingModel) :: @
 	setup = @(model, primitive, binds)
-		if model.diffuse.@ === CommonTexture: $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
+		if model.diffuse.@ === CommonTexture
+			$uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
 		$uniforms.color = model.emission + model.ambient * 0.125
 		$uniforms.diffuse = model.diffuse.@ === CommonTexture ? model.diffuse._texture._texture : model.diffuse
 		$uniforms.specular = model.specular
 		$uniforms.shininess = model.shininess.value
 		$uniforms.refraction = model.index_of_refraction.value
 
-	$__string = @() "Blinn {" + :$^__string[$]() + "}"
+	$__string = @ "Blinn {" + :$^__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($diffuse.@ === CommonTexture ? shaders.blinn_texture() : shaders.blinn_color(), setup
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.@ === CommonTexture ? shaders.skin_texture(joints, weights, 'blinn) : shaders.skin_color(joints, weights, 'blinn), setup
 
@@ -404,33 +406,35 @@ Constant = Class(ShadingModel) :: @
 		else
 			$uniforms.color = model.emission + model.ambient * 0.125
 
-	$__string = @() "Constant {" + :$^__string[$]() + "}"
+	$__string = @ "Constant {" + :$^__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($emission.@ === CommonTexture ? shaders.constant_texture() : shaders.constant_color(), setup
 
 Lambert = Class(ShadingModel) :: @
 	setup = @(model, primitive, binds)
-		if model.diffuse.@ === CommonTexture: $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
+		if model.diffuse.@ === CommonTexture
+			$uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
 		$uniforms.color = model.emission + model.ambient * 0.125
 		$uniforms.diffuse = model.diffuse.@ === CommonTexture ? model.diffuse._texture._texture : model.diffuse
 
-	$__string = @() "Lambert {" + :$^__string[$]() + "}"
+	$__string = @ "Lambert {" + :$^__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($diffuse.@ === CommonTexture ? shaders.lambert_texture() : shaders.lambert_color(), setup
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.@ === CommonTexture ? shaders.skin_texture(joints, weights, 'lambert) : shaders.skin_color(joints, weights, 'lambert), setup
 
 Phong = Class(ShadingModel) :: @
 	setup = @(model, primitive, binds)
-		if model.diffuse.@ === CommonTexture: $uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
+		if model.diffuse.@ === CommonTexture
+			$uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
 		$uniforms.color = model.emission + model.ambient * 0.125
 		$uniforms.diffuse = model.diffuse.@ === CommonTexture ? model.diffuse._texture._texture : model.diffuse
 		$uniforms.specular = model.specular
 		$uniforms.shininess = model.shininess.value
 
-	$__string = @() "Phong {" + :$^__string[$]() + "}"
+	$__string = @ "Phong {" + :$^__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($diffuse.@ === CommonTexture ? shaders.phong_texture() : shaders.phong_color(), setup
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.@ === CommonTexture ? shaders.skin_texture(joints, weights, 'phong) : shaders.skin_color(joints, weights, 'phong), setup
 
 TechniqueFX = Class() :: WithTree :: @
-	$__string = @() "TechniqueFX(" + $sid + ") " + $model
+	$__string = @ "TechniqueFX(" + $sid + ") " + $model
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$model.(symbol)(
@@ -440,14 +444,14 @@ ProfileCOMMON = Class() :: WithTree :: @
 	$__initialize = @
 		$sids = {
 		$newparams = [
-	$__string = @() "ProfileCOMMON " + $newparams + " " + $technique
+	$__string = @ "ProfileCOMMON " + $newparams + " " + $technique
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$sids.(symbol)(
 		$newparams.(symbol)(
 		$newparams.each(@(x) x.(symbol)(
 		$technique.(symbol)(
-	$destroy = @() $newparams.each(@(x) x.destroy(
+	$destroy = @ $newparams.each(@(x) x.destroy(
 	$build = @(resolve)
 		$newparams.each((@(x) x.build(resolve, $sids))[$]
 		$technique.build(resolve, $sids
@@ -456,22 +460,20 @@ Effect = Class() :: WithTree :: @
 	$__initialize = @
 		$profiles = [
 		$built = false
-	$__string = @() "Effect(" + $id + ") " + $profiles
+	$__string = @ "Effect(" + $id + ") " + $profiles
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$profiles.(symbol)(
 		$profiles.each(@(x) x.(symbol)(
-	$destroy = @() if $built: $profiles.each(@(x) x.destroy(
-	$build = @(resolve)
-		if $built: return
+	$destroy = @ $built && $profiles.each(@(x) x.destroy(
+	$build = @(resolve) if !$built
 		$profiles.each(@(x) x.build(resolve
 		$built = true
 
 Image = Class() :: @
-	$__initialize = @() $built = false
-	$__string = @() "Image {type: " + $type + ", value: " + $value + "}"
-	$build = @(resolve)
-		if $built: return
+	$__initialize = @ $built = false
+	$__string = @ "Image {type: " + $type + ", value: " + $value + "}"
+	$build = @(resolve) if !$built
 		if $type == "data"
 			throw Throwable("not implemented"
 		else
@@ -482,14 +484,13 @@ Image = Class() :: @
 		$built = true
 
 Material = Class() :: @
-	$__initialize = @() $built = false
-	$__string = @() "Material {instance_effect: " + $instance_effect + "}"
-	$build = @(resolve)
-		if $built: return
+	$__initialize = @ $built = false
+	$__string = @ "Material {instance_effect: " + $instance_effect + "}"
+	$build = @(resolve) if !$built
 		$_instance_effect = resolve($instance_effect
 		$_instance_effect.build(resolve
 		$built = true
-	$model = @() $_instance_effect.profiles[0].technique.model
+	$model = @ $_instance_effect.profiles[0].technique.model
 
 Matrix = Class(Matrix4) :: @
 	$own = @
@@ -500,7 +501,7 @@ Matrix = Class(Matrix4) :: @
 		:$^share[$](
 		$bytes.share(
 		$v.share(
-	$__string = @() "Matrix(" + :$^__string[$]() + ")"
+	$__string = @ "Matrix(" + :$^__string[$]() + ")"
 	#$__call = @(x) x.multiply($
 	$__call = @(x)
 		v0 = $v
@@ -529,50 +530,50 @@ Matrix = Class(Matrix4) :: @
 $Matrix = Matrix
 
 Translate = Class(Vector3) :: @
-	$__string = @() "Translate(" + $x + ", " + $y + ", " + $z + ")"
+	$__string = @ "Translate(" + $x + ", " + $y + ", " + $z + ")"
 	$__call = @(x) x.translate($x, $y, $z
 $Translate = Translate
 
 Rotate = Class(Vector4) :: @
-	$__string = @() "Rotate(" + $x + ", " + $y + ", " + $z + ", " + $w + ")"
+	$__string = @ "Rotate(" + $x + ", " + $y + ", " + $z + ", " + $w + ")"
 	$__call = @(x) x.rotate(Vector3($x, $y, $z), $w
 $Rotate = Rotate
 
 Scale = Class(Vector3) :: @
-	$__string = @() "Scale(" + $x + ", " + $y + ", " + $z + ")"
+	$__string = @ "Scale(" + $x + ", " + $y + ", " + $z + ")"
 	$__call = @(x) x.scale($x, $y, $z
 $Scale = Scale
 
 InstanceMaterial = Class() :: WithTree :: @
-	$__initialize = @() $bind_vertex_inputs = {
-	$__string = @() "InstanceMaterial(" + $symbol + ") " + $target
+	$__initialize = @ $bind_vertex_inputs = {
+	$__string = @ "InstanceMaterial(" + $symbol + ") " + $target
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$bind_vertex_inputs.(symbol)(
 	$build = @(resolve)
 		$_target = resolve($target
 		$_target.build(resolve
-	$model = @() $_target.model(
+	$model = @ $_target.model(
 
 InstanceMaterialFallback = Class() :: WithTree :: @
 	setup = @(model, primitive, binds) $uniforms.color = Vector4(1.0, 1.0, 1.0, 1.0
 
-	$__initialize = @() $bind_vertex_inputs = {
+	$__initialize = @ $bind_vertex_inputs = {
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$bind_vertex_inputs.(symbol)(
 	$build = @(resolve)
-	$model = @() $
+	$model = @ $
 	$mesh_shader = @(shaders) ShadingModel.MeshShader(shaders.constant_color(), setup
 	$skin_shader = @(shaders, joints, weights) ShadingModel.SkinShader(shaders.skin_color(joints, weights, 'constant), setup
 
 InstanceGeometry = Class() :: WithTree :: @
 	$__initialize = @(fallback) $materials = {"": fallback
-	$__string = @() "InstanceGeometry(" + $url + ") " + $materials
+	$__string = @ "InstanceGeometry(" + $url + ") " + $materials
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$materials.(symbol)(
-		$materials.each(@(key, value) if key != "": value.(symbol)(
+		$materials.each(@(key, value) key != "" && value.(symbol)(
 	$build_render = @(resolve, shaders)
 		$_shaders = [
 		$_geometry.primitives.each((@(x)
@@ -599,7 +600,8 @@ InstanceGeometry = Class() :: WithTree :: @
 	$render = @(projection, viewing)
 		shaders = $_shaders
 		n = shaders.size(
-		for i = 0; i < n; i = i + 1: shaders[i](projection, viewing
+		for i = 0; i < n; i = i + 1
+			shaders[i](projection, viewing
 $InstanceGeometry = InstanceGeometry
 
 Node = Class() :: WithTree :: @
@@ -611,7 +613,7 @@ Node = Class() :: WithTree :: @
 		$instance_nodes = [
 		$nodes = [
 		$built = false
-	$__string = @() "Node(" + $id + ") " + $transforms + " " + $controllers + " " + $geometries + " " + $instance_nodes + " " + $nodes
+	$__string = @ "Node(" + $id + ") " + $transforms + " " + $controllers + " " + $geometries + " " + $instance_nodes + " " + $nodes
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$sids.(symbol)(
@@ -624,8 +626,7 @@ Node = Class() :: WithTree :: @
 		$instance_nodes.(symbol)(
 		$nodes.(symbol)(
 		$nodes.each(@(x) x.(symbol)(
-	$build = @(resolve, shaders)
-		if $built: return
+	$build = @(resolve, shaders) if !$built
 		$controllers.each(@(x) x.build(resolve, shaders
 		$geometries.each(@(x) x.build(resolve, shaders
 		$_nodes = [
@@ -651,45 +652,56 @@ Node = Class() :: WithTree :: @
 				tn = transforms.size(
 				if tn > 0
 					viewing = Matrix4(viewing
-					for i = 0; i < tn; i = i + 1: transforms[i](viewing
-				for i = 0; i < cn; i = i + 1: controllers[i]._joints0.vertex = viewing
-				for i = 0; i < rn; i = i + 1: joints.push(roots[i]._joint2matrix
+					for i = 0; i < tn; i = i + 1
+						transforms[i](viewing
+				for i = 0; i < cn; i = i + 1
+					controllers[i]._joints0.vertex = viewing
+				for i = 0; i < rn; i = i + 1
+					joints.push(roots[i]._joint2matrix
 				if sid != ""
 					jn = joints.size(
 					for i = 0; i < jn; i = i + 1
 						x = joints[i]
-						if x.has(sid): x[sid].vertex = viewing
+						if x.has(sid)
+							x[sid].vertex = viewing
 				n0n = nodes0.size(
-				for i = 0; i < n0n; i = i + 1: nodes0[i].render(projection, viewing, joints
+				for i = 0; i < n0n; i = i + 1
+					nodes0[i].render(projection, viewing, joints
 				n1n = nodes1.size(
-				for i = 0; i < n1n; i = i + 1: nodes1[i].render(projection, viewing, joints
-				for i = 0; i < rn; i = i + 1: joints.pop(
+				for i = 0; i < n1n; i = i + 1
+					nodes1[i].render(projection, viewing, joints
+				for i = 0; i < rn; i = i + 1
+					joints.pop(
 		else
 			geometries = $geometries
 			$render = @(projection, viewing, joints)
 				tn = transforms.size(
 				if tn > 0
 					viewing = Matrix4(viewing
-					for i = 0; i < tn; i = i + 1: transforms[i](viewing
-				for i = 0; i < cn; i = i + 1: controllers[i]._joints0.vertex = viewing
+					for i = 0; i < tn; i = i + 1
+						transforms[i](viewing
+				for i = 0; i < cn; i = i + 1
+					controllers[i]._joints0.vertex = viewing
 				gn = geometries.size(
-				for i = 0; i < gn; i = i + 1: geometries[i].render(projection, viewing
+				for i = 0; i < gn; i = i + 1
+					geometries[i].render(projection, viewing
 				n0n = nodes0.size(
-				for i = 0; i < n0n; i = i + 1: nodes0[i].render(projection, viewing, joints
+				for i = 0; i < n0n; i = i + 1
+					nodes0[i].render(projection, viewing, joints
 				n1n = nodes1.size(
-				for i = 0; i < n1n; i = i + 1: nodes1[i].render(projection, viewing, joints
+				for i = 0; i < n1n; i = i + 1
+					nodes1[i].render(projection, viewing, joints
 	$postbuild = @(ancestors, controllers)
 		$controllers.each(controllers.push
 		if $joint
 			$_root_controllers = [
-			$_controllers.each((@(x)
-				if ancestors.has(x): return
+			$_controllers.each((@(x) if !ancestors.has(x)
 				ancestors[x] = null
 				$_root_controllers.push(x
 			)[$]
 		$_nodes.each(@(x) x.postbuild(ancestors, controllers
 		$nodes.each(@(x) x.postbuild(ancestors, controllers
-		if $joint: $_root_controllers.each(ancestors.remove
+		$joint && $_root_controllers.each(ancestors.remove
 		$build_render(
 	$create = @
 		$joint = false
@@ -713,7 +725,7 @@ SkinPrimitive = Class() :: WithTree :: @
 		$inputs.(symbol)(
 		$inputs.each(@(key, value) value.(symbol)(
 		$indices.(symbol)(
-	$destroy = @() $_vertices.delete(
+	$destroy = @ $_vertices.delete(
 	$build = @(resolve, vertices, weights)
 		normals = 3 * gl.Float32Array.BYTES_PER_ELEMENT + weights * gl.Int32Array.BYTES_PER_ELEMENT + weights * gl.Float32Array.BYTES_PER_ELEMENT
 		stride = estimate_normal_and_others[$](resolve, normals
@@ -756,7 +768,7 @@ Skin = Class() :: WithTree :: @
 		$joints = {
 		$vertex_weights = {
 		$built = false
-	$__string = @() "Skin(" + $id + ") {source: " + $source + ", bind_shape_matrix: " + $bind_shape_matrix + "}"
+	$__string = @ "Skin(" + $id + ") {source: " + $source + ", bind_shape_matrix: " + $bind_shape_matrix + "}"
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$bind_shape_matrix.(symbol)(
@@ -766,9 +778,8 @@ Skin = Class() :: WithTree :: @
 		$vertex_weights.(symbol)(
 		$vertex_weights.vcount.(symbol)(
 		$vertex_weights.v.(symbol)(
-	$destroy = @() if $built: $_primitives.each(@(x) x.destroy(
-	$build = @(resolve)
-		if $built: return
+	$destroy = @ $built && $_primitives.each(@(x) x.destroy(
+	$build = @(resolve) if !$built
 		$_source = resolve($source
 		position = resolve($_source.vertices.inputs["POSITION"]
 		position.build(resolve
@@ -783,7 +794,8 @@ Skin = Class() :: WithTree :: @
 		for i = 0; i < n; i = i + 1
 			bones = [
 			m = $vertex_weights.vcount[i]
-			if m > $_weights_per_vertex: $_weights_per_vertex = m
+			if m > $_weights_per_vertex
+				$_weights_per_vertex = m
 			for j = 0; j < m; j = j + 1
 				joint = $vertex_weights.v[ii + ij]
 				weight = $vertex_weights.v[ii + iw]
@@ -803,12 +815,12 @@ InstanceController = Class() :: WithTree :: @
 	$__initialize = @(fallback)
 		$skeletons = [
 		$materials = {"": fallback
-	$__string = @() "InstanceController(" + $url + ") " + $skeletons + " " + $materials
+	$__string = @ "InstanceController(" + $url + ") " + $skeletons + " " + $materials
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$skeletons.(symbol)(
 		$materials.(symbol)(
-		$materials.each(@(key, value) if key != "": value.(symbol)(
+		$materials.each(@(key, value) key != "" && value.(symbol)(
 	$build = @(resolve, shaders)
 		$_controller = resolve($url
 		$_controller.build(resolve
@@ -843,10 +855,12 @@ InstanceController = Class() :: WithTree :: @
 	$render = @(projection)
 		n = $_ibms.size(
 		stride = 16 * gl.Float32Array.BYTES_PER_ELEMENT
-		for i = 0; i < n; i = i + 1: ($_joints[i].vertex * $_ibms[i]).bytes.copy(0, stride, $_vertices, i * stride
+		for i = 0; i < n; i = i + 1
+			($_joints[i].vertex * $_ibms[i]).bytes.copy(0, stride, $_vertices, i * stride
 		shaders = $_shaders
 		n = shaders.size(
-		for i = 0; i < n; i = i + 1: shaders[i](projection
+		for i = 0; i < n; i = i + 1
+			shaders[i](projection
 
 Sampler = Class() :: WithTree :: @
 	Iterator = Class() :: @
@@ -861,13 +875,14 @@ Sampler = Class() :: WithTree :: @
 		$set = @(value) $channels.each(@(x) x(value
 		$forward = @(t)
 			n = $input.count
-			if n <= 0: return $set(0.0
+			n > 0 || return $set(0.0
 			i = $i
-			while i < n && $input[i][0] <= t: i = i + 1
-			if i <= 0: return $set($output[0][0]
+			while i < n && $input[i][0] <= t
+				i = i + 1
+			i > 0 || return $set($output[0][0]
 			$i = i - 1
 			y0 = $output[$i][0]
-			if i >= n: return $set(y0
+			i < n || return $set(y0
 			x0 = $input[$i][0]
 			x1 = $input[i][0]
 			y1 = $output[i][0]
@@ -880,12 +895,11 @@ Sampler = Class() :: WithTree :: @
 	$__initialize = @
 		$inputs = {
 		$built = false
-	$__string = @() "Sampler(" + $id + ") " + $inputs
+	$__string = @ "Sampler(" + $id + ") " + $inputs
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$inputs.(symbol)(
-	$build = @(resolve)
-		if $built: return
+	$build = @(resolve) if !$built
 		$_input = resolve($inputs["INPUT"]
 		$_input.build(resolve
 		$_output = resolve($inputs["OUTPUT"]
@@ -893,13 +907,12 @@ Sampler = Class() :: WithTree :: @
 		$_interpolation = resolve($inputs["INTERPOLATION"]
 		$_interpolation.build(resolve
 		$built = true
-	$iterator = @() Iterator($
+	$iterator = @ Iterator($
 
 Channel = Class() :: @
-	$__initialize = @() $built = false
-	$__string = @() "Channel(" + $source + ") {target: " + $target + "}"
-	$build = @(resolve)
-		if $built: return
+	$__initialize = @ $built = false
+	$__string = @ "Channel(" + $source + ") {target: " + $target + "}"
+	$build = @(resolve) if !$built
 		$_source = resolve($source
 		$_source.build(resolve
 		path = [
@@ -929,7 +942,7 @@ Animation = Class() :: WithTree :: @
 		$sources = [
 		$samplers = [
 		$channels = [
-	$__string = @() "Animation(" + $id + ") " + $animations + " " + $samplers + " " + $channels
+	$__string = @ "Animation(" + $id + ") " + $animations + " " + $samplers + " " + $channels
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$animations.(symbol)(
@@ -944,7 +957,7 @@ Animation = Class() :: WithTree :: @
 		$animations.each(@(x) x.iterators(resolve, iterators, use
 		$channels.each(@(x)
 			x.build(resolve
-			if !use(x): return
+			use(x) || return
 			iterator = iterators.has(x._source) ? iterators[x._source] : (iterators[x._source] = x._source.iterator())
 			iterator.channels.push(x
 
@@ -952,13 +965,12 @@ VisualScene = Class() :: WithTree :: @
 	$__initialize = @
 		$nodes = [
 		$built = false
-	$__string = @() "VisualScene(" + $id + ") " + $nodes
+	$__string = @ "VisualScene(" + $id + ") " + $nodes
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$nodes.(symbol)(
 		$nodes.each(@(x) x.(symbol)(
-	$build = @(resolve, shaders)
-		if $built: return
+	$build = @(resolve, shaders) if !$built
 		$nodes.each(@(x) x.build(resolve, shaders
 		ancestors = {
 		controllers = $_controllers = [
@@ -969,23 +981,25 @@ VisualScene = Class() :: WithTree :: @
 		joints = [
 		nodes = $nodes
 		n = nodes.size(
-		for i = 0; i < n; i = i + 1: nodes[i].render(projection, viewing, joints
-		if print_time: print("\tnodes: " + (time.now() - t0)
+		for i = 0; i < n; i = i + 1
+			nodes[i].render(projection, viewing, joints
+		print_time && print("\tnodes: " + (time.now() - t0)
 		t0 = time.now(
 		controllers = $_controllers
 		n = controllers.size(
-		for i = 0; i < n; i = i + 1: controllers[i].render(projection
-		if print_time: print("\tcontrollers: " + (time.now() - t0)
+		for i = 0; i < n; i = i + 1
+			controllers[i].render(projection
+		print_time && print("\tcontrollers: " + (time.now() - t0)
 
 InstanceVisualScene = Class() :: @
-	$__string = @() "InstanceVisualScene(" + $url + ")"
+	$__string = @ "InstanceVisualScene(" + $url + ")"
 	$build = @(resolve, shaders)
 		$_scene = resolve($url
 		$_scene.build(resolve, shaders
 	$render = @(projection, viewing) $_scene.render(projection, viewing
 
 Scene = Class() :: WithTree :: @
-	$__string = @() "Scene " + $instance_visual_scene
+	$__string = @ "Scene " + $instance_visual_scene
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$instance_visual_scene.(symbol)(
@@ -1002,7 +1016,7 @@ Document = Class() :: WithTree :: @
 		$library_materials = {
 		$library_nodes = {
 		$library_visual_scenes = {
-	$__string = @() "Document " + $scene
+	$__string = @ "Document " + $scene
 	$tree = @(symbol)
 		:$^.(symbol)[$](
 		$instance_material_fallback.(symbol)(
@@ -1043,18 +1057,20 @@ $load = @(source)
 	ids = {
 	read_asset_x_extra = @(callback)
 		reader.read_next(
-		if reader.is_start_element("asset"): reader.read_element_text(
+		reader.is_start_element("asset") && reader.read_element_text(
 		callback(
-		while reader.is_start_element("extra"): reader.read_element_text(
+		while reader.is_start_element("extra")
+			reader.read_element_text(
 		reader.end_element(
 	read_asset_0x_extra = @(name, callback)
-		if reader.is_empty_element(): return reader.read_next(
-		read_asset_x_extra(@() while reader.is_start_element(name): callback(
+		reader.is_empty_element() && return reader.read_next(
+		read_asset_x_extra(@ while reader.is_start_element(name)
+			callback(
 	read_asset_1x_extra = @(name, callback) read_asset_x_extra(@
 		reader.check_start_element(name
 		while true
 			callback(
-			if !reader.is_start_element(name): break
+			reader.is_start_element(name) || break
 	read_optional_integer = @(name, default)
 		x = reader.get_attribute(name
 		x == "" ? default : Integer(x)
@@ -1065,22 +1081,25 @@ $load = @(source)
 			for j = 0; j < 4; j = j + 1
 				m.v[j * 4 + i] = xs[i * 4 + j]
 		m
-	read_empty_elements = @(name, callback) for ; reader.is_start_element(name); reader.read_element_text(): callback(
+	read_empty_elements = @(name, callback) for ; reader.is_start_element(name); reader.read_element_text()
+		callback(
 	read_array = @(type, parse) @(x)
 		count = Integer(reader.get_attribute("count"
 		id = reader.get_attribute("id"
 		array = parse_array(type, parse, count, reader.read_element_text()
 		array.id = id
-		if id != "": ids[id] = array
+		if id != ""
+			ids[id] = array
 	source_elements = {
 		"Name_array": @(x)
 			count = Integer(reader.get_attribute("count"
 			id = reader.get_attribute("id"
 			array = [
 			parse_texts(reader.read_element_text(), is_whitespace, array.push
-			if array.size() != count: throw Throwable("wrong count"
+			array.size() == count || throw Throwable("wrong count"
 			array.id = id
-			if id != "": ids[id] = array
+			if id != ""
+				ids[id] = array
 		"float_array": read_array(gl.Float32Array, Float
 		"int_array": read_array(gl.Int32Array, Integer
 		"technique_common": @(x)
@@ -1101,11 +1120,12 @@ $load = @(source)
 				x.params = [
 				i = 0
 				params.each(@(param)
-					if param.name != "": x.params.push(i
+					param.name != "" && x.params.push(i
 					:i = i + 1
 			else
 				x.params = [0]
-				if params.size() == 1 && params[0].type == "float4x4": x.__get_at = x.get_matrix_at
+				if params.size() == 1 && params[0].type == "float4x4"
+					x.__get_at = x.get_matrix_at
 			reader.end_element(
 			reader.end_element(
 	read_source = @
@@ -1128,10 +1148,11 @@ $load = @(source)
 			sampler = Sampler(
 			sampler.id = reader.get_attribute("id"
 			reader.read_next(
-			read_empty_elements("input", @() sampler.inputs[reader.get_attribute("semantic")] = reader.get_attribute("source"
+			read_empty_elements("input", @ sampler.inputs[reader.get_attribute("semantic")] = reader.get_attribute("source"
 			reader.end_element(
 			x.samplers.push(sampler
-			if sampler.id != "": ids[sampler.id] = sampler
+			if sampler.id != ""
+				ids[sampler.id] = sampler
 		"channel": @(x)
 			channel = Channel(
 			channel.source = reader.get_attribute("source"
@@ -1142,36 +1163,43 @@ $load = @(source)
 		animation = Animation(
 		animation.id = reader.get_attribute("id"
 		reader.parse_elements(animation_elements, animation
-		if animation.id != "": ids[animation.id] = animation
+		if animation.id != ""
+			ids[animation.id] = animation
 		animation
 	read_skin = @
 		skin = Skin(
 		skin.source = reader.get_attribute("source"
 		reader.read_next(
-		if reader.is_start_element("bind_shape_matrix"): skin.bind_shape_matrix = read_matrix(
+		if reader.is_start_element("bind_shape_matrix")
+			skin.bind_shape_matrix = read_matrix(
 		for i = 0; i < 3; i = i + 1
 			reader.check_start_element("source"
 			skin.sources.push(read_source(
-		while reader.is_start_element("source"): skin.sources.push(read_source(
+		while reader.is_start_element("source")
+			skin.sources.push(read_source(
 		reader.check_start_element("joints"
 		reader.read_next(
-		read_empty_elements("input", @() skin.joints[reader.get_attribute("semantic")] = reader.get_attribute("source"
-		while reader.is_start_element("extra"): reader.read_element_text(
+		read_empty_elements("input", @ skin.joints[reader.get_attribute("semantic")] = reader.get_attribute("source"
+		while reader.is_start_element("extra")
+			reader.read_element_text(
 		reader.end_element(
 		reader.check_start_element("vertex_weights"
 		count = Integer(reader.get_attribute("count"
 		reader.read_next(
-		read_empty_elements("input", @() skin.vertex_weights[reader.get_attribute("semantic")] = '(skin.vertex_weights.size(), reader.get_attribute("source")
+		read_empty_elements("input", @ skin.vertex_weights[reader.get_attribute("semantic")] = '(skin.vertex_weights.size(), reader.get_attribute("source")
 		reader.check_start_element("vcount"
 		vcount = parse_array(gl.Int32Array, Integer, count, reader.read_element_text()
 		n = 0
-		for i = 0; i < count; i = i + 1: n = n + vcount[i]
+		for i = 0; i < count; i = i + 1
+			n = n + vcount[i]
 		reader.check_start_element("v"
 		skin.vertex_weights.vcount = vcount
 		skin.vertex_weights.v = parse_array(gl.Int32Array, Integer, n * skin.vertex_weights.size(), reader.read_element_text()
-		while reader.is_start_element("extra"): reader.read_element_text(
+		while reader.is_start_element("extra")
+			reader.read_element_text(
 		reader.end_element(
-		while reader.is_start_element("extra"): reader.read_element_text(
+		while reader.is_start_element("extra")
+			reader.read_element_text(
 		reader.end_element(
 		skin
 	profile_COMMON_newparam_surface_elements = {
@@ -1248,7 +1276,8 @@ $load = @(source)
 			profile = ProfileCOMMON(
 			profile.id = reader.get_attribute("id"
 			read_asset_x_extra(@
-				while reader.is_start_element("image"): reader.read_element_text(
+				while reader.is_start_element("image")
+					reader.read_element_text(
 				while reader.is_start_element("newparam")
 					newparam = Object(
 					sid = reader.get_attribute("sid"
@@ -1263,9 +1292,11 @@ $load = @(source)
 				reader.parse_elements(profile_COMMON_technique_elements, technique
 				profile.sids[technique.sid] = technique
 				profile.technique = technique
-				if technique.id != "": ids[technique.id] = technique
+				if technique.id != ""
+					ids[technique.id] = technique
 			x.profiles.push(profile
-			if profile.id != "": ids[profile.id] = profile
+			if profile.id != ""
+				ids[profile.id] = profile
 	read_primitive_common = @(type, callback)
 		primitive = type(
 		primitive.count = Integer(reader.get_attribute("count"
@@ -1275,7 +1306,8 @@ $load = @(source)
 		read_empty_elements("input", @
 			input = Input(
 			input.offset = Integer(reader.get_attribute("offset"
-			if input.offset + 1 > stride: :stride = input.offset + 1
+			if input.offset + 1 > stride
+				:stride = input.offset + 1
 			input.semantic = reader.get_attribute("semantic"
 			input.source = reader.get_attribute("source"
 			set = reader.get_attribute("set"
@@ -1286,12 +1318,14 @@ $load = @(source)
 				primitive.inputs['(input.semantic, input.set)] = input
 		primitive.stride = stride
 		callback(primitive
-		while reader.is_start_element("extra"): reader.read_element_text(
+		while reader.is_start_element("extra")
+			reader.read_element_text(
 		reader.end_element(
 		primitive
 	read_primitive = @(type) read_primitive_common(type, @(primitive)
-		if reader.is_start_element("p"): primitive.indices = parse_array(gl.Int32Array, Integer, primitive.count * primitive.stride * type.unit, reader.read_element_text()
-	read_polylist = @() read_primitive_common(Triangles, @(primitive)
+		if reader.is_start_element("p")
+			primitive.indices = parse_array(gl.Int32Array, Integer, primitive.count * primitive.stride * type.unit, reader.read_element_text()
+	read_polylist = @ read_primitive_common(Triangles, @(primitive)
 		count = primitive.count
 		stride = primitive.stride
 		reader.check_start_element("vcount"
@@ -1323,8 +1357,9 @@ $load = @(source)
 			x.vertices.id = reader.get_attribute("id"
 			reader.read_next(
 			x.vertices.inputs = {
-			read_empty_elements("input", @() x.vertices.inputs[reader.get_attribute("semantic")] = reader.get_attribute("source"
-			while reader.is_start_element("extra"): reader.read_element_text(
+			read_empty_elements("input", @ x.vertices.inputs[reader.get_attribute("semantic")] = reader.get_attribute("source"
+			while reader.is_start_element("extra")
+				reader.read_element_text(
 			reader.end_element(
 			ids[x.vertices.id] = x.vertices
 		"lines": @(x) x.primitives.push(read_primitive(Lines
@@ -1341,27 +1376,33 @@ $load = @(source)
 		b = reader.is_empty_element(
 		reader.read_next(
 		if !b
-			while reader.is_start_element("bind"): reader.read_element_text(
+			while reader.is_start_element("bind")
+				reader.read_element_text(
 			while reader.is_start_element("bind_vertex_input")
 				semantic = reader.get_attribute("semantic"
 				input_semantic = reader.get_attribute("input_semantic"
 				input_set = Integer(reader.get_attribute("input_set"
 				reader.read_element_text(
 				material.bind_vertex_inputs[semantic] = '(input_semantic, input_set
-			while reader.is_start_element("extra"): reader.read_element_text(
+			while reader.is_start_element("extra")
+				reader.read_element_text(
 			reader.end_element(
 		x[material.symbol] = material
 	read_bind_material = @(x)
 		reader.read_next(
-		while reader.is_start_element("param"): reader.read_element_text(
+		while reader.is_start_element("param")
+			reader.read_element_text(
 		reader.check_start_element("technique_common"
 		reader.read_next(
 		reader.check_start_element("instance_material"
 		read_instance_material(x.materials
-		while reader.is_start_element("instance_material"): read_instance_material(x.materials
+		while reader.is_start_element("instance_material")
+			read_instance_material(x.materials
 		reader.end_element(
-		while reader.is_start_element("technique"): reader.read_element_text(
-		while reader.is_start_element("extra"): reader.read_element_text(
+		while reader.is_start_element("technique")
+			reader.read_element_text(
+		while reader.is_start_element("extra")
+			reader.read_element_text(
 		reader.end_element(
 	instance_material_fallback = InstanceMaterialFallback(
 	read_node = null
@@ -1370,28 +1411,32 @@ $load = @(source)
 			sid = reader.get_attribute("sid"
 			transform = Matrix(read_matrix(
 			transform.sid = sid
-			if sid != "": x.sids[sid] = transform
+			if sid != ""
+				x.sids[sid] = transform
 			x.transforms.push(transform
 		"rotate": @(x)
 			sid = reader.get_attribute("sid"
 			xs = parse_array(gl.Float32Array, Float, 4, reader.read_element_text()
 			transform = Rotate(xs[0], xs[1], xs[2], xs[3] * math.PI / 180.0
 			transform.sid = sid
-			if sid != "": x.sids[sid] = transform
+			if sid != ""
+				x.sids[sid] = transform
 			x.transforms.push(transform
 		"scale": @(x)
 			sid = reader.get_attribute("sid"
 			xs = parse_array(gl.Float32Array, Float, 3, reader.read_element_text()
 			transform = Scale(xs[0], xs[1], xs[2]
 			transform.sid = sid
-			if sid != "": x.sids[sid] = transform
+			if sid != ""
+				x.sids[sid] = transform
 			x.transforms.push(transform
 		"translate": @(x)
 			sid = reader.get_attribute("sid"
 			xs = parse_array(gl.Float32Array, Float, 3, reader.read_element_text()
 			transform = Translate(xs[0], xs[1], xs[2]
 			transform.sid = sid
-			if sid != "": x.sids[sid] = transform
+			if sid != ""
+				x.sids[sid] = transform
 			x.transforms.push(transform
 		"instance_controller": @(x)
 			controller = InstanceController(instance_material_fallback
@@ -1400,9 +1445,11 @@ $load = @(source)
 				reader.read_next(
 			else
 				reader.read_next(
-				while reader.is_start_element("skeleton"): controller.skeletons.push(reader.read_element_text(
-				if reader.is_start_element("bind_material"): read_bind_material(controller
-				while reader.is_start_element("extra"): reader.read_element_text(
+				while reader.is_start_element("skeleton")
+					controller.skeletons.push(reader.read_element_text(
+				reader.is_start_element("bind_material") && read_bind_material(controller
+				while reader.is_start_element("extra")
+					reader.read_element_text(
 				reader.end_element(
 			x.controllers.push(controller
 		"instance_geometry": @(x)
@@ -1412,8 +1459,9 @@ $load = @(source)
 				reader.read_next(
 			else
 				reader.read_next(
-				if reader.is_start_element("bind_material"): read_bind_material(geometry
-				while reader.is_start_element("extra"): reader.read_element_text(
+				reader.is_start_element("bind_material") && read_bind_material(geometry
+				while reader.is_start_element("extra")
+					reader.read_element_text(
 				reader.end_element(
 			x.geometries.push(geometry
 		"instance_node": @(x)
@@ -1427,7 +1475,8 @@ $load = @(source)
 		node.joint = reader.get_attribute("type") == "JOINT"
 		node.layer = reader.get_attribute("layer"
 		reader.parse_elements(node_elements, node
-		if node.id != "": ids[node.id] = node
+		if node.id != ""
+			ids[node.id] = node
 		node
 	root_elements = {
 		"asset": @(x)
@@ -1438,7 +1487,8 @@ $load = @(source)
 			reader.parse_elements(asset_elements, x.asset
 		"library_animations": @(x) read_asset_1x_extra("animation", @
 			animation = read_animation(
-			if animation.id != "": x.library_animations[animation.id] = animation
+			if animation.id != ""
+				x.library_animations[animation.id] = animation
 		"library_controllers": @(x) read_asset_1x_extra("controller", @
 			id = reader.get_attribute("id"
 			controller = null
@@ -1461,7 +1511,7 @@ $load = @(source)
 			id = reader.get_attribute("id"
 			reader.parse_elements(geometry_elements, geometry
 			geometry.x.id = id
-			if id == "": return
+			id == "" && return
 			ids[id] = geometry.x
 			x.library_geometries[id] = geometry.x
 		"library_images": @(x) read_asset_0x_extra("image", @
@@ -1475,7 +1525,7 @@ $load = @(source)
 					image.type = "path"
 					path = io.Path(source) / ".." / reader.read_element_text()
 					image.value = path.__string(
-			if image.id == "": return
+			image.id == "" && return
 			ids[image.id] = image
 			x.library_images[image.id] = image
 		"library_materials": @(x) read_asset_1x_extra("material", @
@@ -1485,12 +1535,13 @@ $load = @(source)
 				reader.check_start_element("instance_effect"
 				material.instance_effect = reader.get_attribute("url"
 				reader.read_element_text(
-			if material.id == "": return
+			material.id == "" && return
 			ids[material.id] = material
 			x.library_materials[material.id] = material
 		"library_nodes": @(x) read_asset_1x_extra("node", @
 			node = read_node(
-			if node.id != "": x.library_nodes[node.id] = node
+			if node.id != ""
+				x.library_nodes[node.id] = node
 		"library_visual_scenes": @(x) read_asset_1x_extra("visual_scene", @
 			scene = VisualScene(
 			scene.id = reader.get_attribute("id"
@@ -1498,20 +1549,23 @@ $load = @(source)
 				reader.check_start_element("node"
 				while true
 					scene.nodes.push(read_node(
-					if !reader.is_start_element("node"): break
-				while reader.is_start_element("evaluate_scene"): reader.read_element_text(
-			if scene.id == "": return
+					reader.is_start_element("node") || break
+				while reader.is_start_element("evaluate_scene")
+					reader.read_element_text(
+			scene.id == "" && return
 			ids[scene.id] = scene
 			x.library_visual_scenes[scene.id] = scene
 		"scene": @(x)
 			x.scene = Scene(
 			reader.read_next(
-			while reader.is_start_element("instance_physics_scene"): reader.read_element_text(
+			while reader.is_start_element("instance_physics_scene")
+				reader.read_element_text(
 			if reader.is_start_element("instance_visual_scene")
 				x.scene.instance_visual_scene = InstanceVisualScene(
 				x.scene.instance_visual_scene.url = reader.get_attribute("url"
 				reader.read_element_text(
-			while reader.is_start_element("extra"): reader.read_element_text(
+			while reader.is_start_element("extra")
+				reader.read_element_text(
 			reader.end_element(
 	try
 		reader.read_next(

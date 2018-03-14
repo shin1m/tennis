@@ -26,11 +26,15 @@ $reach_range = reach_range = @(ball, velocity, player, speed, t0, sign)
 
 $shot_direction = shot_direction = @(ball, end, left, right, forward, backward)
 	vx = -ball.x
-	if left: vx = vx - 12 * 12 * 0.0254 * end
-	if right: vx = vx + 12 * 12 * 0.0254 * end
+	if left
+		vx = vx - 12 * 12 * 0.0254 * end
+	if right
+		vx = vx + 12 * 12 * 0.0254 * end
 	vz = -24 * 12 * 0.0254 * end - ball.z
-	if forward: vz = vz - 16 * 12 * 0.0254 * end
-	if backward: vz = vz + 10 * 12 * 0.0254 * end
+	if forward
+		vz = vz - 16 * 12 * 0.0254 * end
+	if backward
+		vz = vz + 10 * 12 * 0.0254 * end
 	Vector3(vx, 0.0, vz
 
 $Player = Class() :: @
@@ -93,7 +97,8 @@ $Player = Class() :: @
 			$action.rewind(
 		$__call = @
 			$action.forward($time
-			if $time < $end: $time = $time + 1.0 / 60.0
+			if $time < $end
+				$time = $time + 1.0 / 60.0
 	$Motion = Motion
 	RunMotion = Class(Motion) :: @
 		duration = 4.0 / 64.0
@@ -110,7 +115,8 @@ $Player = Class() :: @
 			$duration = $toward0 * $toward1 < -0.75 ? 0.0 : duration
 		$__call = @
 			:$^__call[$](
-			if $duration > 0.0: $duration = $duration - 1.0 / 64.0
+			if $duration > 0.0
+				$duration = $duration - 1.0 / 64.0
 			t = $duration / duration
 			$placement.toward = $toward0 * t + $toward1 * (1.0 - t)
 
@@ -281,9 +287,10 @@ $Player = Class() :: @
 		$state.enter[$](
 	$reset = @(end = null, state = null)
 		$left = $right = $forward = $backward = false
-		if end !== null: $end = end
-		if state !== null: $transit(state
-	$setup = @() $placement.validate(
+		if end !== null
+			$end = end
+		state !== null && $transit(state
+	$setup = @ $placement.validate(
 	$root_position = @
 		v = $root.transforms[1].v
 		$placement.validate() * ($root.transforms[0] * Vector3(v[12], v[13], v[14]))
@@ -294,7 +301,8 @@ $Player = Class() :: @
 		v.length() > 0.01 / 64.0 ? v : Vector3(0.0, 0.0, -$end)
 	$whichhand = @(v) Vector3(-v.z, 0.0, v.x) * ($ball.position - $placement.position)
 	$relative_ball = @(swing, ball = null)
-		if ball === null: ball = $ball.position
+		if ball === null
+			ball = $ball.position
 		$placement.validate(
 		p = ball - $placement.position
 		v = $placement.toward
@@ -314,9 +322,9 @@ $Player = Class() :: @
 		else if position.z * $end > 60 * 12 * 0.0254
 			position.z = 60 * 12 * 0.0254 * $end
 	$do = @(shot) $state.do[$](shot
-	$shot_direction = @() $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward)
-	$volley_height = @() $actions.swing.forehand.volley.middle.flat.spot[13]
-	$smash_height = @() $actions.swing.forehand.smash.spot[13] - 0.25
+	$shot_direction = @ $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward)
+	$volley_height = @ $actions.swing.forehand.volley.middle.flat.spot[13]
+	$smash_height = @ $actions.swing.forehand.smash.spot[13] - 0.25
 	$create_record = @
 		record = Object(
 		record.placement = Placement(
@@ -334,7 +342,7 @@ $Player = Class() :: @
 		from.placement.copy($placement
 		bytes = from.root.bytes
 		bytes.copy(0, bytes.size(), $root.transforms[1].bytes, 0
-		if from.ready !== null: from.ready.rewind(
+		from.ready !== null && from.ready.rewind(
 		from.action.rewind(
 		from.action.forward(from.time
 	$state_default = State(@
@@ -345,15 +353,20 @@ $Player = Class() :: @
 		$motion = RunMotion($actions.ready.default, v, $
 	, @
 		d = Vector3(0.0, 0.0, 0.0
-		if $left: d.x = -$speed * $end
-		if $right: d.x = $speed * $end
-		if $forward: d.z = -$speed * $end
-		if $backward: d.z = $speed * $end
+		if $left
+			d.x = -$speed * $end
+		if $right
+			d.x = $speed * $end
+		if $forward
+			d.z = -$speed * $end
+		if $backward
+			d.z = $speed * $end
 		actions = d.x == 0.0 && d.z == 0.0 ? $actions.ready : $actions.run
 		if $ball.done
 			v = Vector3(0.0, 0.0, -$end
 			action = actions.default
-			if actions === $actions.run: run = $actions.run.lower
+			if actions === $actions.run
+				run = $actions.run.lower
 		else if $ball.hitter === null || $ball.hitter.end == $end
 			v = $ball.position - $placement.position
 			v.y = 0.0
@@ -382,13 +395,15 @@ $Player = Class() :: @
 			else
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand
 				action = $ball.in || y < 0.0 ? hand.stroke : hand.volley
-			if actions === $actions.run: run = hand.lowers[($left ? 1 : $right ? 2 : 0) + ($forward ? 4 : $backward ? 8 : 0)]
+			if actions === $actions.run
+				run = hand.lowers[($left ? 1 : $right ? 2 : 0) + ($forward ? 4 : $backward ? 8 : 0)]
 		if actions === $actions.ready
 			$motion = RunMotion(action, v, $
 			$ready = null
 		else
-			if $motion.action !== run || d != $motion.toward: $motion = RunMotion(run, d, $
-			if $motion.time >= run.end: $motion.rewind(
+			if $motion.action !== run || d != $motion.toward
+				$motion = RunMotion(run, d, $
+			$motion.time >= run.end && $motion.rewind(
 			$ready = action
 			action.rewind(
 			$placement.position = $placement.position + d
@@ -437,14 +452,18 @@ $Player = Class() :: @
 		$ready = null
 	, @
 		speed = 2.0 / 64.0
-		if $left: $ball.position.x = $ball.position.x - speed * $end
-		if $right: $ball.position.x = $ball.position.x + speed * $end
+		if $left
+			$ball.position.x = $ball.position.x - speed * $end
+		if $right
+			$ball.position.x = $ball.position.x + speed * $end
 		es = $end * $stage.side
 		xes = $ball.position.x * es
 		center = 12 * 0.0254
 		wide = 14 * 12 * 0.0254
-		if xes < center: $ball.position.x = center * es
-		if xes > wide: $ball.position.x = wide * es
+		if xes < center
+			$ball.position.x = center * es
+		if xes > wide
+			$ball.position.x = wide * es
 		$ball.position.y = 0.875
 		$ball.velocity = Vector3(0.0, 0.0, 0.0
 		$ball.spin = Vector3(0.0, 0.0, 0.0
@@ -469,8 +488,10 @@ $Player = Class() :: @
 			$ball.position.z = $placement.position.z
 			$ball.velocity = Vector3(0.0, 0.0, 0.0
 			$transit($state_serve_set
-		if $left: $placement.toward.x = $placement.toward.x - 1.0 / 64.0 * $end
-		if $right: $placement.toward.x = $placement.toward.x + 1.0 / 64.0 * $end
+		if $left
+			$placement.toward.x = $placement.toward.x - 1.0 / 64.0 * $end
+		if $right
+			$placement.toward.x = $placement.toward.x + 1.0 / 64.0 * $end
 		$placement.valid = false
 		$motion(
 	, @(shot)
@@ -490,8 +511,8 @@ $Player = Class() :: @
 				$ball.hitter = $
 				$stage.sound_hit.play(
 		$motion(
-		if $motion.time < $motion.end: return
-		if !$ball.done && $ball.hitter === null: $ball.emit_serve_air(
+		$motion.time < $motion.end && return
+		!$ball.done && $ball.hitter === null && $ball.emit_serve_air(
 		$motion.action.merge($
 		$transit($state_default
 	, @(shot)
@@ -511,7 +532,8 @@ $Player = Class() :: @
 				nh = (36 + 42) * 0.5 * 0.0254 + $ball.radius
 				if b < nh
 					vm = math.sqrt(G * (d - n) * n * 0.5 / (nh - b)
-					if vm < speed: speed = vm
+					if vm < speed
+						speed = vm
 				d = d - ball.x * 2.0
 				speed = speed - ball.x * 0.125
 				dx = v.x + v.z * ball.z * 0.0625
@@ -520,7 +542,7 @@ $Player = Class() :: @
 				$ball.hit($
 				$stage.sound_hit.play(
 		$motion(
-		if $motion.time < $motion.end: return
+		$motion.time < $motion.end && return
 		$motion.action.merge($
 		$transit($state_default
 	$state_swing = State(@
@@ -551,7 +573,7 @@ $Player = Class() :: @
 				$ball.hit($
 				$stage.sound_hit.play(
 		$motion(
-		if $motion.time < $motion.end: return
+		$motion.time < $motion.end && return
 		$motion.action.merge($
 		$transit($state_default
 	, @(shot)

@@ -12,7 +12,7 @@ reach_range = player.reach_range
 shot_direction = player.shot_direction
 Player = player.Player
 
-random = @() Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]
+random = @ Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]
 
 $__get_at = @(stage) @(controller, player)
 	ball = stage.ball
@@ -52,7 +52,8 @@ $__get_at = @(stage) @(controller, player)
 					swing = player.actions.serve.swing.(shot)
 					t = ball.projected_time_for_y(swing.spot[13], 1.0
 					dt = stage.second ? 0.0 : 1.0
-					if random() % 2 == 0: dt = dt + 1.0
+					if random() % 2 == 0
+						dt = dt + 1.0
 					if t < (swing.impact - swing.start) * 60.0 + dt
 						:net = random() % 10 > (stage.second ? 7 : 4)
 						player.do(shot
@@ -68,7 +69,8 @@ $__get_at = @(stage) @(controller, player)
 		else if ball.hitter.end == player.end
 			if !decided0
 				:decided0 = true
-				if !net: :net = random() % 10 > 6
+				if !net
+					:net = random() % 10 > 6
 			player.reset(
 			point = Vector3(ball.position.x, 0.0, ball.position.z
 			side0 = Vector3(-(13 * 12 + 6) * 0.0254, 0.0, 21 * 12 * 0.0254 * player.end
@@ -129,7 +131,8 @@ $__get_at = @(stage) @(controller, player)
 					iz = swing.spot[14]
 					t0 = 0.0
 					t = projected_time_for_y(position.y, velocity.y, swing.spot[13], 1.0
-					if t === null: t = velocity.y / G
+					if t === null
+						t = velocity.y / G
 			if swing === null
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand
 				swing = (net && !ball.in ? hand.volley.middle : hand.stroke).(shot)
@@ -146,17 +149,20 @@ $__get_at = @(stage) @(controller, player)
 					point = player.placement.position - Vector3(-v.z, 0.0, v.x) * ix + v * iz
 					t = reach_range(position, velocity, point, player.speed, 0.0, -1.0) + 1.0
 					tt = projected_time_for_y(position.y, velocity.y, swing.spot[13] + 1.0, 1.0
-					if tt !== null && tt > t: t = tt
+					if tt !== null && tt > t
+						t = tt
 				else
 					t = projected_time_for_y(position.y, velocity.y, 1.25, -1.0
-					if t === null: t = velocity.y / G
+					if t === null
+						t = velocity.y / G
 			point = Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t
 			v = shot_direction(point, player.end, left, right, forward, backward
 			v.normalize(
 			point = player.placement.position - Vector3(-v.z, 0.0, v.x) * ix + v * iz
 			tt = t0 + t
 			t1 = t0 + reach_range(position, velocity, point, player.speed, t0, 1.0)
-			if t1 >= 0.0 && t1 < tt: tt = t1
+			if t1 >= 0.0 && t1 < tt
+				tt = t1
 			if tt < -1.0
 			else if (ball.in || bound_position.x > -(13 * 12 + 6) * 0.0254 - 0.125 && bound_position.x < (13 * 12 + 6) * 0.0254 + 0.125 && bound_position.z * player.end < 39 * 12 * 0.0254 + 0.5) && tt < (swing.impact - swing.start) * 60.0 + 1.0
 				player.reset(

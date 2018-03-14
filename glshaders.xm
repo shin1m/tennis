@@ -189,7 +189,7 @@ compile = @(type, source)
 	shader = gl.Shader(type
 	shader.source(source
 	shader.compile(
-	if shader.get_parameteri(gl.COMPILE_STATUS) == gl.FALSE: throw Throwable(source + shader.get_info_log()
+	shader.get_parameteri(gl.COMPILE_STATUS) == gl.FALSE && throw Throwable(source + shader.get_info_log()
 	shader
 $compile = compile
 
@@ -198,44 +198,11 @@ link = @(vshader, fshader)
 	program.attach_shader(vshader
 	program.attach_shader(fshader
 	program.link(
-	if program.get_parameteri(gl.LINK_STATUS) == gl.FALSE: throw Throwable(program.get_info_log(
+	program.get_parameteri(gl.LINK_STATUS) == gl.FALSE && throw Throwable(program.get_info_log(
 	program
 $link = link
 
 $__call = Class() :: @
-	$__initialize = @
-		$_vertex_shader = null
-		$_vertex_shader_texture = null
-		$_vertex_shader_normal = null
-		$_vertex_shader_normal_texture = null
-		$_constant_shader_color = null
-		$_constant_shader_texture = null
-		$_constant_color = null
-		$_constant_texture = null
-		$_blinn_shader_color = null
-		$_blinn_shader_texture = null
-		$_blinn_color = null
-		$_blinn_texture = null
-		$_lambert_shader_color = null
-		$_lambert_shader_texture = null
-		$_lambert_color = null
-		$_lambert_texture = null
-		$_phong_shader_color = null
-		$_phong_shader_texture = null
-		$_phong_color = null
-		$_phong_texture = null
-		$_skins_shader_normal = {
-		$_skins_shader_normal_texture = {
-		$_SkinColorShaders = {
-		$_SkinDiffuseColorShaders = {
-		$_SkinDiffuseColorSpecularShaders = {
-		$_SkinDiffuseColorSpecularRefractionShaders = {
-		$_skins_color = {
-		$_SkinTextureShaders = {
-		$_SkinDiffuseTextureShaders = {
-		$_SkinDiffuseTextureSpecularShaders = {
-		$_SkinDiffuseTextureSpecularRefractionShaders = {
-		$_skins_texture = {
 	vertex_shader = @(defines)
 		compile(gl.VERTEX_SHADER, defines + "
 uniform mat4 projection;
@@ -254,12 +221,6 @@ void main()
 #endif
 }
 "
-	$vertex_shader = @
-		if $_vertex_shader === null: $_vertex_shader = vertex_shader(""
-		$_vertex_shader
-	$vertex_shader_texture = @
-		if $_vertex_shader_texture === null: $_vertex_shader_texture = vertex_shader("#define USE_TEXTURE"
-		$_vertex_shader_texture
 	vertex_shader_normal = @(defines)
 		compile(gl.VERTEX_SHADER, defines + "
 uniform mat4 projection;
@@ -282,12 +243,6 @@ void main()
 #endif
 }
 "
-	$vertex_shader_normal = @
-		if $_vertex_shader_normal === null: $_vertex_shader_normal = vertex_shader_normal(""
-		$_vertex_shader_normal
-	$vertex_shader_normal_texture = @
-		if $_vertex_shader_normal_texture === null: $_vertex_shader_normal_texture = vertex_shader_normal("#define USE_TEXTURE"
-		$_vertex_shader_normal_texture
 	constant_shader = @(defines)
 		compile(gl.FRAGMENT_SHADER, defines + "
 #ifdef GL_ES
@@ -313,18 +268,6 @@ void main()
 #endif
 }
 "
-	$constant_shader_color = @
-		if $_constant_shader_color === null: $_constant_shader_color = constant_shader(""
-		$_constant_shader_color
-	$constant_shader_texture = @
-		if $_constant_shader_texture === null: $_constant_shader_texture = constant_shader("#define USE_TEXTURE"
-		$_constant_shader_texture
-	$constant_color = @
-		if $_constant_color === null: $_constant_color = ColorShader(link($vertex_shader(), $constant_shader_color()
-		$_constant_color
-	$constant_texture = @
-		if $_constant_texture === null: $_constant_texture = TextureShader(link($vertex_shader_texture(), $constant_shader_texture()
-		$_constant_texture
 	blinn_shader = @(defines)
 		compile(gl.FRAGMENT_SHADER, defines + "
 #ifdef GL_ES
@@ -375,18 +318,6 @@ void main()
 	* max(nl, 0.0) + specular * max(D * D * G * F / ne, 0.0);
 }
 "
-	$blinn_shader_color = @
-		if $_blinn_shader_color === null: $_blinn_shader_color = blinn_shader(""
-		$_blinn_shader_color
-	$blinn_shader_texture = @
-		if $_blinn_shader_texture === null: $_blinn_shader_texture = blinn_shader("#define USE_TEXTURE"
-		$_blinn_shader_texture
-	$blinn_color = @
-		if $_blinn_color === null: $_blinn_color = DiffuseColorSpecularRefractionShader(link($vertex_shader_normal(), $blinn_shader_color()
-		$_blinn_color
-	$blinn_texture = @
-		if $_blinn_texture === null: $_blinn_texture = DiffuseTextureSpecularRefractionShader(link($vertex_shader_normal_texture(), $blinn_shader_texture()
-		$_blinn_texture
 	lambert_shader = @(defines)
 		compile(gl.FRAGMENT_SHADER, defines + "
 #ifdef GL_ES
@@ -418,18 +349,6 @@ void main()
 #endif
 }
 "
-	$lambert_shader_color = @
-		if $_lambert_shader_color === null: $_lambert_shader_color = lambert_shader(""
-		$_lambert_shader_color
-	$lambert_shader_texture = @
-		if $_lambert_shader_texture === null: $_lambert_shader_texture = lambert_shader("#define USE_TEXTURE"
-		$_lambert_shader_texture
-	$lambert_color = @
-		if $_lambert_color === null: $_lambert_color = DiffuseColorShader(link($vertex_shader_normal(), $lambert_shader_color()
-		$_lambert_color
-	$lambert_texture = @
-		if $_lambert_texture === null: $_lambert_texture = DiffuseTextureShader(link($vertex_shader_normal_texture(), $lambert_shader_texture()
-		$_lambert_texture
 	phong_shader = @(defines)
 		compile(gl.FRAGMENT_SHADER, defines + "
 #ifdef GL_ES
@@ -466,18 +385,6 @@ void main()
 	* max(dot(normal, light), 0.0) + specular * pow(max(dot(r, eye), 0.0), shininess);
 }
 "
-	$phong_shader_color = @
-		if $_phong_shader_color === null: $_phong_shader_color = phong_shader(""
-		$_phong_shader_color
-	$phong_shader_texture = @
-		if $_phong_shader_texture === null: $_phong_shader_texture = phong_shader("#define USE_TEXTURE"
-		$_phong_shader_texture
-	$phong_color = @
-		if $_phong_color === null: $_phong_color = DiffuseColorSpecularShader(link($vertex_shader_normal(), $phong_shader_color()
-		$_phong_color
-	$phong_texture = @
-		if $_phong_texture === null: $_phong_texture = DiffuseTextureSpecularShader(link($vertex_shader_normal_texture(), $phong_shader_texture()
-		$_phong_texture
 	skin_shader = @(joints, weights, defines)
 		joint = ""
 		weight = ""
@@ -486,7 +393,8 @@ void main()
 			joint = joint + "attribute float joint" + i + ";"
 			weight = weight + "attribute float weight" + i + ";"
 			vertex = vertex + "if (weight" + i + " > 0.0) { vm += vertexMatrices[int(joint" + i + ")] * weight" + i + ";"
-		for i = 1; i < weights; i = i + 1: vertex = vertex + " }"
+		for i = 1; i < weights; i = i + 1
+			vertex = vertex + " }"
 		compile(gl.VERTEX_SHADER, defines + "
 mat3 invert4to3(const in mat4 m) {
 	//float d = m[0][0] * m[1][1] * m[2][2] + m[1][0] * m[2][1] * m[0][2] + m[2][0] * m[0][1] * m[1][2] - m[0][0] * m[2][1] * m[1][2] - m[2][0] * m[1][1] * m[0][2] - m[1][0] * m[0][1] * m[2][2];
@@ -528,55 +436,61 @@ void main()
 #endif
 }
 "
-	$skin_shader_normal = @(joints, weights)
-		key = '(joints, weights
-		if $_skins_shader_normal.has(key): return $_skins_shader_normal[key]
-		$_skins_shader_normal[key] = skin_shader(joints, weights, ""
-	$skin_shader_normal_texture = @(joints, weights)
-		key = '(joints, weights
-		if $_skins_shader_normal_texture.has(key): return $_skins_shader_normal_texture[key]
-		$_skins_shader_normal_texture[key] = skin_shader(joints, weights, "#define USE_TEXTURE"
-	$SkinColorShader = @(n)
-		if $_SkinColorShaders.has(n): return $_SkinColorShaders[n]
-		$_SkinColorShaders[n] = Class(SkinShader(n)) :: WithColor
-	$SkinDiffuseColorShader = @(n)
-		if $_SkinDiffuseColorShaders.has(n): return $_SkinDiffuseColorShaders[n]
-		$_SkinDiffuseColorShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor
-	$SkinDiffuseColorSpecularShader = @(n)
-		if $_SkinDiffuseColorSpecularShaders.has(n): return $_SkinDiffuseColorSpecularShaders[n]
-		$_SkinDiffuseColorSpecularShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular
-	$SkinDiffuseColorSpecularRefractionShader = @(n)
-		if $_SkinDiffuseColorSpecularRefractionShaders.has(n): return $_SkinDiffuseColorSpecularRefractionShaders[n]
-		$_SkinDiffuseColorSpecularRefractionShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction
+	lazy = @(f)
+		g = @
+			x = f(
+			:g = @ x
+			x
+		@ g(
+	lazy_xs = @(f)
+		c = {
+		@(*xs) c.has(xs) ? c[xs] : (c[xs] = f(*xs))
 	skins_color = Object(
-	skins_color.constant = '($SkinColorShader, $constant_shader_color
-	skins_color.blinn = '($SkinDiffuseColorSpecularRefractionShader, $blinn_shader_color
-	skins_color.lambert = '($SkinDiffuseColorShader, $lambert_shader_color
-	skins_color.phong = '($SkinDiffuseColorSpecularShader, $phong_shader_color
-	$skin_color = @(joints, weights, model)
-		key = '(joints, weights, model
-		if $_skins_color.has(key): return $_skins_color[key]
-		factory = skins_color.(model)
-		$_skins_color[key] = factory[0][$](weights)(link($skin_shader_normal(joints, weights), factory[1][$]()
-	$SkinTextureShader = @(n)
-		if $_SkinTextureShaders.has(n): return $_SkinTextureShaders[n]
-		$_SkinTextureShaders[n] = Class(SkinShader(n)) :: WithTexture
-	$SkinDiffuseTextureShader = @(n)
-		if $_SkinDiffuseTextureShaders.has(n): return $_SkinDiffuseTextureShaders[n]
-		$_SkinDiffuseTextureShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture
-	$SkinDiffuseTextureSpecularShader = @(n)
-		if $_SkinDiffuseTextureSpecularShaders.has(n): return $_SkinDiffuseTextureSpecularShaders[n]
-		$_SkinDiffuseTextureSpecularShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular
-	$SkinDiffuseTextureSpecularRefractionShader = @(n)
-		if $_SkinDiffuseTextureSpecularRefractionShaders.has(n): return $_SkinDiffuseTextureSpecularRefractionShaders[n]
-		$_SkinDiffuseTextureSpecularRefractionShaders[n] = Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction
+	skins_color.constant = '('SkinColorShader, 'constant_shader_color
+	skins_color.blinn = '('SkinDiffuseColorSpecularRefractionShader, 'blinn_shader_color
+	skins_color.lambert = '('SkinDiffuseColorShader, 'lambert_shader_color
+	skins_color.phong = '('SkinDiffuseColorSpecularShader, 'phong_shader_color
 	skins_texture = Object(
-	skins_texture.constant = '($SkinTextureShader, $constant_shader_texture
-	skins_texture.blinn = '($SkinDiffuseTextureSpecularRefractionShader, $blinn_shader_texture
-	skins_texture.lambert = '($SkinDiffuseTextureShader, $lambert_shader_texture
-	skins_texture.phong = '($SkinDiffuseTextureSpecularShader, $phong_shader_texture
-	$skin_texture = @(joints, weights, model)
-		key = '(joints, weights, model
-		if $_skins_texture.has(key): return $_skins_texture[key]
-		factory = skins_texture.(model)
-		$_skins_texture[key] = factory[0][$](weights)(link($skin_shader_normal_texture(joints, weights), factory[1][$]()
+	skins_texture.constant = '('SkinTextureShader, 'constant_shader_texture
+	skins_texture.blinn = '('SkinDiffuseTextureSpecularRefractionShader, 'blinn_shader_texture
+	skins_texture.lambert = '('SkinDiffuseTextureShader, 'lambert_shader_texture
+	skins_texture.phong = '('SkinDiffuseTextureSpecularShader, 'phong_shader_texture
+	$__initialize = @
+		$vertex_shader = lazy(@ vertex_shader(""
+		$vertex_shader_texture = lazy(@ vertex_shader("#define USE_TEXTURE"
+		$vertex_shader_normal = lazy(@ vertex_shader_normal(""
+		$vertex_shader_normal_texture = lazy(@ vertex_shader_normal("#define USE_TEXTURE"
+		$constant_shader_color = lazy(@ constant_shader(""
+		$constant_shader_texture = lazy(@ constant_shader("#define USE_TEXTURE"
+		$constant_color = lazy((@ ColorShader(link($vertex_shader(), $constant_shader_color())))[$]
+		$constant_texture = lazy((@ TextureShader(link($vertex_shader_texture(), $constant_shader_texture())))[$]
+		$blinn_shader_color = lazy(@ blinn_shader(""
+		$blinn_shader_texture = lazy(@ blinn_shader("#define USE_TEXTURE"
+		$blinn_color = lazy((@ DiffuseColorSpecularRefractionShader(link($vertex_shader_normal(), $blinn_shader_color())))[$]
+		$blinn_texture = lazy((@ DiffuseTextureSpecularRefractionShader(link($vertex_shader_normal_texture(), $blinn_shader_texture())))[$]
+		$lambert_shader_color = lazy(@ lambert_shader(""
+		$lambert_shader_texture = lazy(@ lambert_shader("#define USE_TEXTURE"
+		$lambert_color = lazy((@ DiffuseColorShader(link($vertex_shader_normal(), $lambert_shader_color())))[$]
+		$lambert_texture = lazy((@ DiffuseTextureShader(link($vertex_shader_normal_texture(), $lambert_shader_texture())))[$]
+		$phong_shader_color = lazy(@ phong_shader(""
+		$phong_shader_texture = lazy(@ phong_shader("#define USE_TEXTURE"
+		$phong_color = lazy((@ DiffuseColorSpecularShader(link($vertex_shader_normal(), $phong_shader_color())))[$]
+		$phong_texture = lazy((@ DiffuseTextureSpecularShader(link($vertex_shader_normal_texture(), $phong_shader_texture())))[$]
+		$skin_shader_normal = lazy_xs(@(joints, weights) skin_shader(joints, weights, ""
+		$skin_shader_normal_texture = lazy_xs(@(joints, weights) skin_shader(joints, weights, "#define USE_TEXTURE"
+		$SkinColorShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithColor
+		$SkinDiffuseColorShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor
+		$SkinDiffuseColorSpecularShader = @(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular
+		$SkinDiffuseColorSpecularRefractionShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction
+		$skin_color = lazy_xs((@(joints, weights, model)
+			factory = skins_color.(model)
+			$.(factory[0])(weights)(link($skin_shader_normal(joints, weights), $.(factory[1])()
+		)[$]
+		$SkinTextureShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithTexture
+		$SkinDiffuseTextureShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture
+		$SkinDiffuseTextureSpecularShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular
+		$SkinDiffuseTextureSpecularRefractionShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction
+		$skin_texture = lazy_xs((@(joints, weights, model)
+			factory = skins_texture.(model)
+			$.(factory[0])(weights)(link($skin_shader_normal_texture(joints, weights), $.(factory[1])()
+		)[$]

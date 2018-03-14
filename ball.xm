@@ -108,7 +108,7 @@ $Ball = Class() :: @
 		dx = $position.x - x0
 		dy = $position.y - y0
 		y = -ey * dx + ex * dy
-		if y > radius: return
+		y > radius && return
 		if y < 0.0
 			$position.z = $velocity.z < 0.0 ? radius : -radius
 			$velocity.z = $velocity.z * -1.0
@@ -119,9 +119,11 @@ $Ball = Class() :: @
 			$position.x = x0 + ex * x - ey * radius
 			$position.y = y0 + ey * x + ex * radius
 			if $velocity.z < 0.0
-				if $position.z < 0.0: $position.z = 0.0
+				if $position.z < 0.0
+					$position.z = 0.0
 			else
-				if $position.z > 0.0: $position.z = 0.0
+				if $position.z > 0.0
+					$position.z = 0.0
 			v = Vector3(ex, ey, 0.0
 			p = Vector3(dx, dy, $position.z
 			n = p ^ v
@@ -135,7 +137,7 @@ $Ball = Class() :: @
 			$stage.ball_chip(
 		$net = true
 	$netin = @
-		if $position.x < -21 * 12 * 0.0254: return
+		$position.x < -21 * 12 * 0.0254 && return
 		if $position.x < -0.0254
 			$netin_part(-21 * 12 * 0.0254, (3 * 12 + 6) * 0.0254, -0.0254, 3 * 12 * 0.0254
 		else if $position.x < 0.0254
@@ -154,8 +156,8 @@ $Ball = Class() :: @
 	$emit_serve_air = @
 		$done = true
 		$stage.ball_serve_air(
-	$emit_bounce = @() $stage.ball_bounce(
-	$wall = @ if !$done: $in ? $emit_ace() : $emit_out()
+	$emit_bounce = @ $stage.ball_bounce(
+	$wall = @ $done || ($in ? $emit_ace() : $emit_out())
 	rally = '(-(13 * 12 + 6) * 0.0254, (13 * 12 + 6) * 0.0254, -39 * 12 * 0.0254
 	$step = @
 		last = $position
@@ -187,31 +189,31 @@ $Ball = Class() :: @
 						else
 							$stage.ball_in(
 							$target = rally
-			if $velocity.y > 1.0 / 64.0: $emit_bounce(
+			$velocity.y > 1.0 / 64.0 && $emit_bounce(
 		if $position.x - radius <= -30 * 12 * 0.0254
 			$position.x = radius - 30 * 12 * 0.0254
 			$velocity.x = $velocity.x * -0.5
 			$wall(
-			if math.fabs($velocity.x) > 1.0 / 64.0: $emit_bounce(
+			math.fabs($velocity.x) > 1.0 / 64.0 && $emit_bounce(
 		else if $position.x + radius >= 30 * 12 * 0.0254
 			$position.x = 30 * 12 * 0.0254 - radius
 			$velocity.x = $velocity.x * -0.5
 			$wall(
-			if math.fabs($velocity.x) > 1.0 / 64.0: $emit_bounce(
+			math.fabs($velocity.x) > 1.0 / 64.0 && $emit_bounce(
 		if $position.z - radius <= -60 * 12 * 0.0254
 			$position.z = radius - 60 * 12 * 0.0254
 			$velocity.z = $velocity.z * -0.5
 			$wall(
-			if math.fabs($velocity.z) > 1.0 / 64.0: $emit_bounce(
+			math.fabs($velocity.z) > 1.0 / 64.0 && $emit_bounce(
 		else if $position.z + radius >= 60 * 12 * 0.0254
 			$position.z = 60 * 12 * 0.0254 - radius
 			$velocity.z = $velocity.z * -0.5
 			$wall(
-			if math.fabs($velocity.z) > 1.0 / 64.0: $emit_bounce(
+			math.fabs($velocity.z) > 1.0 / 64.0 && $emit_bounce(
 		if $velocity.z < 0.0
-			if last.z > radius && $position.z <= radius: $netin(
+			last.z > radius && $position.z <= radius && $netin(
 		else
-			if last.z < -radius && $position.z >= -radius: $netin(
+			last.z < -radius && $position.z >= -radius && $netin(
 	$set = @(hitter)
 		$hitter = hitter
 		$in = $net = false
@@ -224,15 +226,14 @@ $Ball = Class() :: @
 		x1 = -(13 * 12 + 6) * 0.0254 * side
 		$target = serving ? '(x0 < x1 ? x0 : x1, x0 < x1 ? x1 : x0, -21 * 12 * 0.0254) : rally
 		$set(null
-	$hit = @(hitter)
-		if $done: return
+	$hit = @(hitter) if !$done
 		if $target === rally
 			$set(hitter
 		else
 			$target = rally
 			$hitter = hitter
 			$emit_miss(
-	$serving = @() $target !== rally
+	$serving = @ $target !== rally
 	$impact = @(dx, dz, speed, vy, spin)
 		dl = 1.0 / math.sqrt(dx * dx + dz * dz)
 		dx = dx * dl
@@ -246,8 +247,10 @@ $Ball = Class() :: @
 		v1x = v0.x + radius * w0.z
 		v1z = v0.z - radius * w0.x
 		e = 1.25 + v0.y * 10.0
-		if e < 0.25: e = 0.0
-		if e > 1.0: e = 1.0
+		if e < 0.25
+			e = 0.0
+		if e > 1.0
+			e = 1.0
 		b = (e + 2.0 / 3.0) * radius
 		w1x = (1.0 - e) * v0.z + b * w0.x + f * v1z
 		w1z = (e - 1.0) * v0.x + b * w0.z - f * v1x
@@ -257,7 +260,7 @@ $Ball = Class() :: @
 		d = 3.0 / 5.0 / radius
 		spin.x = w1x * d
 		spin.z = w1z * d
-	$bounce = @() $calculate_bounce($velocity, $spin
+	$bounce = @ $calculate_bounce($velocity, $spin
 	$projected_time_for_y = @(y, sign) projected_time_for_y($position.y, $velocity.y, y, sign
 	$projected_y_in = @(t) $position.y + ($velocity.y - 0.5 * G * t) * t
 	$create_record = @
@@ -286,14 +289,15 @@ $Mark = Class() :: @
 		$scale = collada.Scale(radius, 1.0, radius
 		$node.transforms.push($scale
 		node__render = $node.render
-		$node.render = (@(projection, viewing, joints)
-			if $duration > 0: node__render(projection, viewing, joints
+		$node.render = (@(projection, viewing, joints) if $duration > 0
+			node__render(projection, viewing, joints
 		)[$]
 		stage.scene.scene.instance_visual_scene._scene.nodes.push($node
 	$setup = @
 		$placement.validate(
 		$scale.z = radius * $stretch
-	$step = @() if $duration > 0: $duration = $duration - 1
+	$step = @ if $duration > 0
+		$duration = $duration - 1
 	$mark = @(ball)
 		$duration = 2 * 64
 		$placement.position.x = ball.position.x

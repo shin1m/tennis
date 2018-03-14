@@ -28,11 +28,11 @@ $Stage = Class() :: @
 		o.render = render
 		o
 
-	$ball_bounce = @() $sound_bounce.play(
-	$ball_in = @() $mark.mark($ball
-	$ball_net = @() $sound_net.play(
-	$ball_chip = @() $sound_chip.play(
-	$ball_miss = @() $ball.serving() ? $serve_miss() : $miss("MISS")
+	$ball_bounce = @ $sound_bounce.play(
+	$ball_in = @ $mark.mark($ball
+	$ball_net = @ $sound_net.play(
+	$ball_chip = @ $sound_chip.play(
+	$ball_miss = @ $ball.serving() ? $serve_miss() : $miss("MISS")
 	$ball_out = @
 		$mark.mark($ball
 		$ball.serving() ? $serve_miss() : $miss("OUT")
@@ -93,20 +93,20 @@ $Stage = Class() :: @
 		$player0.opponent = $player1
 		$player1.opponent = $player0
 		$state_ready = $State(@
-			if $duration <= 0: return $transit_play(
+			$duration > 0 || return $transit_play(
 			$duration = $duration - 1
 		, {
-			xraft.Key.RETURN: @() $transit_play(
-			xraft.Key.ESCAPE: @() $back(
+			xraft.Key.RETURN: @ $transit_play(
+			xraft.Key.ESCAPE: @ $back(
 		}, {}, @(width, height)
 		$state_play = $State(@
 			$step_things(
-			if !$ball.done: return
-			if $duration <= 0: return $next(
+			$ball.done || return
+			$duration > 0 || return $next(
 			$duration = $duration - 1
 		, {
-			xraft.Key.RETURN: @() $next(
-			xraft.Key.ESCAPE: @() $back(
+			xraft.Key.RETURN: @ $next(
+			xraft.Key.ESCAPE: @ $back(
 		}, {}, @(width, height)
 		controller0[$]($state_play, $player0
 		controller1[$]($state_play, $player1
@@ -121,18 +121,18 @@ $Stage = Class() :: @
 		$scene.destroy(
 		$player0.scene.destroy(
 		$player1.scene.destroy(
-	$step = @() $state.step[$](
+	$step = @ $state.step[$](
 	$render = @(width, height)
 		gl.viewport(0, 0, width, height
 		t0 = time.now()
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
-		if print_time: print("\tclear: " + (time.now() - t0)
+		print_time && print("\tclear: " + (time.now() - t0)
 		$ball.setup(
 		$mark.setup(
 		$player0.setup(
 		$player1.setup(
 		gl.enable(gl.DEPTH_TEST
-		if $dual: gl.viewport(0, 0, width / 2, height
+		$dual && gl.viewport(0, 0, width / 2, height
 		pw = width * ($dual ? 0.5 : 1.0) / height
 		ph = 1.0
 		if pw < 0.75
@@ -154,6 +154,6 @@ $Stage = Class() :: @
 			:y = y - 1.0
 		)[$]
 		$state.render[$](width, height
-		if print_time: print("\ttext: " + (time.now() - t0)
+		print_time && print("\ttext: " + (time.now() - t0)
 	$key_press = @(modifier, key, ascii) $state.key_press.has(key) && $state.key_press[key][$]()
 	$key_release = @(modifier, key, ascii) $state.key_release.has(key) && $state.key_release[key][$]()

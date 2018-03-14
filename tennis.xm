@@ -31,14 +31,14 @@ Container = Class() :: @
 		$content = null
 		$transit_from = null
 	$destroy = @
-		if $transit_from !== null && $transit_from.?destroy: $transit_from.destroy(
-		if $content !== null && $content.?destroy: $content.destroy(
+		$transit_from !== null && $transit_from.?destroy && $transit_from.destroy(
+		$content !== null && $content.?destroy && $content.destroy(
 	$step = @
 		if $transit_from !== null
 			if $t < $duration
 				$t = $t + 1
 			else
-				if $transit_from.?destroy: $transit_from.destroy(
+				$transit_from.?destroy && $transit_from.destroy(
 				$transit_from = null
 		$content.step(
 	$render = @(viewing)
@@ -46,7 +46,7 @@ Container = Class() :: @
 			t = Float($t) / $duration
 			$transit_from.render(Matrix4(viewing).translate($slide * t, 0.0, 0.0
 			viewing = Matrix4(viewing).translate($slide * (t - 1.0), 0.0, 0.0
-		if $content !== null: $content.render(viewing
+		$content !== null && $content.render(viewing
 	$key_press = @(key) $transit_from === null && $content !== null && $content.key_press(key)
 	$transit = @(content, slide)
 		$transit_from = $content
@@ -81,26 +81,26 @@ Menu = Class() :: @
 			viewing = Matrix4(:viewing).translate(x - text.size() * 0.25, y, 0.0).bytes
 			$main.font($main.projection, viewing, text
 			:i = i + 1
-			if i % n != 0: return
+			i % n == 0 || return
 			:x = x + dx
 			:y = 0.0
 		)[$]
 	$select = @(i)
 		$selected = i
 		$main.sound_cursor.play(
-	$up = @() if $selected > 0: $select($selected - 1
-	$down = @() if $selected < $items.size() - 1: $select($selected + 1
+	$up = @ $selected > 0 && $select($selected - 1
+	$down = @ $selected < $items.size() - 1 && $select($selected + 1
 	$left = @
 		n = ($items.size() + $columns - 1) / $columns
-		if $selected >= n: $select($selected - n
+		$selected >= n && $select($selected - n
 	$right = @
 		n = ($items.size() + $columns - 1) / $columns
-		if $selected < $items.size() - n: $select($selected + n
+		$selected < $items.size() - n && $select($selected + n
 	$do = @
 		$main.sound_select.play(
 		$items[$selected].do(
 	$keys = keys = {
-		xraft.Key.ESCAPE: @() $back(
+		xraft.Key.ESCAPE: @ $back(
 		xraft.Key.RETURN: $do
 		xraft.Key.SPACE: $do
 		xraft.Key.D2: $do
@@ -112,7 +112,7 @@ Menu = Class() :: @
 		xraft.Key.F: $right
 		xraft.Key.E: $up
 		xraft.Key.C: $down
-	$key_press = @(key) if keys.has(key): keys[key][$](
+	$key_press = @(key) keys.has(key) && keys[key][$](
 
 Match = Class(stage.Stage) :: @
 	$new_game = @
@@ -124,7 +124,7 @@ Match = Class(stage.Stage) :: @
 		$receiver = games % 2 == 0 ? $player1 : $player0
 	$point = @(player)
 		player.point = player.point + 1
-		if player.point < 4 || player.point - player.opponent.point < 2: return
+		(player.point < 4 || player.point - player.opponent.point < 2) && return
 		player.game = player.game + 1
 		if player.game < 6 || player.game - player.opponent.game < 2
 			$new_game(
@@ -177,8 +177,8 @@ Match = Class(stage.Stage) :: @
 	state_close = $State(@
 		$step_things(
 	, {
-		xraft.Key.RETURN: @() $new_set(
-		xraft.Key.ESCAPE: @() $back(
+		xraft.Key.RETURN: @ $new_set(
+		xraft.Key.ESCAPE: @ $back(
 	}, {}, @(width, height)
 	$transit_close = @
 		$player0.reset(
@@ -196,9 +196,9 @@ Match = Class(stage.Stage) :: @
 		$state = $state_play
 		$message = [
 	state_replay = $State(@
-		if $duration <= 0: return $next(
+		$duration > 0 || return $next(
 		$duration = $duration - 1
-		if $duration % 2 == 0: return
+		$duration % 2 == 0 && return
 		record = $records.shift(
 		$ball.replay(record.ball
 		$mark.replay(record.mark
@@ -210,8 +210,8 @@ Match = Class(stage.Stage) :: @
 		$camera1.position = Vector3(($ball.position.x + $ball.hitter.opponent.root_position().x) * 0.5, 4.0, ($ball.position.z + 40.0 * $ball.hitter.end) * 0.5
 		$camera1.toward = Vector3(0.0, -6.0, -40.0 * $ball.hitter.end
 	, {
-		xraft.Key.RETURN: @() $next(
-		xraft.Key.ESCAPE: @() $back(
+		xraft.Key.RETURN: @ $next(
+		xraft.Key.ESCAPE: @ $back(
 	}, {}, @(width, height)
 	$transit_replay = @
 		$state = state_replay
@@ -257,7 +257,7 @@ Match = Class(stage.Stage) :: @
 		$new_game(
 		$transit_ready(
 	$next = @
-		if !$ball.done: return
+		$ball.done || return
 		if $second || $ball.serving() && $ball.in && $ball.net
 			$reset(
 			$message = [
@@ -274,7 +274,7 @@ Training = Class(stage.Stage) :: @
 		o.play = play
 		o
 
-	$ball_ace = @() $duration = 32
+	$ball_ace = @ $duration = 32
 	$ball_let = @
 		$mark.mark($ball
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
@@ -293,7 +293,7 @@ Training = Class(stage.Stage) :: @
 		$sound_miss.play(
 	$ball_in = @
 		$mark.mark($ball
-		if $ball.hitter !== $player0: return
+		$ball.hitter === $player0 || return
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
 		$message = ["IN"
 	$step_things = @
@@ -305,7 +305,8 @@ Training = Class(stage.Stage) :: @
 		:$^__initialize[$](main, true, false, controller0, player0, @(controller, player)
 			super__step = controller.step[$]
 			controller.step = @
-				if player.state !== Player.state_swing: player.left = player.right = player.forward = player.backward = false
+				if player.state !== Player.state_swing
+					player.left = player.right = player.forward = player.backward = false
 				super__step(
 		, player1
 		{
@@ -329,7 +330,7 @@ Training = Class(stage.Stage) :: @
 			"     TOPSPIN * FLAT     "
 			"           SLICE        "
 		$menu.items = '(
-			Item(" SERVE ", (@() $transit_ready())[$], (@
+			Item(" SERVE ", (@ $transit_ready())[$], (@
 				$ball.reset($side, 2 * 12 * 0.0254 * $side, 0.875, 39 * 12 * 0.0254
 				$mark.duration = 0
 				$player0.reset(1.0, Player.state_serve_set
@@ -350,29 +351,29 @@ Training = Class(stage.Stage) :: @
 					"       SLICE       "
 				$duration = 0
 			)[$], @
-			Item(" STROKE", (@() $transit_ready())[$], (@
+			Item(" STROKE", (@ $transit_ready())[$], (@
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.0 - 3.2 * $side) * 12 * 0.0254, 0.0, 39 * 12 * 0.0254), 'toss
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0
 				$message = toss_message
 				$duration = 32
-			)[$], (@() $toss('toss))[$]
-			Item(" VOLLEY", (@() $transit_ready())[$], (@
+			)[$], (@ $toss('toss))[$]
+			Item(" VOLLEY", (@ $transit_ready())[$], (@
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.1 - 2.0 * $side) * 12 * 0.0254, 0.0, 13 * 12 * 0.0254), 'toss
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0
 				$message = toss_message
 				$duration = 32
-			)[$], (@() $toss('toss))[$]
-			Item(" SMASH ", (@() $transit_ready())[$], (@
+			)[$], (@ $toss('toss))[$]
+			Item(" SMASH ", (@ $transit_ready())[$], (@
 				$reset(3 * 12 * 0.0254 * $side, 1.0, -39 * 12 * 0.0254, Vector3((0.4 - 0.4 * $side) * 12 * 0.0254, 0.0, 9 * 12 * 0.0254), 'toss_lob
 				$text_viewing = Matrix4().translate(0.0, -0.5, 0.0).scale(1.5 / 16.0, 1.5 / 16.0, 1.0
 				$message = toss_message
 				$duration = 32
-			)[$], (@() $toss('toss_lob))[$]
+			)[$], (@ $toss('toss_lob))[$]
 		keys = {
-		Menu.keys.each(@(key, value) keys[key] = @() value[$menu](
+		Menu.keys.each(@(key, value) keys[key] = @ value[$menu](
 		$state_select = $State(@{}, keys, {}, @(width, height) $menu.render(Matrix4($main.text_scale).translate(0.0, 0.5, 0.0
 		$transit_select(
-	$next = @() if $ball.done: $transit_ready(
+	$next = @ $ball.done && $transit_ready(
 	$reset = @(x, y, z, position, shot)
 		$ball.reset($side, x, y, z, false
 		$mark.duration = 0
@@ -389,7 +390,7 @@ Training = Class(stage.Stage) :: @
 		$player1.placement.valid = false
 		$player1.motion = Player.Motion($player1.actions.swing.(shot)
 		$player1.transit(Player.state_swing
-	$back = @() $transit_select(
+	$back = @ $transit_select(
 	$transit_play = @
 		$state = $state_play
 		$menu.items[$menu.selected].play(
@@ -414,51 +415,51 @@ Training = Class(stage.Stage) :: @
 
 controller0 = @(controller, player)
 	{
-		xraft.Key.D1: @() player.do('topspin
-		xraft.Key.D2: @() player.do('flat
-		xraft.Key.VOLUMEUP: @() player.do('lob
-		xraft.Key.VOLUMEDOWN: @() player.do('slice
-		xraft.Key.LEFT: @() player.left = true
-		xraft.Key.RIGHT: @() player.right = true
-		xraft.Key.UP: @() player.forward = true
-		xraft.Key.DOWN: @() player.backward = true
-		xraft.Key.SPACE: @() player.do('flat
-		xraft.Key.J: @() player.do('topspin
-		xraft.Key.L: @() player.do('flat
-		xraft.Key.I: @() player.do('lob
-		xraft.Key.M: @() player.do('slice
-		xraft.Key.S: @() player.left = true
-		xraft.Key.F: @() player.right = true
-		xraft.Key.E: @() player.forward = true
-		xraft.Key.C: @() player.backward = true
+		xraft.Key.D1: @ player.do('topspin
+		xraft.Key.D2: @ player.do('flat
+		xraft.Key.VOLUMEUP: @ player.do('lob
+		xraft.Key.VOLUMEDOWN: @ player.do('slice
+		xraft.Key.LEFT: @ player.left = true
+		xraft.Key.RIGHT: @ player.right = true
+		xraft.Key.UP: @ player.forward = true
+		xraft.Key.DOWN: @ player.backward = true
+		xraft.Key.SPACE: @ player.do('flat
+		xraft.Key.J: @ player.do('topspin
+		xraft.Key.L: @ player.do('flat
+		xraft.Key.I: @ player.do('lob
+		xraft.Key.M: @ player.do('slice
+		xraft.Key.S: @ player.left = true
+		xraft.Key.F: @ player.right = true
+		xraft.Key.E: @ player.forward = true
+		xraft.Key.C: @ player.backward = true
 	}.each(@(key, value) controller.key_press[key] = value
 	{
-		xraft.Key.LEFT: @() player.left = false
-		xraft.Key.RIGHT: @() player.right = false
-		xraft.Key.UP: @() player.forward = false
-		xraft.Key.DOWN: @() player.backward = false
-		xraft.Key.S: @() player.left = false
-		xraft.Key.F: @() player.right = false
-		xraft.Key.E: @() player.forward = false
-		xraft.Key.C: @() player.backward = false
+		xraft.Key.LEFT: @ player.left = false
+		xraft.Key.RIGHT: @ player.right = false
+		xraft.Key.UP: @ player.forward = false
+		xraft.Key.DOWN: @ player.backward = false
+		xraft.Key.S: @ player.left = false
+		xraft.Key.F: @ player.right = false
+		xraft.Key.E: @ player.forward = false
+		xraft.Key.C: @ player.backward = false
 	}.each(@(key, value) controller.key_release[key] = value
 
 controller1 = @(controller, player)
 	{
-		xraft.Key.D7: @() player.do('topspin
-		xraft.Key.D9: @() player.do('flat
-		xraft.Key.COMMA: @() player.do('lob
-		xraft.Key.PERIOD: @() player.do('slice
-		xraft.Key.D4: @() player.left = true
-		xraft.Key.D6: @() player.right = true
-		xraft.Key.D8: @() player.forward = true
-		xraft.Key.D5: @() player.backward = true
+		xraft.Key.D7: @ player.do('topspin
+		xraft.Key.D9: @ player.do('flat
+		xraft.Key.COMMA: @ player.do('lob
+		xraft.Key.PERIOD: @ player.do('slice
+		xraft.Key.D4: @ player.left = true
+		xraft.Key.D6: @ player.right = true
+		xraft.Key.D8: @ player.forward = true
+		xraft.Key.D5: @ player.backward = true
 	}.each(@(key, value) controller.key_press[key] = value
 	{
-		xraft.Key.D4: @() player.left = false
-		xraft.Key.D6: @() player.right = false
-		xraft.Key.D8: @() player.forward = false
-		xraft.Key.D5: @() player.backward = false
+		xraft.Key.D4: @ player.left = false
+		xraft.Key.D6: @ player.right = false
+		xraft.Key.D8: @ player.forward = false
+		xraft.Key.D5: @ player.backward = false
 	}.each(@(key, value) controller.key_release[key] = value
 
 Background = Class(Container) :: @
@@ -519,31 +520,33 @@ StageMenu = Class(Titled) :: @
 		$player0.back = back
 		$player0.items = [
 		$player1 = Menu(screen.main, 2
-		$player1.back = (@() $transit($player0, 2.0 * $main.aspect))[$]
+		$player1.back = (@ $transit($player0, 2.0 * $main.aspect))[$]
 		$player1.items = [
 		screen.players.each((@(x)
-			$player0.items.push(Menu.Item(x.name, (@() $transit($player1, -2.0 * $main.aspect))[$]
-			$player1.items.push(Menu.Item(x.name, (@() $transit($ready, -2.0 * $main.aspect))[$]
+			$player0.items.push(Menu.Item(x.name, (@ $transit($player1, -2.0 * $main.aspect))[$]
+			$player1.items.push(Menu.Item(x.name, (@ $transit($ready, -2.0 * $main.aspect))[$]
 		)[$]
 		$ready = Menu(screen.main
-		$ready.back = (@() $transit($player1, 2.0 * $main.aspect))[$]
-		$ready.items = '(Menu.Item("START", (@() done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]
+		$ready.back = (@ $transit($player1, 2.0 * $main.aspect))[$]
+		$ready.items = '(Menu.Item("START", (@ done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]
 		$content = $player0
 	$render = @(viewing)
 		:$^render[$](viewing
 		message = $player0.items[$player0.selected].label
-		if $content === $player0: message = message + "?"
+		if $content === $player0
+			message = message + "?"
 		message = message + " vs " + $player1.items[$player1.selected].label
-		if $content === $player1: message = message + "?"
+		if $content === $player1
+			message = message + "?"
 		v = (viewing * $main.text_scale).translate(0.0, 0.25, 0.0).scale(1.0 / 4.0, 1.0 / 4.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes
 		$main.font($main.projection, v, message
 
 MainMenu = Class(Titled) :: @
 	$__initialize = @(screen, back)
 		:$^__initialize[$](screen.main, "TENNIS"
-		back2this = @() screen.container.transit(MainMenu(screen, back), 2.0 * screen.main.aspect
+		back2this = @ screen.container.transit(MainMenu(screen, back), 2.0 * screen.main.aspect
 		$content = Menu(screen.main
-		$content.back = @() xraft.application().exit(
+		$content.back = @ xraft.application().exit(
 		$content.items = '(
 			Menu.Item("  1P vs COM  ", (@
 				screen.container.transit(StageMenu(screen, "1P vs COM", (@(player0, player1)
@@ -590,9 +593,9 @@ MainScreen = Class() :: @
 		$main = main
 		$players = load((io.Path(system.script) / "../data/players").__string(
 		$container = Background(main, "data/main-background.jpg", "data/main-background.wav"
-		$container.content = MainMenu($, @() main.screen__(MainScreen(main
-	$destroy = @() $container.destroy(
-	$step = @() $container.step(
+		$container.content = MainMenu($, @ main.screen__(MainScreen(main
+	$destroy = @ $container.destroy(
+	$step = @ $container.step(
 	$render = @(width, height)
 		gl.viewport(0, 0, width, height
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
@@ -623,12 +626,12 @@ Game = Class(xraft.GLWidget) :: @
 		$glcontext.make_current($
 		extent = $geometry(
 		$screen.render(extent.width(), extent.height()
-		if print_time: print("render: " + (time.now() - t0)
+		print_time && print("render: " + (time.now() - t0)
 		t0 = time.now(
 		$glcontext.flush(
-		if print_time: print("flush: " + (time.now() - t0)
+		print_time && print("flush: " + (time.now() - t0)
 	$on_key_press = @(modifier, key, ascii)
-		if key == xraft.Key.Q: return xraft.application().exit(
+		key == xraft.Key.Q && return xraft.application().exit(
 		$glcontext.make_current($
 		$screen.key_press(modifier, key, ascii
 	$on_key_release = @(modifier, key, ascii)
@@ -653,12 +656,12 @@ Game = Class(xraft.GLWidget) :: @
 		$alcontext = alcontext
 		$last = time.now(
 		$timer = xraft.Timer((@
-			if print_time: print("since last: " + (time.now() - $last)
+			print_time && print("since last: " + (time.now() - $last)
 			$last = t0 = time.now(
 			$screen.step(
 			extent = $geometry(
 			$invalidate(0, 0, extent.width(), extent.height()
-			if print_time: print("step: " + (time.now() - t0)
+			print_time && print("step: " + (time.now() - t0)
 		)[$]
 		$sound_cursor = $load_sound("data/cursor.wav"
 		$sound_select = $load_sound("data/select.wav"
@@ -667,13 +670,13 @@ Frame = Class(xraft.Frame) :: @
 	$on_move = @
 		extent = $geometry(
 		$at(0).move(xraft.Rectangle(0, 0, extent.width(), extent.height()
-	$on_focus_enter = @() xraft.application().focus__($at(0
-	$on_close = @() xraft.application().exit(
+	$on_focus_enter = @ xraft.application().focus__($at(0
+	$on_close = @ xraft.application().exit(
 	$__initialize = @(alcontext)
 		:$^__initialize[$](
 		$add(Game(xraft.GLFormat(true, true, false, true), alcontext
 
-xraft.main(system.arguments, @(application) cairo.main(@() gl.main(@() al.main(@
+xraft.main(system.arguments, @(application) cairo.main(@ gl.main(@ al.main(@
 	device = al.Device(null
 	context = device.default_context(
 	frame = Frame(context

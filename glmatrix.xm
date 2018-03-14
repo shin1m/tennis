@@ -15,9 +15,11 @@ Matrix = @(N) Class() :: @
 		v = Float32Array(I
 		for i = 0; i < N; i = i + 1
 			r = i * N
-			for j = 0; j < i; j = j + 1: v[r + j] = 0.0
+			for j = 0; j < i; j = j + 1
+				v[r + j] = 0.0
 			v[r + i] = 1.0
-			for j = i + 1; j < N; j = j + 1: v[r + j] = 0.0
+			for j = i + 1; j < N; j = j + 1
+				v[r + j] = 0.0
 	)(
 	Icopy = I.copy
 	LU = Class() :: @
@@ -26,7 +28,8 @@ Matrix = @(N) Class() :: @
 				$i = i
 				$w = 0.0
 				m = Float32Array(bytes, i * NBPE, N
-				for i = 0; i < N; i = i + 1: m[i] = 0.0
+				for i = 0; i < N; i = i + 1
+					m[i] = 0.0
 				$m = m
 			$initialize = @(ds, i)
 				i = i * N
@@ -36,23 +39,27 @@ Matrix = @(N) Class() :: @
 				for j = 1; j < N; j = j + 1
 					m[j] = ds[i + j]
 					d0 = math.fabs(m[j]
-					if d0 > d: d = d0
-				if d == 0.0: return false
+					if d0 > d
+						d = d0
+				d == 0.0 && return false
 				$w = 1.0 / d
 				true
 			$pivot = @(i) $w * math.fabs($m[i]
 			$erase = @(d, i, ds)
 				m = $m
 				m[i] = m[i] / d
-				for j = i + 1; j < N; j = j + 1: m[j] = m[j] - m[i] * ds[j]
+				for j = i + 1; j < N; j = j + 1
+					m[j] = m[j] - m[i] * ds[j]
 
 		$__initialize = @
 			bytes = Bytes(NNBPE
 			columns = [
-			for i = 0; i < N; i = i + 1: columns.push(Column(bytes, i
+			for i = 0; i < N; i = i + 1
+				columns.push(Column(bytes, i
 			$columns = columns
 		$initialize = @(x)
-			for i = 0; i < N; i = i + 1: if !$columns[i].initialize(x, i): return false
+			for i = 0; i < N; i = i + 1
+				$columns[i].initialize(x, i) || return false
 			true
 		$pivot = @(i)
 			columns = $columns
@@ -60,16 +67,17 @@ Matrix = @(N) Class() :: @
 			p = i
 			for j = i + 1; j < N; j = j + 1
 				d0 = columns[j].pivot(i
-				if d0 <= d: continue
+				d0 > d || continue
 				d = d0
 				p = j
 			p
 		$erase = @(i, d)
 			columns = $columns
 			ds = columns[i].m
-			for j = i + 1; j < N; j = j + 1: columns[j].erase(d, i, ds
+			for j = i + 1; j < N; j = j + 1
+				columns[j].erase(d, i, ds
 		$decompose = @(x)
-			if !$initialize(x): return false
+			$initialize(x) || return false
 			for i = 0; i < N - 1; i = i + 1
 				p = $pivot(i
 				if p != i
@@ -77,7 +85,7 @@ Matrix = @(N) Class() :: @
 					$columns[i] = $columns[p]
 					$columns[p] = t
 				d = $columns[i].m[i]
-				if d == 0.0: return false
+				d == 0.0 && return false
 				$erase(i, d
 			$columns[N - 1].m[N - 1] != 0.0
 		$backsubstitute = @(x)
@@ -85,17 +93,19 @@ Matrix = @(N) Class() :: @
 				for i = 0; i < N; i = i + 1
 					ds = $columns[i].m
 					d = $columns[i].i == j ? 1.0 : 0.0
-					for k = 0; k < i; k = k + 1: d = d - ds[k] * x[k * N + j]
+					for k = 0; k < i; k = k + 1
+						d = d - ds[k] * x[k * N + j]
 					x[i * N + j] = d
 				while true
 					i = i - 1
 					ds = $columns[i].m
 					d = x[i * N + j]
-					for k = i + 1; k < N; k = k + 1: d = d - ds[k] * x[k * N + j]
+					for k = i + 1; k < N; k = k + 1
+						d = d - ds[k] * x[k * N + j]
 					x[i * N + j] = d / ds[i]
-					if i <= 0: break
+					i > 0 || break
 		$determinant = @(x)
-			if !$initialize(x): return 0.0
+			$initialize(x) || return 0.0
 			determinant = 1.0
 			for i = 0; i < N - 1; i = i + 1
 				p = $pivot(i
@@ -105,7 +115,7 @@ Matrix = @(N) Class() :: @
 					$columns[p] = t
 					determinant = -determinant
 				d = $columns[i].m[i]
-				if d == 0.0: return 0.0
+				d == 0.0 && return 0.0
 				determinant = determinant * d
 				$erase(i, d
 			determinant * $columns[N - 1].m[N - 1]
@@ -115,13 +125,15 @@ Matrix = @(N) Class() :: @
 		v = Float32Array($bytes
 		if value.@ === Float
 			Icopy(0, NNBPE, $bytes, 0
-			for i = 0; i < N; i = i + 1: v[i * N + i] = value
+			for i = 0; i < N; i = i + 1
+				v[i * N + i] = value
 		else if N == value.N
 			value.bytes.copy(0, NNBPE, $bytes, 0
 		else if N < value.N
 			nBPE = value.N * BPE
 			bytes = value.bytes
-			for i = 0; i < N; i = i + 1: bytes.copy(i * nBPE, NBPE, $bytes, i * NBPE
+			for i = 0; i < N; i = i + 1
+				bytes.copy(i * nBPE, NBPE, $bytes, i * NBPE
 		else
 			n = value.N
 			nBPE = n * BPE
@@ -140,32 +152,37 @@ Matrix = @(N) Class() :: @
 		for i = 0; i < N; i = i + 1
 			r = i * N
 			t = "[" + v[r]
-			for j = 1; j < N; j = j + 1: t = t + " " + v[r + j]
+			for j = 1; j < N; j = j + 1
+				t = t + " " + v[r + j]
 			s = s + t + "]\n"
 		s
 	$__get_at = @(i) $v[i]
 	$__equals = @(value)
 		v0 = $v
 		v1 = value.v
-		for i = 0; i < NN; i = i + 1: if v0[i] != v1[i]: return false
+		for i = 0; i < NN; i = i + 1
+			v0[i] == v1[i] || return false
 		true
 	$__not_equals = @(value) !$__equals(value
 	$negate = @
 		v = $v
-		for i = 0; i < NN; i = i + 1: v[i] = -v[i]
+		for i = 0; i < NN; i = i + 1
+			v[i] = -v[i]
 		$
-	$__plus = @() :$($
-	$__minus = @() :$($).negate(
+	$__plus = @ :$($
+	$__minus = @ :$($).negate(
 	$add = @(value)
 		v0 = $v
 		v1 = value.v
-		for i = 0; i < NN; i = i + 1: v0[i] = v0[i] + v1[i]
+		for i = 0; i < NN; i = i + 1
+			v0[i] = v0[i] + v1[i]
 		$
 	$__add = @(value) :$($).add(value
 	$subtract = @(value)
 		v0 = $v
 		v1 = value.v
-		for i = 0; i < NN; i = i + 1: v0[i] = v0[i] - v1[i]
+		for i = 0; i < NN; i = i + 1
+			v0[i] = v0[i] - v1[i]
 		$
 	$__subtract = @(value) :$($).subtract(value
 	multiply = @(v, v0, v1)
@@ -173,12 +190,14 @@ Matrix = @(N) Class() :: @
 			for j = 0; j < N; j = j + 1
 				c = j * N
 				d = v0[i] * v1[c]
-				for k = 1; k < N; k = k + 1: d = d + v0[k * N + i] * v1[c + k]
+				for k = 1; k < N; k = k + 1
+					d = d + v0[k * N + i] * v1[c + k]
 				v[c + i] = d
 	$multiply = @(value)
 		v = $v
 		if value.@ === Float
-			for i = 0; i < NN; i = i + 1: v[i] = v[i] * value
+			for i = 0; i < NN; i = i + 1
+				v[i] = v[i] * value
 		else
 			multiply(v, Tuple(*v), value.v
 		$
@@ -186,7 +205,8 @@ Matrix = @(N) Class() :: @
 		x = :$($
 		v = x.v
 		if value.@ === Float
-			for i = 0; i < NN; i = i + 1: v[i] = v[i] * value
+			for i = 0; i < NN; i = i + 1
+				v[i] = v[i] * value
 		else
 			multiply(v, $v, value.v
 		x
@@ -194,14 +214,15 @@ Matrix = @(N) Class() :: @
 	$__divide = @(value) $__multiply(1.0 / value
 	$invert = @
 		lu = LU(
-		if !lu.decompose($v): throw SingularMatrixException($__string(
+		lu.decompose($v) || throw SingularMatrixException($__string(
 		lu.backsubstitute($v
 		$
-	$__complement = @() :$($).invert(
+	$__complement = @ :$($).invert(
 	$equals = @(value, epsilon)
 		v0 = $v
 		v1 = value.v
-		for i = 0; i < NN; i = i + 1: if math.fabs(v0[i] - v1[i]) > epsilon: return false
+		for i = 0; i < NN; i = i + 1
+			math.fabs(v0[i] - v1[i]) > epsilon && return false
 		true
 	$transpose = @
 		v = $v
@@ -215,8 +236,8 @@ Matrix = @(N) Class() :: @
 				v[i0] = v[i1]
 				v[i1] = t
 		$
-	$transposition = @() :$($).transpose(
-	$determinant = @() LU().determinant($v
+	$transposition = @ :$($).transpose(
+	$determinant = @ LU().determinant($v
 
 Matrix3 = Matrix(3
 Matrix4 = Matrix(4
@@ -226,7 +247,7 @@ Vector3 = Class() :: @
 		$x = x
 		$y = y
 		$z = z
-	$__string = @() "[" + $x + " " + $y + " " + $z + "]"
+	$__string = @ "[" + $x + " " + $y + " " + $z + "]"
 	$add = @(value)
 		$x = $x + value.x
 		$y = $y + value.y
@@ -251,10 +272,9 @@ Vector3 = Class() :: @
 	$__equals = @(value) $x == value.x && $y == value.y && $z == value.z
 	$__not_equals = @(value) !$__equals(value
 	$equals = @(value, epsilon)
-		if math.fabs($x - value.x) > epsilon: return false
-		if math.fabs($y - value.y) > epsilon: return false
-		if math.fabs($z - value.z) > epsilon: return false
-		true
+		math.fabs($x - value.x) <= epsilon &&
+		math.fabs($y - value.y) <= epsilon &&
+		math.fabs($z - value.z) <= epsilon
 	$absolute = @
 		$x = math.fabs($x
 		$y = math.fabs($y
@@ -263,16 +283,16 @@ Vector3 = Class() :: @
 		$x = (1.0 - t) * $x + t * value.x
 		$y = (1.0 - t) * $y + t * value.y
 		$z = (1.0 - t) * $z + t * value.z
-	$__plus = @() Vector3($x, $y, $z
-	$__minus = @() Vector3(-$x, -$y, -$z
+	$__plus = @ Vector3($x, $y, $z
+	$__minus = @ Vector3(-$x, -$y, -$z
 	$__add = @(value) Vector3($x + value.x, $y + value.y, $z + value.z
 	$__subtract = @(value) Vector3($x - value.x, $y - value.y, $z - value.z
 	$__multiply = @(value) value.@ === Float ? Vector3($x * value, $y * value, $z * value) : $x * value.x + $y * value.y + $z * value.z
 	$__divide = @(value) Vector3($x / value, $y / value, $z / value
 	$__xor = @(value) Vector3($y * value.z - $z * value.y, $z * value.x - $x * value.z, $x * value.y - $y * value.x
-	$length = @() math.sqrt($ * $
-	$normalize = @() $scale(1.0 / $length()
-	$normalized = @() $ / $length()
+	$length = @ math.sqrt($ * $
+	$normalize = @ $scale(1.0 / $length()
+	$normalized = @ $ / $length()
 	$angle = @(value)
 		d = $ * value / ($length() * value.length())
 		math.acos(d < -1.0 ? -1.0 : d > 1.0 ? 1.0 : d
@@ -283,7 +303,7 @@ Vector4 = Class() :: @
 		$y = y
 		$z = z
 		$w = w
-	$__string = @() "[" + $x + " " + $y + " " + $z + " " + $w + "]"
+	$__string = @ "[" + $x + " " + $y + " " + $z + " " + $w + "]"
 	$add = @(value)
 		$x = $x + value.x
 		$y = $y + value.y
@@ -307,11 +327,10 @@ Vector4 = Class() :: @
 	$__equals = @(value) $x == value.x && $y == value.y && $z == value.z && $w == value.w
 	$__not_equals = @(value) !$__equals(value
 	$equals = @(value, epsilon)
-		if math.fabs($x - value.x) > epsilon: return false
-		if math.fabs($y - value.y) > epsilon: return false
-		if math.fabs($z - value.z) > epsilon: return false
-		if math.fabs($w - value.w) > epsilon: return false
-		true
+		math.fabs($x - value.x) <= epsilon &&
+		math.fabs($y - value.y) <= epsilon &&
+		math.fabs($z - value.z) <= epsilon &&
+		math.fabs($w - value.w) <= epsilon
 	$absolute = @
 		$x = math.fabs($x
 		$y = math.fabs($y
@@ -322,16 +341,16 @@ Vector4 = Class() :: @
 		$y = (1.0 - t) * $y + t * value.y
 		$z = (1.0 - t) * $z + t * value.z
 		$w = (1.0 - t) * $w + t * value.w
-	$__plus = @() Vector4($x, $y, $z, $w
-	$__minus = @() Vector4(-$x, -$y, -$z, -$w
+	$__plus = @ Vector4($x, $y, $z, $w
+	$__minus = @ Vector4(-$x, -$y, -$z, -$w
 	$__add = @(value) Vector4($x + value.x, $y + value.y, $z + value.z, $w + value.w
 	$__subtract = @(value) Vector4($x - value.x, $y - value.y, $z - value.z, $w - value.w
 	$__multiply = @(value) value.@ === Float ? Vector4($x * value, $y * value, $z * value, $w * value) : $x * value.x + $y * value.y + $z * value.z + $w * value.w
 	$__divide = @(value) Vector4($x / value, $y / value, $z / value, $w / value
 	$__xor = @(value) Vector3($y * value.z - $z * value.y, $z * value.x - $x * value.z, $x * value.y - $y * value.x
-	$length = @() math.sqrt($ * $
-	$normalize = @() $scale(1.0 / $length()
-	$normalized = @() $ / $length()
+	$length = @ math.sqrt($ * $
+	$normalize = @ $scale(1.0 / $length()
+	$normalized = @ $ / $length()
 	$angle = @(value)
 		d = $ * value / ($length() * value.length())
 		math.acos(d < -1.0 ? -1.0 : d > 1.0 ? 1.0 : d
@@ -387,7 +406,7 @@ Matrix4.scale = @(x, y, z)
 
 Matrix4.rotate = @(axis, angle)
 	d = axis.length(
-	if d < 0.0000000001: return $
+	d < 0.0000000001 && return $
 	x = axis.x / d
 	y = axis.y / d
 	z = axis.z / d
@@ -441,7 +460,7 @@ $Vector4 = Vector4
 if $ === Module("__main")
 	system = Module("system"
 	print = system.out.write_line
-	assert = @(x) if !x: throw Throwable("Assertion failed."
+	assert = @(x) x || throw Throwable("Assertion failed."
 
 	m = Matrix3(
 	print(m

@@ -26,9 +26,9 @@ $Posture = Class(collada.Matrix) :: @
 		v[9] = $toward.y
 		v[10] = $toward.z
 	$validate = @
-		if $valid: return $
-		$setup(
-		$valid = true
+		if !$valid
+			$setup(
+			$valid = true
 		$
 	$viewing = @
 		left = $upward ^ $toward
