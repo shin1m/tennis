@@ -82,7 +82,7 @@ $Player = Class() :: @
 	Run = Class(Action) :: @
 		$__initialize = @(scene, skeleton, start, duration, use)
 			:$^__initialize[$](scene, start, duration, use
-			iterators = scene.iterators(@(x) x._node.id == "Root"
+			iterators = scene.iterators(@(x) x._node.id == "Armature_Root"
 			iterators.each((@(key, value) value.rewind($start))[$]
 			root = Object(
 			skeleton.render(null, Matrix4(), [{"Root": root}]
@@ -121,16 +121,16 @@ $Player = Class() :: @
 			$placement.toward = $toward0 * t + $toward1 * (1.0 - t)
 
 	lowers = {
-		"Center": true
-		"Leg0_R": true
-		"Leg1_R": true
-		"Foot_R": true
-		"Toe_R": true
-		"Leg0_L": true
-		"Leg1_L": true
-		"Foot_L": true
-		"Toe_L": true
-	is_not_root = @(x) x._node.id != "Root"
+		"Armature_Center": true
+		"Armature_Leg0_R": true
+		"Armature_Leg1_R": true
+		"Armature_Foot_R": true
+		"Armature_Toe_R": true
+		"Armature_Leg0_L": true
+		"Armature_Leg1_L": true
+		"Armature_Foot_L": true
+		"Armature_Toe_L": true
+	is_not_root = @(x) x._node.id != "Armature_Root"
 	is_lower = @(x) lowers.has(x._node.id
 	is_upper = @(x) is_not_root(x) && !is_lower(x)
 	load = @(scene, skeleton, source)
@@ -268,7 +268,7 @@ $Player = Class() :: @
 		zup = Posture(
 		zup.toward = Vector3(0.0, 1.0, 0.0
 		zup.upward = Vector3(0.0, 0.0, -1.0
-		$root = $scene.ids["Root"]
+		$root = $scene.ids["Armature_Root"]
 		$root_transform = Matrix4($root.transforms[0]).bytes
 		$root.transforms.unshift(zup.validate(
 		$actions = load($scene, $root, model + ".player"

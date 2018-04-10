@@ -56,6 +56,8 @@ void t_asset::f_dump(std::wostream& a_out, const std::wstring& a_indent) const
 	a_out << a_indent << L"\tup axis: " << v_up_axis << std::endl;
 }
 
+const std::tuple<std::wstring, size_t> t_primitive::v_texcoord0{L"TEXCOORD", 0};
+
 void t_primitive::f_dump(std::wostream& a_out, const std::wstring& a_indent) const
 {
 	a_out << a_indent << L"primitive" << std::endl;
@@ -132,7 +134,8 @@ void t_primitive::f_normal_and_others(const t_resolve& a_resolve, char* a_bytes,
 
 size_t t_primitive::f_input(const std::map<std::wstring, std::tuple<std::wstring, size_t>>& a_binds, const std::wstring& a_semantic) const
 {
-	const auto& key = a_binds.at(a_semantic);
+	auto j = a_binds.find(a_semantic);
+	const auto& key = j == a_binds.end() ? v_texcoord0 : j->second;
 	auto i = v_others.find(key);
 	if (i == v_others.end()) {
 		i = v_others.find(std::make_tuple(std::get<0>(key), 0));

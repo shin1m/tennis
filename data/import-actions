@@ -1,14 +1,15 @@
 #!/bin/bash
 
 DATA=$(cd $(dirname $0); pwd)
-EXTRA=$DATA/../extra
 
-blender -b $DATA/blue.blend -P $DATA/import-actions.py || exit -1
-blender -b $DATA/red.blend -P $DATA/import-actions.py || exit -1
-blender -b $DATA/green.blend -P $DATA/import-flip-actions.py || exit -1
-blender -b $DATA/yellow.blend -P $DATA/import-flip-actions.py || exit -1
-blender -b $EXTRA/miku.blend -P $DATA/import-actions.py || exit -1
-blender -b $EXTRA/rin.blend -P $DATA/import-actions.py || exit -1
-blender -b $EXTRA/ren.blend -P $DATA/import-flip-actions.py || exit -1
-blender -b $EXTRA/haku.blend -P $DATA/import-actions.py || exit -1
-blender -b $EXTRA/naruto.blend -P $DATA/import-actions.py || exit -1
+cd $DATA || exit -1
+blender -b blue.blend -P $DATA/import-actions.py || exit -1
+blender -b red.blend -P $DATA/import-actions.py || exit -1
+blender -b green.blend -P $DATA/import-flip-actions.py || exit -1
+blender -b yellow.blend -P $DATA/import-flip-actions.py || exit -1
+cd $DATA/../extra || exit -1
+blender -b miku.blend -P $DATA/import-actions.py || exit -1
+blender -b rin.blend -P $DATA/import-actions.py || exit -1
+blender -b ren.blend -P $DATA/import-flip-actions.py || exit -1
+blender -b haku.blend -P $DATA/import-actions.py || exit -1
+blender -b naruto.blend -P $DATA/import-actions.py || exit -1

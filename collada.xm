@@ -173,8 +173,9 @@ normal_and_others = @(resolve, bytes, stride, offset)
 		input_buffer[$](value, source, dimension, bytes, stride, $_others[key]
 	)[$]
 
+texcoord0 = '("TEXCOORD", 0
 bound_input = @(binds, semantic)
-	key = binds[semantic]
+	key = binds.has(semantic) ? binds[semantic] : texcoord0
 	$_others.has(key) && return $_others[key]
 	$_others.has(key[0]) && return $_others[key[0]]
 	throw Throwable("cannot find input"

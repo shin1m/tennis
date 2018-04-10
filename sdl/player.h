@@ -118,7 +118,7 @@ struct t_player
 
 	static bool f_is_not_root(const t_channel& a_x)
 	{
-		return a_x.v_node->v_id != L"Root";
+		return a_x.v_node->v_id != L"Armature_Root";
 	}
 	static bool f_is_lower(const t_channel& a_x)
 	{

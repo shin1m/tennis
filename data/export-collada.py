@@ -8,7 +8,5 @@ bpy.ops.wm.collada_export(
     selected=True,
     include_children=True,
     include_armatures=True,
-    deform_bones_only=True,
-    include_uv_textures=True,
-    include_material_textures=True
+    deform_bones_only=True
 )

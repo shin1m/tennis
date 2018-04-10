@@ -1,6 +1,6 @@
 bin_PROGRAMS = test_xml_reader test_collada viewer gears tennis
 AM_CPPFLAGS = $(LIBXML_CFLAGS) $(SDL2_CFLAGS) -I .
-AM_CXXFLAGS = -std=c++1y
+AM_CXXFLAGS =
 AM_LDFLAGS =
 if DEBUG
 AM_CXXFLAGS += -g

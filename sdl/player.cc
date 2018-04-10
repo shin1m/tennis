@@ -86,7 +86,7 @@ void t_player::t_run::f_initialize(t_document& a_scene, t_node* a_skeleton, floa
 	t_action::f_initialize(a_scene, a_start, a_duration, a_use);
 	auto iterators = a_scene.f_iterators([](auto a_x)
 	{
-		return a_x.v_node->v_id == L"Root";
+		return a_x.v_node->v_id == L"Armature_Root";
 	});
 	for (auto& x : iterators) x.second->f_rewind(a_start);
 	t_matrix4f root;
@@ -122,15 +122,15 @@ void t_player::t_run_motion::operator()()
 }
 
 const std::set<std::wstring> t_player::v_lowers{
-	L"Center",
-	L"Leg0_R",
-	L"Leg1_R",
-	L"Foot_R",
-	L"Toe_R",
-	L"Leg0_L",
-	L"Leg1_L",
-	L"Foot_L",
-	L"Toe_L"
+	L"Armature_Center",
+	L"Armature_Leg0_R",
+	L"Armature_Leg1_R",
+	L"Armature_Foot_R",
+	L"Armature_Toe_R",
+	L"Armature_Leg0_L",
+	L"Armature_Leg1_L",
+	L"Armature_Foot_L",
+	L"Armature_Toe_L"
 };
 
 void t_player::f_load(t_document& a_scene, t_node* a_skeleton, const std::wstring& a_source)
@@ -426,7 +426,7 @@ t_player::t_player(t_stage& a_stage, const std::wstring& a_model) : v_stage(a_st
 	zup->v_toward = t_vector3f(0.0f, 1.0f, 0.0f);
 	zup->v_upward = t_vector3f(0.0f, 0.0f, -1.0f);
 	zup->f_validate();
-	v_root = &dynamic_cast<t_node&>(*v_scene[L"#Root"]);
+	v_root = &dynamic_cast<t_node&>(*v_scene[L"#Armature_Root"]);
 	v_root_transform = dynamic_cast<t_matrix_transform&>(*v_root->v_transforms[0]);
 	v_root->v_transforms.insert(v_root->v_transforms.begin(), std::move(zup));
 	f_load(v_scene, v_root, a_model + L".player");

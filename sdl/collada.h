@@ -1,6 +1,7 @@
 #ifndef COLLADA_H
 #define COLLADA_H
 
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -197,6 +198,8 @@ struct t_input
 
 struct t_primitive
 {
+	static const std::tuple<std::wstring, size_t> v_texcoord0;
+
 	GLenum v_mode;
 	size_t v_unit;
 	size_t v_count;
