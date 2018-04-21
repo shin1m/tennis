@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<players>
+	<player name="Blue" path="blue" />
+	<player name="Red" path="red" />
+	<player name="Green" path="green" />
+	<player name="Yellow" path="yellow" />
+</players>

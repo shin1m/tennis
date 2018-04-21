@@ -4,14 +4,19 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := main
 
-SDL2_PATH := ../SDL2
-SOURCE_PATH := ../../..
+SOURCE_PATH := ../../../..
 
 LOCAL_CPPFLAGS := -std=c++1y -frtti -fexceptions -O3
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(SOURCE_PATH)
+LOCAL_C_INCLUDES := \
+	$(LOCAL_PATH)/../SDL2/include \
+	$(LOCAL_PATH)/../SDL2_image \
+	$(LOCAL_PATH)/../SDL2_ttf \
+	$(LOCAL_PATH)/../SDL2_mixer \
+	$(LOCAL_PATH)/../xml2/include \
+	$(LOCAL_PATH)/$(SOURCE_PATH)
 
-LOCAL_SRC_FILES := $(SDL2_PATH)/src/main/android/SDL_android_main.c \
+LOCAL_SRC_FILES := ../SDL2/src/main/android/SDL_android_main.c \
 	$(SOURCE_PATH)/portable.cc \
 	$(SOURCE_PATH)/gl.cc \
 	$(SOURCE_PATH)/collada.cc \
