@@ -25,5 +25,11 @@ cd app/libs
 vi local.properties
 	sdk.dir=.../android-sdk
 	ndk.dir=.../crystax-sdk-10.*.*
+vi keystore.properties
+	storeFile=
+	storePassword=
+	keyAlias=
+	keyPassword=
 
 ./gradlew build
+./gradlew assembleRelease
