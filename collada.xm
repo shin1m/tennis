@@ -102,10 +102,14 @@ Input = Class() :: @
 	$__string = @ "[" + $offset + "] " + $source
 
 Source = Class() :: WithTree :: @
-	$__initialize = @ $built = false
+	$__initialize = @
+		$arrays = [
+		$built = false
 	$__string = @ "Source(" + $id + ")"
 	$tree = @(symbol)
 		:$^.(symbol)[$](
+		$arrays.(symbol)(
+		$arrays.each(@(x) x.(symbol)(
 		$params.(symbol)(
 	$build = @(resolve) if !$built
 		$_source = resolve($source
@@ -1099,6 +1103,7 @@ $load = @(source)
 			parse_texts(reader.read_element_text(), is_whitespace, array.push
 			array.size() == count || throw Throwable("wrong count"
 			array.id = id
+			x.arrays.push(array
 			if id != ""
 				ids[id] = array
 		"float_array": read_array(gl.Float32Array, Float
