@@ -37,14 +37,19 @@ $shot_direction = shot_direction = @(ball, end, left, right, forward, backward)
 		vz = vz + 10 * 12 * 0.0254 * end
 	Vector3(vx, 0.0, vz
 
-$Player = Class() :: @
-	State = @(enter, step, do)
-		o = Object(
-		o.enter = enter
-		o.step = step
-		o.do = do
-		o
-	Action = Class() :: @
+$Player = Object + @
+	State = Object + @
+		$enter
+		$step
+		$do
+		$__initialize = @(enter, step, do)
+			$enter = enter
+			$step = step
+			$do = do
+	Action = Object + @
+		$start
+		$end
+		$iterators
 		$__initialize = @(scene, start, duration, use = @(x) true)
 			$start = start
 			$end = start + duration
@@ -58,19 +63,27 @@ $Player = Class() :: @
 				value.i = value.index
 				value.forward(time
 		$forward = @(time) $iterators.each(@(key, value) value.forward(time
-	Swing = Class(Action) :: @
+	Vertex = Object + @
+		$vertex
+	Swing = Action + @
+		$impact
+		$speed
+		$spin
+		$spot
+		$end_position
+		$end_toward
 		$__initialize = @(scene, skeleton, start, duration, impact, speed, spin = Vector3(0.0, 0.0, 0.0))
-			:$^__initialize[$](scene, start, duration
+			Action.__initialize[$](scene, start, duration
 			$impact = start + impact
 			$speed = speed
 			$spin = spin
 			iterators = scene.iterators(
 			iterators.each((@(key, value) value.rewind($impact))[$]
-			spot = Object(
+			spot = Vertex(
 			skeleton.render(null, Matrix4(), [{"Spot": spot}]
 			$spot = spot.vertex
 			iterators.each((@(key, value) value.rewind($end))[$]
-			root = Object(
+			root = Vertex(
 			skeleton.render(null, Matrix4(), [{"Root": root}]
 			$end_position = Vector3(root.vertex.v[12], 0.0, root.vertex.v[14]
 			$end_toward = Vector3(root.vertex.v[8], 0.0, root.vertex.v[10]
@@ -79,15 +92,19 @@ $Player = Class() :: @
 			placement.position = placement * $end_position
 			placement.toward = placement * $end_toward
 			placement.valid = false
-	Run = Class(Action) :: @
+	Run = Action + @
+		$toward
 		$__initialize = @(scene, skeleton, start, duration, use)
-			:$^__initialize[$](scene, start, duration, use
+			Action.__initialize[$](scene, start, duration, use
 			iterators = scene.iterators(@(x) x._node.id == "Armature_Root"
 			iterators.each((@(key, value) value.rewind($start))[$]
-			root = Object(
+			root = Vertex(
 			skeleton.render(null, Matrix4(), [{"Root": root}]
 			$toward = Vector3(root.vertex.v[8], 0.0, root.vertex.v[10]
-	Motion = Class() :: @
+	Motion = Object + @
+		$action
+		$end
+		$time
 		$__initialize = @(action)
 			$action = action
 			$end = action.end
@@ -100,11 +117,15 @@ $Player = Class() :: @
 			if $time < $end
 				$time = $time + 1.0 / 60.0
 	$Motion = Motion
-	RunMotion = Class(Motion) :: @
+	RunMotion = Motion + @
 		duration = 4.0 / 64.0
-
+		$toward
+		$placement
+		$toward0
+		$toward1
+		$duration
 		$__initialize = @(run, toward, player)
-			:$^__initialize[$](run
+			Motion.__initialize[$](run
 			$toward = toward
 			$placement = player.placement
 			$toward0 = player.placement.toward
@@ -114,7 +135,7 @@ $Player = Class() :: @
 			$toward1 = Vector3(t0.x * t1.z + t0.z * t1.x, 0.0, t0.z * t1.z - t0.x * t1.x
 			$duration = $toward0 * $toward1 < -0.75 ? 0.0 : duration
 		$__call = @
-			:$^__call[$](
+			Motion.__call[$](
 			if $duration > 0.0
 				$duration = $duration - 1.0 / 64.0
 			t = $duration / duration
@@ -155,29 +176,47 @@ $Player = Class() :: @
 			duration = Float(reader.get_attribute("duration")) / source_fps
 			reader.read_element_text(
 			Run(scene, skeleton, start, duration, use
+		ShotSwingElement = Object + @
+			$flat
+			$topspin
+			$lob
+			$slice
+			$reach
 		shot_swing_elements = {
 			"flat": @(x) x.flat = read_swing(
 			"topspin": @(x) x.topspin = read_swing(
 			"lob": @(x) x.lob = read_swing(
 			"slice": @(x) x.slice = read_swing(
 			"reach": @(x) x.reach = read_swing(
+		ServeElement = Object + @
+			$set
+			$toss
+			$swing
 		serve_elements = {
 			"set": @(x) x.set = read_action(
 			"toss": @(x) x.toss = read_action(
 			"swing": @(x)
-				x.swing = Object(
+				x.swing = ShotSwingElement(
 				reader.parse_elements(shot_swing_elements, x.swing
+		ReadyActionElement = Object + @
+			$stroke
+			$volley
+			$smash
 		ready_action_elements = {
 			"stroke": @(x) x.stroke = read_run(is_not_root
 			"volley": @(x) x.volley = read_run(is_not_root
 			"smash": @(x) x.smash = read_run(is_not_root
+		ReadyElement = Object + @
+			$default
+			$forehand
+			$backhand
 		ready_elements = {
 			"default": @(x) x.default = read_run(is_not_root
 			"forehand": @(x)
-				x.forehand = Object(
+				x.forehand = ReadyActionElement(
 				reader.parse_elements(ready_action_elements, x.forehand
 			"backhand": @(x)
-				x.backhand = Object(
+				x.backhand = ReadyActionElement(
 				reader.parse_elements(ready_action_elements, x.backhand
 		run_lowers_elements = {
 			"left": @(x) x[1] = read_run(is_lower
@@ -188,6 +227,11 @@ $Player = Class() :: @
 			"backward": @(x) x[8] = read_run(is_lower
 			"backward_left": @(x) x[9] = read_run(is_lower
 			"backward_right": @(x) x[10] = read_run(is_lower
+		RunActionElement = Object + @
+			$lowers
+			$stroke
+			$volley
+			$smash
 		run_action_elements = {
 			"lowers": @(x)
 				x.lowers = [null, null, null, null, null, null, null, null, null, null, null
@@ -195,67 +239,113 @@ $Player = Class() :: @
 			"stroke": @(x) x.stroke = read_action(is_upper
 			"volley": @(x) x.volley = read_action(is_upper
 			"smash": @(x) x.smash = read_action(is_upper
+		RunElement = Object + @
+			$speed
+			$lower
+			$default
+			$forehand
+			$backhand
 		run_elements = {
 			"lower": @(x) x.lower = read_run(is_lower
 			"default": @(x) x.default = read_action(is_upper
 			"forehand": @(x)
-				x.forehand = Object(
+				x.forehand = RunActionElement(
 				reader.parse_elements(run_action_elements, x.forehand
 			"backhand": @(x)
-				x.backhand = Object(
+				x.backhand = RunActionElement(
 				reader.parse_elements(run_action_elements, x.backhand
+		SwingVolleyElement = Object + @
+			$middle
+			$high
+			$low
 		swing_volley_elements = {
 			"middle": @(x)
-				x.middle = Object(
+				x.middle = ShotSwingElement(
 				reader.parse_elements(shot_swing_elements, x.middle
 			"high": @(x)
-				x.high = Object(
+				x.high = ShotSwingElement(
 				reader.parse_elements(shot_swing_elements, x.high
 			"low": @(x)
-				x.low = Object(
+				x.low = ShotSwingElement(
 				reader.parse_elements(shot_swing_elements, x.low
+		SwingActionElement = Object + @
+			$stroke
+			$volley
+			$smash
 		swing_action_elements = {
 			"stroke": @(x)
-				x.stroke = Object(
+				x.stroke = ShotSwingElement(
 				reader.parse_elements(shot_swing_elements, x.stroke
 			"volley": @(x)
-				x.volley = Object(
+				x.volley = SwingVolleyElement(
 				reader.parse_elements(swing_volley_elements, x.volley
 			"smash": @(x) x.smash = read_swing(
+		SwingElement = Object + @
+			$forehand
+			$backhand
+			$toss
+			$toss_lob
 		swing_elements = {
 			"forehand": @(x)
-				x.forehand = Object(
+				x.forehand = SwingActionElement(
 				reader.parse_elements(swing_action_elements, x.forehand
 			"backhand": @(x)
-				x.backhand = Object(
+				x.backhand = SwingActionElement(
 				reader.parse_elements(swing_action_elements, x.backhand
 			"toss": @(x) x.toss = read_swing(
 			"toss_lob": @(x) x.toss_lob = read_swing(
+		RootElement = Object + @
+			$serve
+			$ready
+			$run
+			$swing
 		root_elements = {
 			"serve": @(x)
-				x.serve = Object(
+				x.serve = ServeElement(
 				reader.parse_elements(serve_elements, x.serve
 			"ready": @(x)
-				x.ready = Object(
+				x.ready = ReadyElement(
 				reader.parse_elements(ready_elements, x.ready
 			"run": @(x)
-				x.run = Object(
+				x.run = RunElement(
 				x.run.speed = Float(reader.get_attribute("speed")) / fps
 				reader.parse_elements(run_elements, x.run
 			"swing": @(x)
-				x.swing = Object(
+				x.swing = SwingElement(
 				reader.parse_elements(swing_elements, x.swing
 		try
 			reader.read_next(
 			reader.move_to_tag(
 			reader.check_start_element("player"
-			x = Object(
+			x = RootElement(
 			source_fps = Float(reader.get_attribute("fps"
 			reader.parse_elements(root_elements, x
 			x
 		finally
 			reader.free(
 
+	$stage
+	$ball
+	$scene
+	$node
+	$placement
+	$root
+	$root_transform
+	$actions
+	$speed
+	$lefty
+	$smash_hand
+	$motion
+	$ready
+	$state
+	$left
+	$right
+	$forward
+	$backward
+	$end
+	$opponent
+	$game
+	$point
 	$__initialize = @(stage, model, scene)
 		$stage = stage
 		$ball = stage.ball
@@ -277,7 +367,6 @@ $Player = Class() :: @
 		$lefty = $root.transforms[1].v[12] < 0.0 ? -1.0 : 1.0
 		$smash_hand = -0.25 * $lefty
 		$motion = RunMotion($actions.ready.default, $placement.toward, $
-		$ready = null
 		$reset(1.0, $state_default
 		scene = stage.scene.scene.instance_visual_scene._scene
 		scene.nodes.push($node
@@ -325,8 +414,14 @@ $Player = Class() :: @
 	$shot_direction = @ $ball.position.z * $end < 0.0 ? Vector3(0.0, 0.0, -$end) : shot_direction($ball.position, $end, $left, $right, $forward, $backward)
 	$volley_height = @ $actions.swing.forehand.volley.middle.flat.spot[13]
 	$smash_height = @ $actions.swing.forehand.smash.spot[13] - 0.25
+	Record = Object + @
+		$placement
+		$root
+		$action
+		$time
+		$ready
 	$create_record = @
-		record = Object(
+		record = Record(
 		record.placement = Placement(
 		record.root = Matrix4(
 		$record(record

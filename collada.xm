@@ -40,10 +40,8 @@ parse_array = @(type, parse, count, text)
 	array
 $parse_array = parse_array
 
-Reader = Class(libxml.TextReader) :: @
-	$__initialize = @(source)
-		:$^__initialize[$](source
-		$_type = null
+Reader = libxml.TextReader + @
+	$_type
 	$read_next = @ $_type = $read() ? $node_type() : null
 	$type = @ $_type
 	$move_to_tag = @ while $_type !== null && $_type != libxml.ReaderTypes.ELEMENT && $_type != libxml.ReaderTypes.END_ELEMENT
@@ -94,27 +92,42 @@ Reader = Class(libxml.TextReader) :: @
 		$read_next(
 $Reader = Reader
 
+WithID = @ $id
+WithSID = @ $sid
 WithTree = @
 	$share = @ $tree('share
 	$own = @ $tree('own
 
-Input = Class() :: @
+Input = Object + @
+	$offset
+	$semantic
+	$source
+	$set
 	$__string = @ "[" + $offset + "] " + $source
 
-Source = Class() :: WithTree :: @
+Source = Object + WithID + WithTree + @
+	$arrays
+	$count
+	$offset
+	$source
+	$stride
+	$params
+	$built
+	$_source
+	$_get_at
 	$__initialize = @
 		$arrays = [
 		$built = false
+		$_get_at = $get_at
 	$__string = @ "Source(" + $id + ")"
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$arrays.(symbol)(
 		$arrays.each(@(x) x.(symbol)(
 		$params.(symbol)(
 	$build = @(resolve) if !$built
 		$_source = resolve($source
 		$built = true
-	$__get_at = @(i)
+	$get_at = @(i)
 		j = $offset + i * $stride
 		source = $_source
 		x = [
@@ -130,6 +143,7 @@ Source = Class() :: WithTree :: @
 			for l = 0; l < 4; l = l + 1
 				m.v[l * 4 + k] = xs[row + l]
 		m
+	$__get_at = @(i) $_get_at(i
 
 create_buffer = @(bytes)
 	buffer = gl.Buffer(
@@ -199,7 +213,15 @@ invert4to3 = @(m)
 	v[8] = m[0] * m[5] - m[1] * m[4]
 	bytes
 
-Primitive = Class() :: WithTree :: @
+Primitive = Object + WithTree + @
+	$count
+	$material
+	$stride
+	$inputs
+	$indices
+	$_vertices
+	$_vertices_stride
+	$_others
 	$__initialize = @ $inputs = {
 	$__string = @ " " + {
 		"count": $count
@@ -207,11 +229,7 @@ Primitive = Class() :: WithTree :: @
 		"stride": $stride
 		"inputs": $inputs
 	} + " " + $indices.size() + " indices"
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$inputs.(symbol)(
-		$inputs.each(@(key, value) value.(symbol)(
-		$indices.(symbol)(
+	$tree = @(symbol) $inputs.(symbol)(
 	$destroy = @ $_vertices.delete(
 	$build = @(resolve)
 		vertices = $inputs["VERTEX"]
@@ -233,28 +251,30 @@ Primitive = Class() :: WithTree :: @
 		$
 	$input = bound_input
 
-Lines = Class(Primitive) :: @
+Lines = Primitive + @
 	$mode = gl.LINES
 	$unit = 2
-	$__string = @ "Lines" + :$^__string[$]()
+	$__string = @ "Lines" + Primitive.__string[$]()
 
-Triangles = Class(Primitive) :: @
+Triangles = Primitive + @
 	$mode = gl.TRIANGLES
 	$unit = 3
-	$__string = @ "Triangles" + :$^__string[$]()
+	$__string = @ "Triangles" + Primitive.__string[$]()
 $Triangles = Triangles
 
-Mesh = Class() :: WithTree :: @
+Mesh = Object + WithID + WithTree + @
+	$sources
+	$primitives
+	$built
+	$vertices
 	$__initialize = @
 		$sources = [
 		$primitives = [
 		$built = false
 	$__string = @ "Mesh(" + $id + ") " + $primitives
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$sources.(symbol)(
 		$sources.each(@(x) x.(symbol)(
-		$vertices.(symbol)(
 		$vertices.inputs.(symbol)(
 		$primitives.(symbol)(
 		$primitives.each(@(x) x.(symbol)(
@@ -264,14 +284,27 @@ Mesh = Class() :: WithTree :: @
 		$built = true
 $Mesh = Mesh
 
-Surface = Class() :: @
+Surface = Object + WithSID + @
+	$type
+	$mip
+	$slice
+	$face
+	$from
+	$format
+	$_from
 	$__string = @ "Surface(" + $sid + ") {type: " + $type + ", from: " + $from + "}"
 	$destroy = @
 	$build = @(resolve, sids)
 		$_from = resolve("#" + $from
 		$_from.build(resolve
 
-Sampler2D = Class() :: @
+Sampler2D = Object + WithSID + @
+	$minfilter
+	$magfilter
+	$built
+	$source
+	$_source
+	$_texture
 	$__initialize = @
 		$minfilter = "NONE"
 		$magfilter = "NONE"
@@ -298,27 +331,39 @@ Sampler2D = Class() :: @
 		gl.bind_texture(gl.TEXTURE_2D, null
 		$built = true
 
-CommonColor = Class(Vector4) :: @
+CommonColor = Vector4 + @
 	$__string = @ "CommonColor(" + $x + ", " + $y + ", " + $z + ", " + $w + ")"
 	$build = @(resolve, sids)
 
-CommonParam = Class() :: @
+CommonParam = Object + @
+	$ref
+	$_ref
 	$__string = @ "CommonParam(" + $ref + ")"
 	$build = @(resolve, sids) $_ref = sids[$ref]
 
-CommonTexture = Class() :: @
+CommonTexture = Object + @
+	$texture
+	$texcoord
+	$_texture
 	$__string = @ "CommonTexture(" + $texture + ") {texcoord: " + $texcoord + "}"
 	$build = @(resolve, sids)
 		$_texture = sids[$texture]
 		$_texture.build(resolve, sids
 
-CommonFloat = Class() :: @
+CommonFloat = Object + @
+	$value
 	$__initialize = @(value) $value = value
 	$__string = @ "CommonFloat(" + $value + ")"
 	$build = @(resolve, sids)
 
-ShadingModel = Class() :: WithTree :: @
-	Shader = Class() :: @
+ShadingModel = Object + @
+	Shader = Object + @
+		$shader
+		$uniforms
+		$_setup
+		$mode
+		$count
+		$attributes
 		$__initialize = @(shader, setup)
 			$shader = shader
 			$uniforms = glshaders.Uniforms(
@@ -329,20 +374,30 @@ ShadingModel = Class() :: WithTree :: @
 			$uniforms.stride = primitive._vertices_stride
 			$attributes = primitive._vertices
 			$_setup[$](model, primitive, binds
-	$MeshShader = Class(Shader) :: @
+	$MeshShader = Shader + @
 		$__call = @(projection, viewing)
 			$uniforms.projection = projection
 			$uniforms.vertex = viewing.bytes
 			$uniforms.normal = invert4to3(viewing
 			$shader($uniforms, $attributes, $mode, 0, $count
-	$SkinShader = Class(Shader) :: @
+	$SkinShader = Shader + @
 		$setup = @(model, vertices, primitive, binds)
-			:$^setup[$](model, primitive, binds
+			Shader.setup[$](model, primitive, binds
 			$uniforms.vertices = vertices
 		$__call = @(projection)
 			$uniforms.projection = projection
 			$shader($uniforms, $attributes, $mode, 0, $count
 
+	$emission
+	$ambient
+	$diffuse
+	$specular
+	$shininess
+	$reflective
+	$reflectivity
+	$transparent
+	$transparency
+	$index_of_refraction
 	$__initialize = @
 		$emission = CommonColor(0.0, 0.0, 0.0, 1.0
 		$ambient = CommonColor(0.0, 0.0, 0.0, 1.0
@@ -365,18 +420,6 @@ ShadingModel = Class() :: WithTree :: @
 		", transparent: " + $transparent +
 		", transparency: " + $transparency +
 		", index_of_refraction: " + $index_of_refraction
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$emission.(symbol)(
-		$ambient.(symbol)(
-		$diffuse.(symbol)(
-		$specular.(symbol)(
-		$shininess.(symbol)(
-		$reflective.(symbol)(
-		$reflectivity.(symbol)(
-		$transparent.(symbol)(
-		$transparency.(symbol)(
-		$index_of_refraction.(symbol)(
 	$build = @(resolve, sids)
 		$emission.build(resolve, sids
 		$ambient.build(resolve, sids
@@ -389,7 +432,7 @@ ShadingModel = Class() :: WithTree :: @
 		$transparency.build(resolve, sids
 		$index_of_refraction.build(resolve, sids
 
-Blinn = Class(ShadingModel) :: @
+Blinn = ShadingModel + @
 	setup = @(model, primitive, binds)
 		if model.diffuse.@ === CommonTexture
 			$uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
@@ -399,11 +442,11 @@ Blinn = Class(ShadingModel) :: @
 		$uniforms.shininess = model.shininess.value
 		$uniforms.refraction = model.index_of_refraction.value
 
-	$__string = @ "Blinn {" + :$^__string[$]() + "}"
+	$__string = @ "Blinn {" + ShadingModel.__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($diffuse.@ === CommonTexture ? shaders.blinn_texture() : shaders.blinn_color(), setup
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.@ === CommonTexture ? shaders.skin_texture(joints, weights, 'blinn) : shaders.skin_color(joints, weights, 'blinn), setup
 
-Constant = Class(ShadingModel) :: @
+Constant = ShadingModel + @
 	setup = @(model, primitive, binds)
 		if model.emission.@ === CommonTexture
 			$uniforms.texcoords = primitive.input(binds, model.emission.texcoord
@@ -411,21 +454,21 @@ Constant = Class(ShadingModel) :: @
 		else
 			$uniforms.color = model.emission + model.ambient * 0.125
 
-	$__string = @ "Constant {" + :$^__string[$]() + "}"
+	$__string = @ "Constant {" + ShadingModel.__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($emission.@ === CommonTexture ? shaders.constant_texture() : shaders.constant_color(), setup
 
-Lambert = Class(ShadingModel) :: @
+Lambert = ShadingModel + @
 	setup = @(model, primitive, binds)
 		if model.diffuse.@ === CommonTexture
 			$uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
 		$uniforms.color = model.emission + model.ambient * 0.125
 		$uniforms.diffuse = model.diffuse.@ === CommonTexture ? model.diffuse._texture._texture : model.diffuse
 
-	$__string = @ "Lambert {" + :$^__string[$]() + "}"
+	$__string = @ "Lambert {" + ShadingModel.__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($diffuse.@ === CommonTexture ? shaders.lambert_texture() : shaders.lambert_color(), setup
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.@ === CommonTexture ? shaders.skin_texture(joints, weights, 'lambert) : shaders.skin_color(joints, weights, 'lambert), setup
 
-Phong = Class(ShadingModel) :: @
+Phong = ShadingModel + @
 	setup = @(model, primitive, binds)
 		if model.diffuse.@ === CommonTexture
 			$uniforms.texcoords = primitive.input(binds, model.diffuse.texcoord
@@ -434,40 +477,39 @@ Phong = Class(ShadingModel) :: @
 		$uniforms.specular = model.specular
 		$uniforms.shininess = model.shininess.value
 
-	$__string = @ "Phong {" + :$^__string[$]() + "}"
+	$__string = @ "Phong {" + ShadingModel.__string[$]() + "}"
 	$mesh_shader = @(shaders) $MeshShader($diffuse.@ === CommonTexture ? shaders.phong_texture() : shaders.phong_color(), setup
 	$skin_shader = @(shaders, joints, weights) $SkinShader($diffuse.@ === CommonTexture ? shaders.skin_texture(joints, weights, 'phong) : shaders.skin_color(joints, weights, 'phong), setup
 
-TechniqueFX = Class() :: WithTree :: @
+TechniqueFX = Object + WithID + WithSID + @
+	$model
 	$__string = @ "TechniqueFX(" + $sid + ") " + $model
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$model.(symbol)(
 	$build = @(resolve, sids) $model.build(resolve, sids
 
-ProfileCOMMON = Class() :: WithTree :: @
+ProfileCOMMON = Object + WithID + WithTree + @
+	$sids
+	$newparams
+	$technique
 	$__initialize = @
 		$sids = {
 		$newparams = [
 	$__string = @ "ProfileCOMMON " + $newparams + " " + $technique
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$sids.(symbol)(
 		$newparams.(symbol)(
-		$newparams.each(@(x) x.(symbol)(
-		$technique.(symbol)(
 	$destroy = @ $newparams.each(@(x) x.destroy(
 	$build = @(resolve)
 		$newparams.each((@(x) x.build(resolve, $sids))[$]
 		$technique.build(resolve, $sids
 
-Effect = Class() :: WithTree :: @
+Effect = Object + WithID + WithTree + @
+	$profiles
+	$built
 	$__initialize = @
 		$profiles = [
 		$built = false
 	$__string = @ "Effect(" + $id + ") " + $profiles
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$profiles.(symbol)(
 		$profiles.each(@(x) x.(symbol)(
 	$destroy = @ $built && $profiles.each(@(x) x.destroy(
@@ -475,7 +517,13 @@ Effect = Class() :: WithTree :: @
 		$profiles.each(@(x) x.build(resolve
 		$built = true
 
-Image = Class() :: @
+Image = Object + WithID + @
+	$built
+	$type
+	$value
+	$width
+	$height
+	$data
 	$__initialize = @ $built = false
 	$__string = @ "Image {type: " + $type + ", value: " + $value + "}"
 	$build = @(resolve) if !$built
@@ -488,7 +536,10 @@ Image = Class() :: @
 			$data = rgba[2]
 		$built = true
 
-Material = Class() :: @
+Material = Object + WithID + @
+	$built
+	$instance_effect
+	$_instance_effect
 	$__initialize = @ $built = false
 	$__string = @ "Material {instance_effect: " + $instance_effect + "}"
 	$build = @(resolve) if !$built
@@ -497,16 +548,8 @@ Material = Class() :: @
 		$built = true
 	$model = @ $_instance_effect.profiles[0].technique.model
 
-Matrix = Class(Matrix4) :: @
-	$own = @
-		:$^own[$](
-		$bytes.own(
-		$v.own(
-	$share = @
-		:$^share[$](
-		$bytes.share(
-		$v.share(
-	$__string = @ "Matrix(" + :$^__string[$]() + ")"
+Matrix = Matrix4 + WithSID + @
+	$__string = @ "Matrix(" + Matrix4.__string[$]() + ")"
 	#$__call = @(x) x.multiply($
 	$__call = @(x)
 		v0 = $v
@@ -534,49 +577,53 @@ Matrix = Class(Matrix4) :: @
 		v1[14] = m2 * v0[12] + m6 * v0[13] + m10 * v0[14] + v1[14]
 $Matrix = Matrix
 
-Translate = Class(Vector3) :: @
+Translate = Vector3 + WithSID + @
 	$__string = @ "Translate(" + $x + ", " + $y + ", " + $z + ")"
 	$__call = @(x) x.translate($x, $y, $z
 $Translate = Translate
 
-Rotate = Class(Vector4) :: @
+Rotate = Vector4 + WithSID + @
 	$__string = @ "Rotate(" + $x + ", " + $y + ", " + $z + ", " + $w + ")"
 	$__call = @(x) x.rotate(Vector3($x, $y, $z), $w
 $Rotate = Rotate
 
-Scale = Class(Vector3) :: @
+Scale = Vector3 + WithSID + @
 	$__string = @ "Scale(" + $x + ", " + $y + ", " + $z + ")"
 	$__call = @(x) x.scale($x, $y, $z
 $Scale = Scale
 
-InstanceMaterial = Class() :: WithTree :: @
+InstanceMaterial = Object + WithTree + @
+	$bind_vertex_inputs
+	$symbol
+	$target
+	$_target
 	$__initialize = @ $bind_vertex_inputs = {
 	$__string = @ "InstanceMaterial(" + $symbol + ") " + $target
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$bind_vertex_inputs.(symbol)(
+	$tree = @(symbol) $bind_vertex_inputs.(symbol)(
 	$build = @(resolve)
 		$_target = resolve($target
 		$_target.build(resolve
 	$model = @ $_target.model(
 
-InstanceMaterialFallback = Class() :: WithTree :: @
+InstanceMaterialFallback = Object + WithTree + @
 	setup = @(model, primitive, binds) $uniforms.color = Vector4(1.0, 1.0, 1.0, 1.0
 
+	$bind_vertex_inputs
 	$__initialize = @ $bind_vertex_inputs = {
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$bind_vertex_inputs.(symbol)(
+	$tree = @(symbol) $bind_vertex_inputs.(symbol)(
 	$build = @(resolve)
 	$model = @ $
 	$mesh_shader = @(shaders) ShadingModel.MeshShader(shaders.constant_color(), setup
 	$skin_shader = @(shaders, joints, weights) ShadingModel.SkinShader(shaders.skin_color(joints, weights, 'constant), setup
 
-InstanceGeometry = Class() :: WithTree :: @
+InstanceGeometry = Object + WithTree + @
+	$materials
+	$url
+	$_shaders
+	$_geometry
 	$__initialize = @(fallback) $materials = {"": fallback
 	$__string = @ "InstanceGeometry(" + $url + ") " + $materials
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$materials.(symbol)(
 		$materials.each(@(key, value) key != "" && value.(symbol)(
 	$build_render = @(resolve, shaders)
@@ -609,7 +656,20 @@ InstanceGeometry = Class() :: WithTree :: @
 			shaders[i](projection, viewing
 $InstanceGeometry = InstanceGeometry
 
-Node = Class() :: WithTree :: @
+Node = Object + WithID + WithSID + WithTree + @
+	$joint
+	$layer
+	$sids
+	$transforms
+	$controllers
+	$geometries
+	$instance_nodes
+	$nodes
+	$built
+	$_nodes
+	$_controllers
+	$_root_controllers
+	$render
 	$__initialize = @
 		$sids = {
 		$transforms = [
@@ -620,10 +680,8 @@ Node = Class() :: WithTree :: @
 		$built = false
 	$__string = @ "Node(" + $id + ") " + $transforms + " " + $controllers + " " + $geometries + " " + $instance_nodes + " " + $nodes
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$sids.(symbol)(
 		$transforms.(symbol)(
-		$transforms.each(@(x) x.(symbol)(
 		$controllers.(symbol)(
 		$controllers.each(@(x) x.(symbol)(
 		$geometries.(symbol)(
@@ -716,7 +774,17 @@ Node = Class() :: WithTree :: @
 		$
 $Node = Node
 
-SkinPrimitive = Class() :: WithTree :: @
+SkinPrimitive = Object + WithTree + @
+	$mode
+	$unit
+	$count
+	$material
+	$stride
+	$inputs
+	$indices
+	$_vertices
+	$_vertices_stride
+	$_others
 	$__initialize = @(primitive)
 		$mode = primitive.mode
 		$unit = primitive.unit
@@ -726,7 +794,6 @@ SkinPrimitive = Class() :: WithTree :: @
 		$inputs = primitive.inputs
 		$indices = primitive.indices
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$inputs.(symbol)(
 		$inputs.each(@(key, value) value.(symbol)(
 		$indices.(symbol)(
@@ -766,7 +833,18 @@ SkinPrimitive = Class() :: WithTree :: @
 		$_vertices_stride = stride
 	$input = bound_input
 
-Skin = Class() :: WithTree :: @
+Skin = Object + WithID + WithTree + @
+	$bind_shape_matrix
+	$sources
+	$joints
+	$vertex_weights
+	$vertex_weights_vcount
+	$vertex_weights_v
+	$built
+	$source
+	$_source
+	$_weights_per_vertex
+	$_primitives
 	$__initialize = @
 		$bind_shape_matrix = Matrix4(
 		$sources = [
@@ -775,14 +853,10 @@ Skin = Class() :: WithTree :: @
 		$built = false
 	$__string = @ "Skin(" + $id + ") {source: " + $source + ", bind_shape_matrix: " + $bind_shape_matrix + "}"
 	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$bind_shape_matrix.(symbol)(
 		$sources.(symbol)(
 		$sources.each(@(x) x.(symbol)(
 		$joints.(symbol)(
 		$vertex_weights.(symbol)(
-		$vertex_weights.vcount.(symbol)(
-		$vertex_weights.v.(symbol)(
 	$destroy = @ $built && $_primitives.each(@(x) x.destroy(
 	$build = @(resolve) if !$built
 		$_source = resolve($source
@@ -795,15 +869,15 @@ Skin = Class() :: WithTree :: @
 		weights.build(resolve
 		vertices = [
 		$_weights_per_vertex = 0
-		n = $vertex_weights.vcount.size(
+		n = $vertex_weights_vcount.size(
 		for i = 0; i < n; i = i + 1
 			bones = [
-			m = $vertex_weights.vcount[i]
+			m = $vertex_weights_vcount[i]
 			if m > $_weights_per_vertex
 				$_weights_per_vertex = m
 			for j = 0; j < m; j = j + 1
-				joint = $vertex_weights.v[ii + ij]
-				weight = $vertex_weights.v[ii + iw]
+				joint = $vertex_weights_v[ii + ij]
+				weight = $vertex_weights_v[ii + iw]
 				bones.push('(joint, weights[weight][0]
 				ii = ii + $vertex_weights.size()
 			x = position[i]
@@ -816,13 +890,25 @@ Skin = Class() :: WithTree :: @
 		)[$]
 		$built = true
 
-InstanceController = Class() :: WithTree :: @
+InstanceController = Object + WithTree + @
+	Joint = Object + @
+		$vertex
+
+	$skeletons
+	$materials
+	$url
+	$_controller
+	$_ibms
+	$_joints
+	$_joint2matrix
+	$_joints0
+	$_vertices
+	$_shaders
 	$__initialize = @(fallback)
 		$skeletons = [
 		$materials = {"": fallback
 	$__string = @ "InstanceController(" + $url + ") " + $skeletons + " " + $materials
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$skeletons.(symbol)(
 		$materials.(symbol)(
 		$materials.each(@(key, value) key != "" && value.(symbol)(
@@ -837,11 +923,11 @@ InstanceController = Class() :: WithTree :: @
 		$_joints = [
 		$_joint2matrix = {
 		$_ibms.push($_controller.bind_shape_matrix
-		$_joints.push($_joints0 = Object(
+		$_joints.push($_joints0 = Joint(
 		$_joints0.vertex = Matrix(
 		for i = 0; i < joints.count; i = i + 1
 			$_ibms.push(matrices.matrix(i) * $_controller.bind_shape_matrix
-			$_joints.push($_joint2matrix[joints[i][0]] = Object(
+			$_joints.push($_joint2matrix[joints[i][0]] = Joint(
 		$_vertices = Bytes((joints.count + 1) * 16 * gl.Float32Array.BYTES_PER_ELEMENT
 		$skeletons.each((@(x)
 			skeleton = resolve(x
@@ -867,8 +953,13 @@ InstanceController = Class() :: WithTree :: @
 		for i = 0; i < n; i = i + 1
 			shaders[i](projection
 
-Sampler = Class() :: WithTree :: @
-	Iterator = Class() :: @
+Sampler = Object + WithID + WithTree + @
+	Iterator = Object + @
+		$input
+		$output
+		$i
+		$channels
+		$index
 		$__initialize = @(sampler)
 			$input = sampler._input
 			$output = sampler._output
@@ -897,13 +988,16 @@ Sampler = Class() :: WithTree :: @
 			$i = 0
 			$forward(t
 
+	$inputs
+	$built
+	$_input
+	$_output
+	$_interpolation
 	$__initialize = @
 		$inputs = {
 		$built = false
 	$__string = @ "Sampler(" + $id + ") " + $inputs
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$inputs.(symbol)(
+	$tree = @(symbol) $inputs.(symbol)(
 	$build = @(resolve) if !$built
 		$_input = resolve($inputs["INPUT"]
 		$_input.build(resolve
@@ -914,8 +1008,16 @@ Sampler = Class() :: WithTree :: @
 		$built = true
 	$iterator = @ Iterator($
 
-Channel = Class() :: @
-	$__initialize = @ $built = false
+Channel = Object + @
+	$_call
+	$built
+	$source
+	$target
+	$_source
+	$_node
+	$__initialize = @
+		$_call = @(value)
+		$built = false
 	$__string = @ "Channel(" + $source + ") {target: " + $target + "}"
 	$build = @(resolve) if !$built
 		$_source = resolve($source
@@ -935,13 +1037,17 @@ Channel = Class() :: @
 				j = find_index(path[1], i, @(x) x == 0x29
 				row = Integer(path[1].substring(i, j - i
 				ij = column * 4 + row
-				$__call = ij < 15 ? @(value) target.v[ij] = value : @(value) null
+				$_call = ij < 15 ? @(value) target.v[ij] = value : @(value) null
 			else
-				$__call = @(value) value.bytes.copy(0, 16 * gl.Float32Array.BYTES_PER_ELEMENT, target.bytes, 0
+				$_call = @(value) value.bytes.copy(0, 16 * gl.Float32Array.BYTES_PER_ELEMENT, target.bytes, 0
 		$built = true
-	$__call = @(value)
+	$__call = @(value) $_call(value)
 
-Animation = Class() :: WithTree :: @
+Animation = Object + WithID + WithTree + @
+	$animations
+	$sources
+	$samplers
+	$channels
 	$__initialize = @
 		$animations = [
 		$sources = [
@@ -949,7 +1055,6 @@ Animation = Class() :: WithTree :: @
 		$channels = [
 	$__string = @ "Animation(" + $id + ") " + $animations + " " + $samplers + " " + $channels
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$animations.(symbol)(
 		$animations.each(@(x) x.(symbol)(
 		$sources.(symbol)(
@@ -957,7 +1062,6 @@ Animation = Class() :: WithTree :: @
 		$samplers.(symbol)(
 		$samplers.each(@(x) x.(symbol)(
 		$channels.(symbol)(
-		$channels.each(@(x) x.(symbol)(
 	$iterators = @(resolve, iterators, use)
 		$animations.each(@(x) x.iterators(resolve, iterators, use
 		$channels.each(@(x)
@@ -966,13 +1070,15 @@ Animation = Class() :: WithTree :: @
 			iterator = iterators.has(x._source) ? iterators[x._source] : (iterators[x._source] = x._source.iterator())
 			iterator.channels.push(x
 
-VisualScene = Class() :: WithTree :: @
+VisualScene = Object + WithID + WithTree + @
+	$nodes
+	$built
+	$_controllers
 	$__initialize = @
 		$nodes = [
 		$built = false
 	$__string = @ "VisualScene(" + $id + ") " + $nodes
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$nodes.(symbol)(
 		$nodes.each(@(x) x.(symbol)(
 	$build = @(resolve, shaders) if !$built
@@ -996,22 +1102,35 @@ VisualScene = Class() :: WithTree :: @
 			controllers[i].render(projection
 		print_time && print("\tcontrollers: " + (time.now() - t0)
 
-InstanceVisualScene = Class() :: @
+InstanceVisualScene = Object + @
+	$url
+	$_scene
 	$__string = @ "InstanceVisualScene(" + $url + ")"
 	$build = @(resolve, shaders)
 		$_scene = resolve($url
 		$_scene.build(resolve, shaders
 	$render = @(projection, viewing) $_scene.render(projection, viewing
 
-Scene = Class() :: WithTree :: @
+Scene = Object + @
+	$instance_visual_scene
 	$__string = @ "Scene " + $instance_visual_scene
-	$tree = @(symbol)
-		:$^.(symbol)[$](
-		$instance_visual_scene.(symbol)(
 	$build = @(resolve, shaders) $instance_visual_scene.build(resolve, shaders
 	$render = @(projection, viewing) $instance_visual_scene.render(projection, viewing
 
-Document = Class() :: WithTree :: @
+Document = Object + WithTree + @
+	$library_animations
+	$library_controllers
+	$library_effects
+	$library_geometries
+	$library_images
+	$library_materials
+	$library_nodes
+	$library_visual_scenes
+	$instance_material_fallback
+	$ids
+	$version
+	$asset
+	$scene
 	$__initialize = @
 		$library_animations = {
 		$library_controllers = {
@@ -1023,11 +1142,8 @@ Document = Class() :: WithTree :: @
 		$library_visual_scenes = {
 	$__string = @ "Document " + $scene
 	$tree = @(symbol)
-		:$^.(symbol)[$](
 		$instance_material_fallback.(symbol)(
 		$ids.(symbol)(
-		$asset.(symbol)(
-		$asset.unit.(symbol)(
 		$library_animations.(symbol)(
 		$library_animations.each(@(key, value) value.(symbol)(
 		$library_controllers.(symbol)(
@@ -1037,14 +1153,11 @@ Document = Class() :: WithTree :: @
 		$library_geometries.(symbol)(
 		$library_geometries.each(@(key, value) value.(symbol)(
 		$library_images.(symbol)(
-		$library_images.each(@(key, value) value.(symbol)(
 		$library_materials.(symbol)(
-		$library_materials.each(@(key, value) value.(symbol)(
 		$library_nodes.(symbol)(
 		$library_nodes.each(@(key, value) value.(symbol)(
 		$library_visual_scenes.(symbol)(
 		$library_visual_scenes.each(@(key, value) value.(symbol)(
-		$scene.(symbol)(
 	$destroy = @
 		$library_controllers.each(@(key, value) value.destroy(
 		$library_effects.each(@(key, value) value.destroy(
@@ -1092,9 +1205,12 @@ $load = @(source)
 		count = Integer(reader.get_attribute("count"
 		id = reader.get_attribute("id"
 		array = parse_array(type, parse, count, reader.read_element_text()
-		array.id = id
+		#array.id = id
 		if id != ""
 			ids[id] = array
+	Param = Object + @
+		$name
+		$type
 	source_elements = {
 		"Name_array": @(x)
 			count = Integer(reader.get_attribute("count"
@@ -1102,7 +1218,7 @@ $load = @(source)
 			array = [
 			parse_texts(reader.read_element_text(), is_whitespace, array.push
 			array.size() == count || throw Throwable("wrong count"
-			array.id = id
+			#array.id = id
 			x.arrays.push(array
 			if id != ""
 				ids[id] = array
@@ -1118,7 +1234,7 @@ $load = @(source)
 			reader.read_next(
 			params = [
 			read_empty_elements("param", @
-				param = Object(
+				param = Param(
 				param.name = reader.get_attribute("name"
 				param.type = reader.get_attribute("type"
 				params.push(param
@@ -1131,7 +1247,7 @@ $load = @(source)
 			else
 				x.params = [0]
 				if params.size() == 1 && params[0].type == "float4x4"
-					x.__get_at = x.get_matrix_at
+					x._get_at = x.get_matrix_at
 			reader.end_element(
 			reader.end_element(
 	read_source = @
@@ -1199,8 +1315,8 @@ $load = @(source)
 		for i = 0; i < count; i = i + 1
 			n = n + vcount[i]
 		reader.check_start_element("v"
-		skin.vertex_weights.vcount = vcount
-		skin.vertex_weights.v = parse_array(gl.Int32Array, Integer, n * skin.vertex_weights.size(), reader.read_element_text()
+		skin.vertex_weights_vcount = vcount
+		skin.vertex_weights_v = parse_array(gl.Int32Array, Integer, n * skin.vertex_weights.size(), reader.read_element_text()
 		while reader.is_start_element("extra")
 			reader.read_element_text(
 		reader.end_element(
@@ -1277,6 +1393,7 @@ $load = @(source)
 		"phong": @(x)
 			x.model = Phong(
 			reader.parse_elements(shader_elements, x.model
+	WithX = Object + @ $x
 	effect_elements = {
 		"profile_COMMON": @(x)
 			profile = ProfileCOMMON(
@@ -1285,7 +1402,7 @@ $load = @(source)
 				while reader.is_start_element("image")
 					reader.read_element_text(
 				while reader.is_start_element("newparam")
-					newparam = Object(
+					newparam = WithX(
 					sid = reader.get_attribute("sid"
 					reader.parse_elements(profile_COMMON_newparam_elements, newparam
 					newparam.x.sid = sid
@@ -1356,10 +1473,12 @@ $load = @(source)
 			triangles = triangles + c
 		primitive.count = triangles
 		primitive.indices = array
+	Vertices = Object + WithID + @
+		$inputs
 	mesh_elements = {
 		"source": @(x) x.sources.push(read_source(
 		"vertices": @(x)
-			x.vertices = Object(
+			x.vertices = Vertices(
 			x.vertices.id = reader.get_attribute("id"
 			reader.read_next(
 			x.vertices.inputs = {
@@ -1484,10 +1603,16 @@ $load = @(source)
 		if node.id != ""
 			ids[node.id] = node
 		node
+	Asset = Object + @
+		$unit
+		$up_axis
+	Unit = Object + @
+		$meter
+		$name
 	root_elements = {
 		"asset": @(x)
-			x.asset = Object(
-			x.asset.unit = Object(
+			x.asset = Asset(
+			x.asset.unit = Unit(
 			x.asset.unit.meter = 1.0
 			x.asset.unit.name = "meter"
 			reader.parse_elements(asset_elements, x.asset
@@ -1497,7 +1622,6 @@ $load = @(source)
 				x.library_animations[animation.id] = animation
 		"library_controllers": @(x) read_asset_1x_extra("controller", @
 			id = reader.get_attribute("id"
-			controller = null
 			read_asset_x_extra(@
 				if reader.is_start_element("skin")
 					:controller = read_skin(
@@ -1513,7 +1637,7 @@ $load = @(source)
 			ids[effect.id] = effect
 			x.library_effects[effect.id] = effect
 		"library_geometries": @(x) read_asset_1x_extra("geometry", @
-			geometry = Object(
+			geometry = WithX(
 			id = reader.get_attribute("id"
 			reader.parse_elements(geometry_elements, geometry
 			geometry.x.id = id

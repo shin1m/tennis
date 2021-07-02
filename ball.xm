@@ -74,9 +74,20 @@ $projected_time_for_y = projected_time_for_y = @(py, vy, y, sign)
 	a = vy * vy + 2.0 * G * (py - y)
 	a < 0.0 ? null : (vy + sign * math.sqrt(a)) / G
 
-$Ball = Class() :: @
+$Ball = Object + @
 	$radius = radius = 0.0625
-
+	$stage
+	$position
+	$velocity
+	$spin
+	$done
+	$target
+	$hitter
+	$in
+	$net
+	$node
+	$translate
+	$body_translate
 	$__initialize = @(stage, shaders, shadow, body)
 		$stage = stage
 		$position = Vector3(0.0, 0.0, 0.0
@@ -263,8 +274,12 @@ $Ball = Class() :: @
 	$bounce = @ $calculate_bounce($velocity, $spin
 	$projected_time_for_y = @(y, sign) projected_time_for_y($position.y, $velocity.y, y, sign
 	$projected_y_in = @(t) $position.y + ($velocity.y - 0.5 * G * t) * t
+	Record = Object + @
+		$position
+		$velocity
+		$spin
 	$create_record = @
-		record = Object(
+		record = Record(
 		$record(record
 		record
 	$record = @(to)
@@ -276,9 +291,13 @@ $Ball = Class() :: @
 		$velocity = +from.velocity
 		$spin = +from.spin
 
-$Mark = Class() :: @
+$Mark = Object + @
 	radius = 0.0625
-
+	$duration
+	$stretch
+	$node
+	$placement
+	$scale
 	$__initialize = @(stage, shaders, shadow)
 		$duration = 0
 		$stretch = 1.0
@@ -305,8 +324,12 @@ $Mark = Class() :: @
 		$placement.toward = Vector3(ball.velocity.x, 0.0, ball.velocity.z
 		$placement.valid = false
 		$stretch = 1.0 + $placement.toward.length() * 8.0
+	Record = Object + @
+		$duration
+		$stretch
+		$placement
 	$create_record = @
-		record = Object(
+		record = Record(
 		record.placement = Placement(
 		$record(record
 		record

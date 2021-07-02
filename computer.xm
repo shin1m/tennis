@@ -14,8 +14,8 @@ Player = player.Player
 
 random = @ Integer(24.0 * 60.0 * 60.0 * math.modf(time.now())[0]
 
-$__get_at = @(stage) @(controller, player)
-	ball = stage.ball
+$main = @(controller, player)
+	ball = $ball
 	duration = 64
 	decided0 = decided1 = left = right = forward = backward = false
 	shot = 'flat
@@ -23,14 +23,14 @@ $__get_at = @(stage) @(controller, player)
 	reset_decision = @
 		:decided0 = :decided1 = :left = :right = :forward = :backward = false
 		:shot = 'flat
-	super__step = controller.step[stage]
+	super__step = controller.step[$]
 	controller.step = @
 		if ball.done
 			player.reset(
 			reset_decision(
 			:net = false
 		else if ball.hitter === null
-			if player === stage.server
+			if player === $server
 				if player.state === Player.state_serve_set
 					player.reset(
 					if duration <= 0
@@ -39,7 +39,7 @@ $__get_at = @(stage) @(controller, player)
 					else
 						:duration = duration - 1
 				else if player.state === Player.state_serve_toss
-					if stage.second
+					if $second
 						:shot = 'lob
 					else
 						i = random() % 10
@@ -51,18 +51,18 @@ $__get_at = @(stage) @(controller, player)
 							:shot = 'flat
 					swing = player.actions.serve.swing.(shot)
 					t = ball.projected_time_for_y(swing.spot[13], 1.0
-					dt = stage.second ? 0.0 : 1.0
+					dt = $second ? 0.0 : 1.0
 					if random() % 2 == 0
 						dt = dt + 1.0
 					if t < (swing.impact - swing.start) * 60.0 + dt
-						:net = random() % 10 > (stage.second ? 7 : 4)
+						:net = random() % 10 > ($second ? 7 : 4)
 						player.do(shot
 					else if t < (swing.impact - swing.start) * 60.0 + 8.0
 						if !player.left && !player.right
 							i = random(
-							if i % 8 < (stage.second ? 1 : 2)
+							if i % 8 < ($second ? 1 : 2)
 								player.left = true
-							else if i % 8 > (stage.second ? 5 : 4)
+							else if i % 8 > ($second ? 5 : 4)
 								player.right = true
 			else
 				player.reset(

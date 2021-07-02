@@ -1,20 +1,27 @@
 gl = Module("gl"
 
-$Uniforms = Class() :: @
-	$__initialize = @
-		$stride = null
-		$texcoords = null
-		$projection = null
-		$vertex = null
-		$vertices = null
-		$normal = null
-		$color = null
-		$diffuse = null
-		$specular = null
-		$shininess = null
-		$refraction = null
+mix = @(super, *xs)
+	xs.each(@(x) :super = super + @ x[$](super
+	super
 
-MeshShader = Class() :: @
+$Uniforms = Object + @
+	$stride
+	$texcoords
+	$projection
+	$vertex
+	$vertices
+	$normal
+	$color
+	$diffuse
+	$specular
+	$shininess
+	$refraction
+
+MeshShader = Object + @
+	$program
+	$projection
+	$vertex_matrix
+	$vertex
 	$__initialize = @(program)
 		$program = program
 		$projection = $program.get_uniform_location("projection"
@@ -34,101 +41,104 @@ MeshShader = Class() :: @
 		gl.use_program(null
 		gl.bind_buffer(gl.ARRAY_BUFFER, null
 
-WithNormal = @
+WithNormal = @(super)
+	$normal
+	$normal_matrix
 	normal_offset = 3 * gl.Float32Array.BYTES_PER_ELEMENT
-	super__initialize = $__initialize
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$normal = $program.get_attrib_location("normal"
 		$normal_matrix = $program.get_uniform_location("normalMatrix"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		gl.enable_vertex_attrib_array($normal
 		gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, uniforms.stride, normal_offset
 		$normal_matrix.matrix3fv(false, uniforms.normal
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 		gl.disable_vertex_attrib_array($normal
 
-WithColor = @
-	super__initialize = $__initialize
+WithColor = @(super)
+	$color
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$color = $program.get_uniform_location("color"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		color = uniforms.color
 		$color.uniform4f(color.x, color.y, color.z, color.w
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 
-WithTexture = @
-	super__initialize = $__initialize
+WithTexture = @(super)
+	$texcoord
+	$color
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$texcoord = $program.get_attrib_location("texcoord"
 		$color = $program.get_uniform_location("color"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		gl.enable_vertex_attrib_array($texcoord
 		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, uniforms.stride, uniforms.texcoords
 		gl.active_texture(gl.TEXTURE0
 		gl.bind_texture(gl.TEXTURE_2D, uniforms.color
 		$color.uniform1i(0
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 		gl.disable_vertex_attrib_array($texcoord
 		gl.bind_texture(gl.TEXTURE_2D, null
 
-WithDiffuseColor = @
-	super__initialize = $__initialize
+WithDiffuseColor = @(super)
+	$diffuse
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$diffuse = $program.get_uniform_location("diffuse"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		diffuse = uniforms.diffuse
 		$diffuse.uniform4f(diffuse.x, diffuse.y, diffuse.z, diffuse.w
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 
-WithDiffuseTexture = @
-	super__initialize = $__initialize
+WithDiffuseTexture = @(super)
+	$texcoord
+	$diffuse
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$texcoord = $program.get_attrib_location("texcoord"
 		$diffuse = $program.get_uniform_location("diffuse"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		gl.enable_vertex_attrib_array($texcoord
 		gl.vertex_attrib_pointer($texcoord, 2, gl.FLOAT, false, uniforms.stride, uniforms.texcoords
 		gl.active_texture(gl.TEXTURE0
 		gl.bind_texture(gl.TEXTURE_2D, uniforms.diffuse
 		$diffuse.uniform1i(0
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 		gl.disable_vertex_attrib_array($texcoord
 		gl.bind_texture(gl.TEXTURE_2D, null
 
-WithSpecular = @
-	super__initialize = $__initialize
+WithSpecular = @(super)
+	$specular
+	$shininess
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$specular = $program.get_uniform_location("specular"
 		$shininess = $program.get_uniform_location("shininess"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		specular = uniforms.specular
 		$specular.uniform4f(specular.x, specular.y, specular.z, specular.w
 		$shininess.uniform1f(uniforms.shininess
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 
-WithRefraction = @
-	super__initialize = $__initialize
+WithRefraction = @(super)
+	$refraction
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$refraction = $program.get_uniform_location("refraction"
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		$refraction.uniform1f(uniforms.refraction
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 
-SkinShader = @(n) Class() :: @
+SkinShader = @(n) Object + @
+	$program
+	$projection
+	$vertex_matrices
+	$vertex
+	$joints
+	$weights
 	joints_offset = 3 * gl.Float32Array.BYTES_PER_ELEMENT
 	weights_offset = joints_offset + n * gl.Int32Array.BYTES_PER_ELEMENT
 	$__initialize = @(program)
@@ -163,27 +173,27 @@ SkinShader = @(n) Class() :: @
 		gl.use_program(null
 		gl.bind_buffer(gl.ARRAY_BUFFER, null
 
-WithSkinNormal = @
-	super__initialize = $__initialize
+WithSkinNormal = @(super)
+	$normal
+	$normal_offset
 	$__initialize = @(program)
-		super__initialize[$](program
+		super.__initialize[$](program
 		$normal = $program.get_attrib_location("normal"
 		$normal_offset = 3 * gl.Float32Array.BYTES_PER_ELEMENT + $joints.size() * gl.Int32Array.BYTES_PER_ELEMENT + $joints.size() * gl.Float32Array.BYTES_PER_ELEMENT
-	super__call = $call
 	$call = @(uniforms, mode, offset, count)
 		gl.enable_vertex_attrib_array($normal
 		gl.vertex_attrib_pointer($normal, 3, gl.FLOAT, false, uniforms.stride, $normal_offset
-		super__call[$](uniforms, mode, offset, count
+		super.call[$](uniforms, mode, offset, count
 		gl.disable_vertex_attrib_array($normal
 
-ColorShader = Class(MeshShader) :: WithColor
-TextureShader = Class(MeshShader) :: WithTexture
-DiffuseColorShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseColor
-DiffuseTextureShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseTexture
-DiffuseColorSpecularShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular
-DiffuseTextureSpecularShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular
-DiffuseColorSpecularRefractionShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction
-DiffuseTextureSpecularRefractionShader = Class(MeshShader) :: WithNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction
+ColorShader = mix(MeshShader, WithColor
+TextureShader = mix(MeshShader, WithTexture
+DiffuseColorShader = mix(MeshShader, WithNormal, WithColor, WithDiffuseColor
+DiffuseTextureShader = mix(MeshShader, WithNormal, WithColor, WithDiffuseTexture
+DiffuseColorSpecularShader = mix(MeshShader, WithNormal, WithColor, WithDiffuseColor, WithSpecular
+DiffuseTextureSpecularShader = mix(MeshShader, WithNormal, WithColor, WithDiffuseTexture, WithSpecular
+DiffuseColorSpecularRefractionShader = mix(MeshShader, WithNormal, WithColor, WithDiffuseColor, WithSpecular, WithRefraction
+DiffuseTextureSpecularRefractionShader = mix(MeshShader, WithNormal, WithColor, WithDiffuseTexture, WithSpecular, WithRefraction
 
 compile = @(type, source)
 	shader = gl.Shader(type
@@ -202,7 +212,39 @@ link = @(vshader, fshader)
 	program
 $link = link
 
-$__call = Class() :: @
+$shaders = Object + @
+	$vertex_shader
+	$vertex_shader_texture
+	$vertex_shader_normal
+	$vertex_shader_normal_texture
+	$constant_shader_color
+	$constant_shader_texture
+	$constant_color
+	$constant_texture
+	$blinn_shader_color
+	$blinn_shader_texture
+	$blinn_color
+	$blinn_texture
+	$lambert_shader_color
+	$lambert_shader_texture
+	$lambert_color
+	$lambert_texture
+	$phong_shader_color
+	$phong_shader_texture
+	$phong_color
+	$phong_texture
+	$skin_shader_normal
+	$skin_shader_normal_texture
+	$SkinColorShader
+	$SkinDiffuseColorShader
+	$SkinDiffuseColorSpecularShader
+	$SkinDiffuseColorSpecularRefractionShader
+	$skin_color
+	$SkinTextureShader
+	$SkinDiffuseTextureShader
+	$SkinDiffuseTextureSpecularShader
+	$SkinDiffuseTextureSpecularRefractionShader
+	$skin_texture
 	vertex_shader = @(defines)
 		compile(gl.VERTEX_SHADER, defines + "
 uniform mat4 projection;
@@ -445,12 +487,17 @@ void main()
 	lazy_xs = @(f)
 		c = {
 		@(*xs) c.has(xs) ? c[xs] : (c[xs] = f(*xs))
-	skins_color = Object(
+	Model = Object + @
+		$constant
+		$blinn
+		$lambert
+		$phong
+	skins_color = Model(
 	skins_color.constant = '('SkinColorShader, 'constant_shader_color
 	skins_color.blinn = '('SkinDiffuseColorSpecularRefractionShader, 'blinn_shader_color
 	skins_color.lambert = '('SkinDiffuseColorShader, 'lambert_shader_color
 	skins_color.phong = '('SkinDiffuseColorSpecularShader, 'phong_shader_color
-	skins_texture = Object(
+	skins_texture = Model(
 	skins_texture.constant = '('SkinTextureShader, 'constant_shader_texture
 	skins_texture.blinn = '('SkinDiffuseTextureSpecularRefractionShader, 'blinn_shader_texture
 	skins_texture.lambert = '('SkinDiffuseTextureShader, 'lambert_shader_texture
@@ -478,18 +525,18 @@ void main()
 		$phong_texture = lazy((@ DiffuseTextureSpecularShader(link($vertex_shader_normal_texture(), $phong_shader_texture())))[$]
 		$skin_shader_normal = lazy_xs(@(joints, weights) skin_shader(joints, weights, ""
 		$skin_shader_normal_texture = lazy_xs(@(joints, weights) skin_shader(joints, weights, "#define USE_TEXTURE"
-		$SkinColorShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithColor
-		$SkinDiffuseColorShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor
-		$SkinDiffuseColorSpecularShader = @(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular
-		$SkinDiffuseColorSpecularRefractionShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseColor :: WithSpecular :: WithRefraction
+		$SkinColorShader = lazy_xs(@(n) mix(SkinShader(n), WithColor
+		$SkinDiffuseColorShader = lazy_xs(@(n) mix(SkinShader(n), WithSkinNormal, WithColor, WithDiffuseColor
+		$SkinDiffuseColorSpecularShader = @(n) mix(SkinShader(n), WithSkinNormal, WithColor, WithDiffuseColor, WithSpecular
+		$SkinDiffuseColorSpecularRefractionShader = lazy_xs(@(n) mix(SkinShader(n), WithSkinNormal, WithColor, WithDiffuseColor, WithSpecular, WithRefraction
 		$skin_color = lazy_xs((@(joints, weights, model)
 			factory = skins_color.(model)
 			$.(factory[0])(weights)(link($skin_shader_normal(joints, weights), $.(factory[1])()
 		)[$]
-		$SkinTextureShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithTexture
-		$SkinDiffuseTextureShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture
-		$SkinDiffuseTextureSpecularShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular
-		$SkinDiffuseTextureSpecularRefractionShader = lazy_xs(@(n) Class(SkinShader(n)) :: WithSkinNormal :: WithColor :: WithDiffuseTexture :: WithSpecular :: WithRefraction
+		$SkinTextureShader = lazy_xs(@(n) mix(SkinShader(n), WithTexture
+		$SkinDiffuseTextureShader = lazy_xs(@(n) mix(SkinShader(n), WithSkinNormal, WithColor, WithDiffuseTexture
+		$SkinDiffuseTextureSpecularShader = lazy_xs(@(n) mix(SkinShader(n), WithSkinNormal, WithColor, WithDiffuseTexture, WithSpecular
+		$SkinDiffuseTextureSpecularRefractionShader = lazy_xs(@(n) mix(SkinShader(n), WithSkinNormal, WithColor, WithDiffuseTexture, WithSpecular, WithRefraction
 		$skin_texture = lazy_xs((@(joints, weights, model)
 			factory = skins_texture.(model)
 			$.(factory[0])(weights)(link($skin_shader_normal_texture(joints, weights), $.(factory[1])()

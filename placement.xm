@@ -4,9 +4,12 @@ collada = Module("collada"
 Matrix4 = glmatrix.Matrix4
 Vector3 = glmatrix.Vector3
 
-$Posture = Class(collada.Matrix) :: @
-	$__initialize = @
-		:$^__initialize[$](
+Posture = collada.Matrix + @
+	$valid
+	$toward
+	$upward
+	$__initialize = @(*xs)
+		collada.Matrix.__initialize[$](*xs
 		$valid = false
 		$toward = Vector3(0.0, 0.0, 1.0
 		$upward = Vector3(0.0, 1.0, 0.0
@@ -47,19 +50,21 @@ $Posture = Class(collada.Matrix) :: @
 		v[9] = $upward.z
 		v[10] = -$toward.z
 		m
+$Posture = Posture
 
-$Placement = Class($Posture) :: @
+$Placement = Posture + @
+	$position
 	$__initialize = @
-		:$^__initialize[$](
+		Posture.__initialize[$](
 		$position = Vector3(0.0, 0.0, 0.0
 	$setup = @
-		:$^setup[$](
+		Posture.setup[$](
 		v = $v
 		v[12] = $position.x
 		v[13] = $position.y
 		v[14] = $position.z
 	$viewing = @
-		m = :$^viewing[$](
+		m = Posture.viewing[$](
 		v = m.v
 		v[12] = -(v[0] * $position.x + v[4] * $position.y + v[8] * $position.z)
 		v[13] = -(v[1] * $position.x + v[5] * $position.y + v[9] * $position.z)

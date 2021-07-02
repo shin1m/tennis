@@ -2,9 +2,9 @@ math = Module("math"
 gl = Module("gl"
 
 Float32Array = gl.Float32Array
-SingularMatrixException = Class(Throwable
+SingularMatrixException = Throwable + @
 
-Matrix = @(N) Class() :: @
+Matrix = @(N) Object + @
 	$N = N
 	NN = N * N
 	BPE = Float32Array.BYTES_PER_ELEMENT
@@ -22,8 +22,11 @@ Matrix = @(N) Class() :: @
 				v[r + j] = 0.0
 	)(
 	Icopy = I.copy
-	LU = Class() :: @
-		Column = Class() :: @
+	LU = Object + @
+		Column = Object + @
+			$i
+			$w
+			$m
 			$__initialize = @(bytes, i)
 				$i = i
 				$w = 0.0
@@ -51,6 +54,7 @@ Matrix = @(N) Class() :: @
 				for j = i + 1; j < N; j = j + 1
 					m[j] = m[j] - m[i] * ds[j]
 
+		$columns
 		$__initialize = @
 			bytes = Bytes(NNBPE
 			columns = [
@@ -120,6 +124,8 @@ Matrix = @(N) Class() :: @
 				$erase(i, d
 			determinant * $columns[N - 1].m[N - 1]
 
+	$bytes
+	$v
 	$__initialize = @(value = 1.0)
 		$bytes = Bytes(NNBPE
 		v = Float32Array($bytes
@@ -169,22 +175,22 @@ Matrix = @(N) Class() :: @
 		for i = 0; i < NN; i = i + 1
 			v[i] = -v[i]
 		$
-	$__plus = @ :$($
-	$__minus = @ :$($).negate(
+	$__plus = @ $@($
+	$__minus = @ $@($).negate(
 	$add = @(value)
 		v0 = $v
 		v1 = value.v
 		for i = 0; i < NN; i = i + 1
 			v0[i] = v0[i] + v1[i]
 		$
-	$__add = @(value) :$($).add(value
+	$__add = @(value) $@($).add(value
 	$subtract = @(value)
 		v0 = $v
 		v1 = value.v
 		for i = 0; i < NN; i = i + 1
 			v0[i] = v0[i] - v1[i]
 		$
-	$__subtract = @(value) :$($).subtract(value
+	$__subtract = @(value) $@($).subtract(value
 	multiply = @(v, v0, v1)
 		for i = 0; i < N; i = i + 1
 			for j = 0; j < N; j = j + 1
@@ -202,7 +208,7 @@ Matrix = @(N) Class() :: @
 			multiply(v, Tuple(*v), value.v
 		$
 	$__multiply = @(value)
-		x = :$($
+		x = $@($
 		v = x.v
 		if value.@ === Float
 			for i = 0; i < NN; i = i + 1
@@ -217,7 +223,7 @@ Matrix = @(N) Class() :: @
 		lu.decompose($v) || throw SingularMatrixException($__string(
 		lu.backsubstitute($v
 		$
-	$__complement = @ :$($).invert(
+	$__complement = @ $@($).invert(
 	$equals = @(value, epsilon)
 		v0 = $v
 		v1 = value.v
@@ -236,13 +242,16 @@ Matrix = @(N) Class() :: @
 				v[i0] = v[i1]
 				v[i1] = t
 		$
-	$transposition = @ :$($).transpose(
+	$transposition = @ $@($).transpose(
 	$determinant = @ LU().determinant($v
 
 Matrix3 = Matrix(3
 Matrix4 = Matrix(4
 
-Vector3 = Class() :: @
+Vector3 = Object + @
+	$x
+	$y
+	$z
 	$__initialize = @(x, y, z)
 		$x = x
 		$y = y
@@ -297,7 +306,11 @@ Vector3 = Class() :: @
 		d = $ * value / ($length() * value.length())
 		math.acos(d < -1.0 ? -1.0 : d > 1.0 ? 1.0 : d
 
-Vector4 = Class() :: @
+Vector4 = Object + @
+	$x
+	$y
+	$z
+	$w
 	$__initialize = @(x, y, z, w)
 		$x = x
 		$y = y
@@ -356,108 +369,105 @@ Vector4 = Class() :: @
 		math.acos(d < -1.0 ? -1.0 : d > 1.0 ? 1.0 : d
 
 Matrix3__multiply = Matrix3.__multiply
-Matrix3.__multiply = @(value)
-	if value.@ === Vector3
-		v = $v
-		Vector3(
-			v[0] * value.x + v[3] * value.y + v[6] * value.z
-			v[1] * value.x + v[4] * value.y + v[7] * value.z
-			v[2] * value.x + v[5] * value.y + v[8] * value.z
-	else
-		Matrix3__multiply[$](value
+Matrix3 = Matrix3 + @
+	$__multiply = @(value)
+		if value.@ === Vector3
+			v = $v
+			Vector3(
+				v[0] * value.x + v[3] * value.y + v[6] * value.z
+				v[1] * value.x + v[4] * value.y + v[7] * value.z
+				v[2] * value.x + v[5] * value.y + v[8] * value.z
+		else
+			Matrix3__multiply[$](value
 
 Matrix4__multiply = Matrix4.__multiply
-Matrix4.__multiply = @(value)
-	if value.@ === Vector3
+Matrix4 = Matrix4 + @
+	$__multiply = @(value)
+		if value.@ === Vector3
+			v = $v
+			Vector3(
+				v[0] * value.x + v[4] * value.y + v[8] * value.z + v[12]
+				v[1] * value.x + v[5] * value.y + v[9] * value.z + v[13]
+				v[2] * value.x + v[6] * value.y + v[10] * value.z + v[14]
+		else if value.@ === Vector4
+			v = $v
+			Vector4(
+				v[0] * value.x + v[4] * value.y + v[8] * value.z + v[12] * value.w
+				v[1] * value.x + v[5] * value.y + v[9] * value.z + v[13] * value.w
+				v[2] * value.x + v[6] * value.y + v[10] * value.z + v[14] * value.w
+				v[3] * value.x + v[7] * value.y + v[11] * value.z + v[15] * value.w
+		else
+			Matrix4__multiply[$](value
+	$translate = @(x, y, z)
 		v = $v
-		Vector3(
-			v[0] * value.x + v[4] * value.y + v[8] * value.z + v[12]
-			v[1] * value.x + v[5] * value.y + v[9] * value.z + v[13]
-			v[2] * value.x + v[6] * value.y + v[10] * value.z + v[14]
-	else if value.@ === Vector4
+		v[12] = v[0] * x + v[4] * y + v[8] * z + v[12]
+		v[13] = v[1] * x + v[5] * y + v[9] * z + v[13]
+		v[14] = v[2] * x + v[6] * y + v[10] * z + v[14]
+		$
+	$scale = @(x, y, z)
 		v = $v
-		Vector4(
-			v[0] * value.x + v[4] * value.y + v[8] * value.z + v[12] * value.w
-			v[1] * value.x + v[5] * value.y + v[9] * value.z + v[13] * value.w
-			v[2] * value.x + v[6] * value.y + v[10] * value.z + v[14] * value.w
-			v[3] * value.x + v[7] * value.y + v[11] * value.z + v[15] * value.w
-	else
-		Matrix4__multiply[$](value
-
-Matrix4.translate = @(x, y, z)
-	v = $v
-	v[12] = v[0] * x + v[4] * y + v[8] * z + v[12]
-	v[13] = v[1] * x + v[5] * y + v[9] * z + v[13]
-	v[14] = v[2] * x + v[6] * y + v[10] * z + v[14]
-	$
-
-Matrix4.scale = @(x, y, z)
-	v = $v
-	v[0] = v[0] * x
-	v[1] = v[1] * x
-	v[2] = v[2] * x
-	v[4] = v[4] * y
-	v[5] = v[5] * y
-	v[6] = v[6] * y
-	v[8] = v[8] * z
-	v[9] = v[9] * z
-	v[10] = v[10] * z
-	$
-
-Matrix4.rotate = @(axis, angle)
-	d = axis.length(
-	d < 0.0000000001 && return $
-	x = axis.x / d
-	y = axis.y / d
-	z = axis.z / d
-	s = math.sin(angle
-	c = math.cos(angle
-	d0 = 1.0 - c
-	zx = z * x
-	xy = x * y
-	yz = y * z
-	m = Matrix4(
-	v = m.v
-	v[0] = d0 * x * x + c
-	v[1] = d0 * xy + s * z
-	v[2] = d0 * zx - s * y
-	v[4] = d0 * xy - s * z
-	v[5] = d0 * y * y + c
-	v[6] = d0 * yz + s * x
-	v[8] = d0 * zx + s * y
-	v[9] = d0 * yz - s * x
-	v[10] = d0 * z * z + c
-	$multiply(m
-
-Matrix4.frustum = @(left, right, bottom, top, near, far)
-	m = Matrix4(0.0
-	v = m.v
-	v[0] = 2.0 * near / (right - left)
-	v[5] = 2.0 * near / (top - bottom)
-	v[8] = (right + left) / (right - left)
-	v[9] = (top + bottom) / (top - bottom)
-	v[10] = -(far + near) / (far - near)
-	v[11] = -1.0
-	v[14] = -2.0 * far * near / (far - near)
-	$multiply(m
-
-Matrix4.orthographic = @(left, right, bottom, top, near, far)
-	m = Matrix4(
-	v = m.v
-	v[0] = 2.0 / (right - left)
-	v[5] = 2.0 / (top - bottom)
-	v[10] = -2.0 / (far - near)
-	v[12] = -(right + left) / (right - left)
-	v[13] = -(top + bottom) / (top - bottom)
-	v[14] = -(far + near) / (far - near)
-	$multiply(m
+		v[0] = v[0] * x
+		v[1] = v[1] * x
+		v[2] = v[2] * x
+		v[4] = v[4] * y
+		v[5] = v[5] * y
+		v[6] = v[6] * y
+		v[8] = v[8] * z
+		v[9] = v[9] * z
+		v[10] = v[10] * z
+		$
+	$rotate = @(axis, angle)
+		d = axis.length(
+		d < 0.0000000001 && return $
+		x = axis.x / d
+		y = axis.y / d
+		z = axis.z / d
+		s = math.sin(angle
+		c = math.cos(angle
+		d0 = 1.0 - c
+		zx = z * x
+		xy = x * y
+		yz = y * z
+		m = Matrix4(
+		v = m.v
+		v[0] = d0 * x * x + c
+		v[1] = d0 * xy + s * z
+		v[2] = d0 * zx - s * y
+		v[4] = d0 * xy - s * z
+		v[5] = d0 * y * y + c
+		v[6] = d0 * yz + s * x
+		v[8] = d0 * zx + s * y
+		v[9] = d0 * yz - s * x
+		v[10] = d0 * z * z + c
+		$multiply(m
+	$frustum = @(left, right, bottom, top, near, far)
+		m = Matrix4(0.0
+		v = m.v
+		v[0] = 2.0 * near / (right - left)
+		v[5] = 2.0 * near / (top - bottom)
+		v[8] = (right + left) / (right - left)
+		v[9] = (top + bottom) / (top - bottom)
+		v[10] = -(far + near) / (far - near)
+		v[11] = -1.0
+		v[14] = -2.0 * far * near / (far - near)
+		$multiply(m
+	$orthographic = @(left, right, bottom, top, near, far)
+		m = Matrix4(
+		v = m.v
+		v[0] = 2.0 / (right - left)
+		v[5] = 2.0 / (top - bottom)
+		v[10] = -2.0 / (far - near)
+		v[12] = -(right + left) / (right - left)
+		v[13] = -(top + bottom) / (top - bottom)
+		v[14] = -(far + near) / (far - near)
+		$multiply(m
 
 $Matrix3 = Matrix3
 $Matrix4 = Matrix4
 $Vector3 = Vector3
 $Vector4 = Vector4
 
-if $ === Module("__main")
+if false
 	system = Module("system"
 	print = system.out.write_line
 	assert = @(x) x || throw Throwable("Assertion failed."

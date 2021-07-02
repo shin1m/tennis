@@ -34,7 +34,17 @@ load_rgba = @(path)
 		image.release(
 $load_rgba = load_rgba
 
-$Image = Class() :: @
+$Image = Object + @
+	$width
+	$height
+	$program
+	$projection
+	$vertex_matrix
+	$vertex
+	$texcoord
+	$color
+	$texture
+	$vertices
 	$create = @(width, height, data)
 		$width = Float(width
 		$height = Float(height
@@ -105,7 +115,16 @@ void main()
 		gl.bind_buffer(gl.ARRAY_BUFFER, null
 		gl.bind_texture(gl.TEXTURE_2D, null
 
-$Font = Class() :: @
+$Font = Object + @
+	$unit
+	$program
+	$projection
+	$vertex_matrix
+	$offset
+	$vertex
+	$color
+	$texture
+	$vertices
 	$create = @(width, height, data, count, unit)
 		$unit = unit
 		$program = glshaders.link(glshaders.compile(gl.VERTEX_SHADER, "

@@ -14,10 +14,10 @@ placement = Module("placement"
 ball = Module("ball"
 player = Module("player"
 stage = Module("stage"
-computer = Module("computer"
+computer = Module("computer").main
 
-xraft.Key.VOLUMEUP = 0x1008FF13
-xraft.Key.VOLUMEDOWN = 0x1008FF11
+VOLUMEUP = 0x1008FF13
+VOLUMEDOWN = 0x1008FF11
 
 print_time = false
 
@@ -26,10 +26,12 @@ Vector3 = glmatrix.Vector3
 Posture = placement.Posture
 Player = player.Player
 
-Container = Class() :: @
-	$__initialize = @
-		$content = null
-		$transit_from = null
+Container = Object + @
+	$content
+	$transit_from
+	$slide
+	$duration
+	$t
 	$destroy = @
 		$transit_from !== null && $transit_from.?destroy && $transit_from.destroy(
 		$content !== null && $content.?destroy && $content.destroy(
@@ -55,13 +57,19 @@ Container = Class() :: @
 		$duration = 30
 		$t = 0
 
-Menu = Class() :: @
-	$Item = @(label, do)
-		o = Object(
-		o.label = label
-		o.do = do
-		o
+Menu = Object + @
+	$Item = Object + @
+		$label
+		$do
+		$__initialize = @(label, do)
+			$label = label
+			$do = do
 
+	$main
+	$columns
+	$selected
+	$back
+	$items
 	$__initialize = @(main, columns = 1)
 		$main = main
 		$columns = columns
@@ -101,20 +109,31 @@ Menu = Class() :: @
 		$items[$selected].do(
 	$keys = keys = {
 		xraft.Key.ESCAPE: @ $back(
-		xraft.Key.RETURN: $do
-		xraft.Key.SPACE: $do
-		xraft.Key.D2: $do
-		xraft.Key.LEFT: $left
-		xraft.Key.RIGHT: $right
-		xraft.Key.UP: $up
-		xraft.Key.DOWN: $down
-		xraft.Key.S: $left
-		xraft.Key.F: $right
-		xraft.Key.E: $up
-		xraft.Key.C: $down
+		xraft.Key.RETURN: @ $do(
+		xraft.Key.SPACE: @ $do(
+		xraft.Key.D2: @ $do(
+		xraft.Key.LEFT: @ $left(
+		xraft.Key.RIGHT: @ $right(
+		xraft.Key.UP: @ $up(
+		xraft.Key.DOWN: @ $down(
+		xraft.Key.S: @ $left(
+		xraft.Key.F: @ $right(
+		xraft.Key.E: @ $up(
+		xraft.Key.C: @ $down(
 	$key_press = @(key) keys.has(key) && keys[key][$](
 
-Match = Class(stage.Stage) :: @
+Match = stage.Stage + @
+	$back
+	$records
+	$closed
+	$second
+	$end
+	$server
+	$receiver
+	$side
+	$state
+	$message
+	$duration
 	$new_game = @
 		$player0.point = $player1.point = 0
 		$second = false
@@ -149,7 +168,7 @@ Match = Class(stage.Stage) :: @
 			$second = true
 		$duration = 2 * 64
 		$sound_miss.play(
-	$ball_serve_air = $serve_miss
+	$ball_serve_air = @ $serve_miss(
 	$miss = @(message)
 		$message = [message
 		$second = false
@@ -174,7 +193,7 @@ Match = Class(stage.Stage) :: @
 			($player0 === $server ? "* " : "  ") + game + ($player1 === $server ? " *" : "  ")
 		$duration = 64
 		$step_things(
-	state_close = $State(@
+	state_close = stage.Stage.State(@
 		$step_things(
 	, {
 		xraft.Key.RETURN: @ $new_set(
@@ -195,7 +214,7 @@ Match = Class(stage.Stage) :: @
 	$transit_play = @
 		$state = $state_play
 		$message = [
-	state_replay = $State(@
+	state_replay = stage.Stage.State(@
 		$duration > 0 || return $next(
 		$duration = $duration - 1
 		$duration % 2 == 0 && return
@@ -231,7 +250,7 @@ Match = Class(stage.Stage) :: @
 		$receiver.reset(-$end, Player.state_default
 		$reset_cameras(
 	$step_things = @
-		:$^step_things[$](
+		stage.Stage.step_things[$](
 		record = $records.shift(
 		$ball.record(record.ball
 		$mark.record(record.mark
@@ -239,12 +258,17 @@ Match = Class(stage.Stage) :: @
 		$player1.record(record.player1
 		$records.push(record
 
+	Record = Object + @
+		$ball
+		$mark
+		$player0
+		$player1
 	$__initialize = @(main, dual, fixed, controller0, player0, controller1, player1, back)
-		:$^__initialize[$](main, dual, fixed, controller0, player0, controller1, player1
+		stage.Stage.__initialize[$](main, dual, fixed, controller0, player0, controller1, player1
 		$back = back
 		$records = [
 		for i = 0; i < 150; i = i + 1
-			record = Object(
+			record = Record(
 			record.ball = $ball.create_record(
 			record.mark = $mark.create_record(
 			record.player0 = $player0.create_record(
@@ -267,13 +291,21 @@ Match = Class(stage.Stage) :: @
 		else
 			$transit_ready(
 
-Training = Class(stage.Stage) :: @
-	Item = @(label, do, ready, play)
-		o = Menu.Item(label, do
-		o.ready = ready
-		o.play = play
-		o
+Training = stage.Stage + @
+	Item = Menu.Item + @
+		$ready
+		$play
+		$__initialize = @(label, do, ready, play)
+			Menu.Item.__initialize[$](label, do
+			$ready = ready
+			$play = play
 
+	$menu
+	$state_select
+	$state
+	$side
+	$message
+	$duration
 	$ball_ace = @ $duration = 32
 	$ball_let = @
 		$mark.mark($ball
@@ -285,7 +317,7 @@ Training = Class(stage.Stage) :: @
 		$message = ["FAULT"
 		$duration = 32
 		$sound_miss.play(
-	$ball_serve_air = $serve_miss
+	$ball_serve_air = @ $serve_miss(
 	$miss = @(message)
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
 		$message = [message
@@ -297,12 +329,12 @@ Training = Class(stage.Stage) :: @
 		$text_viewing = Matrix4().scale(0.25, 0.25, 1.0
 		$message = ["IN"
 	$step_things = @
-		:$^step_things[$](
+		stage.Stage.step_things[$](
 		$camera1.position = Vector3(($ball.position.x + $player0.root_position().x) * 0.5, 4.0, ($ball.position.z + 40.0 * $player1.end) * 0.5
 		$camera1.toward = Vector3(0.0, -6.0, -40.0 * $player1.end
 
 	$__initialize = @(main, controller0, player0, player1, back)
-		:$^__initialize[$](main, true, false, controller0, player0, @(controller, player)
+		stage.Stage.__initialize[$](main, true, false, controller0, player0, @(controller, player)
 			super__step = controller.step[$]
 			controller.step = @
 				if player.state !== Player.state_swing
@@ -417,8 +449,8 @@ controller0 = @(controller, player)
 	{
 		xraft.Key.D1: @ player.do('topspin
 		xraft.Key.D2: @ player.do('flat
-		xraft.Key.VOLUMEUP: @ player.do('lob
-		xraft.Key.VOLUMEDOWN: @ player.do('slice
+		VOLUMEUP: @ player.do('lob
+		VOLUMEDOWN: @ player.do('slice
 		xraft.Key.LEFT: @ player.left = true
 		xraft.Key.RIGHT: @ player.right = true
 		xraft.Key.UP: @ player.forward = true
@@ -462,13 +494,16 @@ controller1 = @(controller, player)
 		xraft.Key.D5: @ player.backward = false
 	}.each(@(key, value) controller.key_release[key] = value
 
-Background = Class(Container) :: @
+Background = Container + @
+	$main
+	$image
+	$sound
 	$__initialize = @(main, image, sound)
-		:$^__initialize[$](
+		Container.__initialize[$](
 		$main = main
 		$image = glimage.Image((io.Path(system.script) / ".." / image).__string(
 		$sound = main.load_sound(sound
-		$sound.setb(al.LOOPING, true
+		$sound.looping__(true
 		$sound.play(
 	$destroy = @
 		$sound.delete(
@@ -501,21 +536,26 @@ Background = Class(Container) :: @
 		array[18] = (1.0 + s) * 0.5
 		array[19] = (1.0 - t) * 0.5
 		$image($main.projection, viewing.bytes, bytes
-		:$^render[$](viewing
+		Container.render[$](viewing
 
-Titled = Class(Container) :: @
+Titled = Container + @
+	$main
+	$title
 	$__initialize = @(main, title)
-		:$^__initialize[$](
+		Container.__initialize[$](
 		$main = main
 		$title = title
 	$render = @(viewing)
-		:$^render[$](viewing
+		Container.render[$](viewing
 		v = (viewing * $main.text_scale).translate(0.0, 0.5, 0.0).scale(1.125 / 4.0, 1.125 / 4.0, 1.0).translate($title.size() * -0.25, 0.0, 0.0).bytes
 		$main.font($main.projection, v, $title
 
-StageMenu = Class(Titled) :: @
+StageMenu = Titled + @
+	$player0
+	$player1
+	$ready
 	$__initialize = @(screen, title, done, back)
-		:$^__initialize[$](screen.main, title
+		Titled.__initialize[$](screen.main, title
 		$player0 = Menu(screen.main, 2
 		$player0.back = back
 		$player0.items = [
@@ -531,7 +571,7 @@ StageMenu = Class(Titled) :: @
 		$ready.items = '(Menu.Item("START", (@ done(screen.players[$player0.selected], screen.players[$player1.selected]))[$]
 		$content = $player0
 	$render = @(viewing)
-		:$^render[$](viewing
+		Titled.render[$](viewing
 		message = $player0.items[$player0.selected].label
 		if $content === $player0
 			message = message + "?"
@@ -541,9 +581,9 @@ StageMenu = Class(Titled) :: @
 		v = (viewing * $main.text_scale).translate(0.0, 0.25, 0.0).scale(1.0 / 4.0, 1.0 / 4.0, 1.0).translate(message.size() * -0.25, -0.5, 0.0).bytes
 		$main.font($main.projection, v, message
 
-MainMenu = Class(Titled) :: @
+MainMenu = Titled + @
 	$__initialize = @(screen, back)
-		:$^__initialize[$](screen.main, "TENNIS"
+		Titled.__initialize[$](screen.main, "TENNIS"
 		back2this = @ screen.container.transit(MainMenu(screen, back), 2.0 * screen.main.aspect
 		$content = Menu(screen.main
 		$content.back = @ xraft.application().exit(
@@ -569,7 +609,10 @@ MainMenu = Class(Titled) :: @
 				)[$], back2this), -2.0 * $main.aspect
 			)[$]
 
-MainScreen = Class() :: @
+MainScreen = Object + @
+	Player = Object + @
+		$name
+		$path
 	load = @(source)
 		reader = collada.Reader(source
 		try
@@ -579,7 +622,7 @@ MainScreen = Class() :: @
 			reader.read_next(
 			players = [
 			while reader.is_start_element("player")
-				player = Object(
+				player = Player(
 				player.name = reader.get_attribute("name"
 				player.path = (io.Path(source) / ".." / reader.get_attribute("path")).__string(
 				reader.read_element_text(
@@ -589,6 +632,9 @@ MainScreen = Class() :: @
 		finally
 			reader.free(
 
+	$main
+	$players
+	$container
 	$__initialize = @(main)
 		$main = main
 		$players = load((io.Path(system.script) / "../data/players").__string(
@@ -604,10 +650,22 @@ MainScreen = Class() :: @
 	$key_press = @(modifier, key, ascii) $container.key_press(key
 	$key_release = @(modifier, key, ascii)
 
-Game = Class(xraft.GLWidget) :: @
+Game = xraft.GLWidget + @
+	$glcontext
+	$alcontext
+	$last
+	$timer
+	$sound_cursor
+	$sound_select
+	$shaders
+	$font
+	$screen
+	$aspect
+	$projection
+	$text_scale
 	$on_create = @
 		$glcontext.make_current($
-		$shaders = glshaders(
+		$shaders = glshaders.shaders(
 		$font = glimage.Font(
 		gl.enable(gl.CULL_FACE
 		$on_move(
@@ -637,21 +695,28 @@ Game = Class(xraft.GLWidget) :: @
 	$on_key_release = @(modifier, key, ascii)
 		$glcontext.make_current($
 		$screen.key_release(modifier, key, ascii
+	Sound = Object + @
+		$buffer
+		$source
+		$delete = @
+			$source.delete(
+			$buffer.delete(
+		$play = @ $source.play(
+		$looping__ = @(value) $source.setb(al.LOOPING, value
 	$load_sound = @(name)
 		path = (io.Path(system.script) / ".." / name).__string(
 		buffer = $alcontext.get_device().create_buffer_from_file(path
 		source = $alcontext.create_source(
 		source.set_buffer(buffer
-		source__delete = source.delete
-		source.delete = @
-			source__delete(
-			buffer.delete(
-		source
+		sound = Sound(
+		sound.buffer = buffer
+		sound.source = source
+		sound
 	$screen__ = @(screen)
 		$screen.destroy(
 		$screen = screen
 	$__initialize = @(format, alcontext)
-		:$^__initialize[$](format
+		xraft.GLWidget.__initialize[$](format
 		$glcontext = xraft.GLContext(format
 		$alcontext = alcontext
 		$last = time.now(
@@ -666,14 +731,14 @@ Game = Class(xraft.GLWidget) :: @
 		$sound_cursor = $load_sound("data/cursor.wav"
 		$sound_select = $load_sound("data/select.wav"
 
-Frame = Class(xraft.Frame) :: @
+Frame = xraft.Frame + @
 	$on_move = @
 		extent = $geometry(
 		$at(0).move(xraft.Rectangle(0, 0, extent.width(), extent.height()
 	$on_focus_enter = @ xraft.application().focus__($at(0
 	$on_close = @ xraft.application().exit(
 	$__initialize = @(alcontext)
-		:$^__initialize[$](
+		xraft.Frame.__initialize[$](
 		$add(Game(xraft.GLFormat(true, true, false, true), alcontext
 
 xraft.main(system.arguments, @(application) cairo.main(@ gl.main(@ al.main(@

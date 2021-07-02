@@ -19,14 +19,17 @@ Ball = ball.Ball
 Mark = ball.Mark
 Player = player.Player
 
-$Stage = Class() :: @
-	$State = @(step, key_press, key_release, render)
-		o = Object(
-		o.step = step
-		o.key_press = key_press
-		o.key_release = key_release
-		o.render = render
-		o
+$Stage = Object + @
+	$State = Object + @
+		$step
+		$key_press
+		$key_release
+		$render
+		$__initialize = @(step, key_press, key_release, render)
+			$step = step
+			$key_press = key_press
+			$key_release = key_release
+			$render = render
 
 	$ball_bounce = @ $sound_bounce.play(
 	$ball_in = @ $mark.mark($ball
@@ -55,6 +58,26 @@ $Stage = Class() :: @
 		$player1.step(
 		$set_cameras(
 
+	$main
+	$dual
+	$fixed
+	$sound_bounce
+	$sound_net
+	$sound_chip
+	$sound_hit
+	$sound_swing
+	$sound_ace
+	$sound_miss
+	$text_viewing
+	$scene
+	$camera0
+	$camera1
+	$ball
+	$mark
+	$player0
+	$player1
+	$state_ready
+	$state_play
 	$__initialize = @(main, dual, fixed, controller0, player0, controller1, player1)
 		$main = main
 		$dual = dual
