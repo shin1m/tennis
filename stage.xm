@@ -1,6 +1,6 @@
 system = Module("system"
 print = system.error.write_line
-io = Module("io"
+os = Module("os"
 time = Module("time"
 gl = Module("gl"
 glmatrix = Module("glmatrix"
@@ -83,7 +83,7 @@ $Stage = Object + @
 		$dual = dual
 		$fixed = fixed
 		t0 = Thread(@
-			:scene = collada.load((io.Path(system.script) / "../data/court.dae").__string(
+			:scene = collada.load((os.Path(system.script) / "../data/court.dae").__string(
 			scene.share(
 		t1 = Thread(@
 			:p0 = collada.load(player0 + ".dae"

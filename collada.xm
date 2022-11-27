@@ -1,6 +1,6 @@
 system = Module("system"
 print = system.out.write_line
-io = Module("io"
+os = Module("os"
 math = Module("math"
 time = Module("time"
 libxml = Module("libxml"
@@ -1653,7 +1653,7 @@ $load = @(source)
 					image.value = reader.read_element_text(
 				else if reader.is_start_element("init_from")
 					image.type = "path"
-					path = io.Path(source) / ".." / reader.read_element_text()
+					path = os.Path(source) / ".." / reader.read_element_text()
 					image.value = path.__string(
 			image.id == "" && return
 			ids[image.id] = image

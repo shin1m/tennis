@@ -1,6 +1,6 @@
 system = Module("system"
 print = system.error.write_line
-io = Module("io"
+os = Module("os"
 time = Module("time"
 gl = Module("gl"
 glmatrix = Module("glmatrix"
@@ -501,7 +501,7 @@ Background = Container + @
 	$__initialize = @(main, image, sound)
 		Container.__initialize[$](
 		$main = main
-		$image = glimage.Image((io.Path(system.script) / ".." / image).__string(
+		$image = glimage.Image((os.Path(system.script) / ".." / image).__string(
 		$sound = main.load_sound(sound
 		$sound.looping__(true
 		$sound.play(
@@ -624,7 +624,7 @@ MainScreen = Object + @
 			while reader.is_start_element("player")
 				player = Player(
 				player.name = reader.get_attribute("name"
-				player.path = (io.Path(source) / ".." / reader.get_attribute("path")).__string(
+				player.path = (os.Path(source) / ".." / reader.get_attribute("path")).__string(
 				reader.read_element_text(
 				players.push(player
 			reader.end_element(
@@ -637,7 +637,7 @@ MainScreen = Object + @
 	$container
 	$__initialize = @(main)
 		$main = main
-		$players = load((io.Path(system.script) / "../data/players").__string(
+		$players = load((os.Path(system.script) / "../data/players").__string(
 		$container = Background(main, "data/main-background.jpg", "data/main-background.wav"
 		$container.content = MainMenu($, @ main.screen__(MainScreen(main
 	$destroy = @ $container.destroy(
@@ -704,7 +704,7 @@ Game = xraft.GLWidget + @
 		$play = @ $source.play(
 		$looping__ = @(value) $source.setb(al.LOOPING, value
 	$load_sound = @(name)
-		path = (io.Path(system.script) / ".." / name).__string(
+		path = (os.Path(system.script) / ".." / name).__string(
 		buffer = $alcontext.get_device().create_buffer_from_file(path
 		source = $alcontext.create_source(
 		source.set_buffer(buffer
