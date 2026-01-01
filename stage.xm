@@ -4,7 +4,7 @@ os = Module("os"
 time = Module("time"
 gl = Module("gl"
 glmatrix = Module("glmatrix"
-xraft = Module("xraft"
+xade = Module("xade"
 collada = Module("collada"
 placement = Module("placement"
 ball = Module("ball"
@@ -119,8 +119,8 @@ $Stage = Object + @
 			$duration > 0 || return $transit_play(
 			$duration = $duration - 1
 		, {
-			xraft.Key.RETURN: @ $transit_play(
-			xraft.Key.ESCAPE: @ $back(
+			xade.Key.RETURN: @ $transit_play(
+			xade.Key.ESCAPE: @ $back(
 		}, {}, @(width, height)
 		$state_play = $State(@
 			$step_things(
@@ -128,8 +128,8 @@ $Stage = Object + @
 			$duration > 0 || return $next(
 			$duration = $duration - 1
 		, {
-			xraft.Key.RETURN: @ $next(
-			xraft.Key.ESCAPE: @ $back(
+			xade.Key.RETURN: @ $next(
+			xade.Key.ESCAPE: @ $back(
 		}, {}, @(width, height)
 		controller0[$]($state_play, $player0
 		controller1[$]($state_play, $player1
@@ -178,5 +178,5 @@ $Stage = Object + @
 		)[$]
 		$state.render[$](width, height
 		print_time && print("\ttext: " + (time.now() - t0)
-	$key_press = @(modifier, key, ascii) $state.key_press.has(key) && $state.key_press[key][$]()
-	$key_release = @(modifier, key, ascii) $state.key_release.has(key) && $state.key_release[key][$]()
+	$key_press = @(key) $state.key_press.has(key) && $state.key_press[key][$]()
+	$key_release = @(key) $state.key_release.has(key) && $state.key_release[key][$]()

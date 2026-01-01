@@ -8,7 +8,8 @@ glshaders = Module("glshaders"
 glimage = Module("glimage"
 al = Module("al"
 cairo = Module("cairo"
-xraft = Module("xraft"
+suisha = Module("suisha"
+xade = Module("xade"
 collada = Module("collada"
 placement = Module("placement"
 ball = Module("ball"
@@ -108,18 +109,18 @@ Menu = Object + @
 		$main.sound_select.play(
 		$items[$selected].do(
 	$keys = keys = {
-		xraft.Key.ESCAPE: @ $back(
-		xraft.Key.RETURN: @ $do(
-		xraft.Key.SPACE: @ $do(
-		xraft.Key.D2: @ $do(
-		xraft.Key.LEFT: @ $left(
-		xraft.Key.RIGHT: @ $right(
-		xraft.Key.UP: @ $up(
-		xraft.Key.DOWN: @ $down(
-		xraft.Key.S: @ $left(
-		xraft.Key.F: @ $right(
-		xraft.Key.E: @ $up(
-		xraft.Key.C: @ $down(
+		xade.Key.ESCAPE: @ $back(
+		xade.Key.RETURN: @ $do(
+		xade.Key.SPACE: @ $do(
+		xade.Key.KP_2: @ $do(
+		xade.Key.LEFT: @ $left(
+		xade.Key.RIGHT: @ $right(
+		xade.Key.UP: @ $up(
+		xade.Key.DOWN: @ $down(
+		xade.Key.s: @ $left(
+		xade.Key.f: @ $right(
+		xade.Key.e: @ $up(
+		xade.Key.c: @ $down(
 	$key_press = @(key) keys.has(key) && keys[key][$](
 
 Match = stage.Stage + @
@@ -196,8 +197,8 @@ Match = stage.Stage + @
 	state_close = stage.Stage.State(@
 		$step_things(
 	, {
-		xraft.Key.RETURN: @ $new_set(
-		xraft.Key.ESCAPE: @ $back(
+		xade.Key.RETURN: @ $new_set(
+		xade.Key.ESCAPE: @ $back(
 	}, {}, @(width, height)
 	$transit_close = @
 		$player0.reset(
@@ -229,8 +230,8 @@ Match = stage.Stage + @
 		$camera1.position = Vector3(($ball.position.x + $ball.hitter.opponent.root_position().x) * 0.5, 4.0, ($ball.position.z + 40.0 * $ball.hitter.end) * 0.5
 		$camera1.toward = Vector3(0.0, -6.0, -40.0 * $ball.hitter.end
 	, {
-		xraft.Key.RETURN: @ $next(
-		xraft.Key.ESCAPE: @ $back(
+		xade.Key.RETURN: @ $next(
+		xade.Key.ESCAPE: @ $back(
 	}, {}, @(width, height)
 	$transit_replay = @
 		$state = state_replay
@@ -342,7 +343,7 @@ Training = stage.Stage + @
 				super__step(
 		, player1
 		{
-			xraft.Key.RETURN: @
+			xade.Key.RETURN: @
 				$side = -$side
 				$transit_ready(
 		}.each((@(key, value)
@@ -447,51 +448,51 @@ Training = stage.Stage + @
 
 controller0 = @(controller, player)
 	{
-		xraft.Key.D1: @ player.do('topspin
-		xraft.Key.D2: @ player.do('flat
+		xade.Key.KP_1: @ player.do('topspin
+		xade.Key.KP_2: @ player.do('flat
 		VOLUMEUP: @ player.do('lob
 		VOLUMEDOWN: @ player.do('slice
-		xraft.Key.LEFT: @ player.left = true
-		xraft.Key.RIGHT: @ player.right = true
-		xraft.Key.UP: @ player.forward = true
-		xraft.Key.DOWN: @ player.backward = true
-		xraft.Key.SPACE: @ player.do('flat
-		xraft.Key.J: @ player.do('topspin
-		xraft.Key.L: @ player.do('flat
-		xraft.Key.I: @ player.do('lob
-		xraft.Key.M: @ player.do('slice
-		xraft.Key.S: @ player.left = true
-		xraft.Key.F: @ player.right = true
-		xraft.Key.E: @ player.forward = true
-		xraft.Key.C: @ player.backward = true
+		xade.Key.LEFT: @ player.left = true
+		xade.Key.RIGHT: @ player.right = true
+		xade.Key.UP: @ player.forward = true
+		xade.Key.DOWN: @ player.backward = true
+		xade.Key.SPACE: @ player.do('flat
+		xade.Key.j: @ player.do('topspin
+		xade.Key.l: @ player.do('flat
+		xade.Key.i: @ player.do('lob
+		xade.Key.m: @ player.do('slice
+		xade.Key.s: @ player.left = true
+		xade.Key.f: @ player.right = true
+		xade.Key.e: @ player.forward = true
+		xade.Key.c: @ player.backward = true
 	}.each(@(key, value) controller.key_press[key] = value
 	{
-		xraft.Key.LEFT: @ player.left = false
-		xraft.Key.RIGHT: @ player.right = false
-		xraft.Key.UP: @ player.forward = false
-		xraft.Key.DOWN: @ player.backward = false
-		xraft.Key.S: @ player.left = false
-		xraft.Key.F: @ player.right = false
-		xraft.Key.E: @ player.forward = false
-		xraft.Key.C: @ player.backward = false
+		xade.Key.LEFT: @ player.left = false
+		xade.Key.RIGHT: @ player.right = false
+		xade.Key.UP: @ player.forward = false
+		xade.Key.DOWN: @ player.backward = false
+		xade.Key.s: @ player.left = false
+		xade.Key.f: @ player.right = false
+		xade.Key.e: @ player.forward = false
+		xade.Key.c: @ player.backward = false
 	}.each(@(key, value) controller.key_release[key] = value
 
 controller1 = @(controller, player)
 	{
-		xraft.Key.D7: @ player.do('topspin
-		xraft.Key.D9: @ player.do('flat
-		xraft.Key.COMMA: @ player.do('lob
-		xraft.Key.PERIOD: @ player.do('slice
-		xraft.Key.D4: @ player.left = true
-		xraft.Key.D6: @ player.right = true
-		xraft.Key.D8: @ player.forward = true
-		xraft.Key.D5: @ player.backward = true
+		xade.Key.KP_7: @ player.do('topspin
+		xade.Key.KP_9: @ player.do('flat
+		xade.Key.COMMA: @ player.do('lob
+		xade.Key.PERIOD: @ player.do('slice
+		xade.Key.KP_4: @ player.left = true
+		xade.Key.KP_6: @ player.right = true
+		xade.Key.KP_8: @ player.forward = true
+		xade.Key.KP_5: @ player.backward = true
 	}.each(@(key, value) controller.key_press[key] = value
 	{
-		xraft.Key.D4: @ player.left = false
-		xraft.Key.D6: @ player.right = false
-		xraft.Key.D8: @ player.forward = false
-		xraft.Key.D5: @ player.backward = false
+		xade.Key.KP_4: @ player.left = false
+		xade.Key.KP_6: @ player.right = false
+		xade.Key.KP_8: @ player.forward = false
+		xade.Key.KP_5: @ player.backward = false
 	}.each(@(key, value) controller.key_release[key] = value
 
 Background = Container + @
@@ -586,7 +587,7 @@ MainMenu = Titled + @
 		Titled.__initialize[$](screen.main, "TENNIS"
 		back2this = @ screen.container.transit(MainMenu(screen, back), 2.0 * screen.main.aspect
 		$content = Menu(screen.main
-		$content.back = @ xraft.application().exit(
+		$content.back = @ suisha.loop().exit(
 		$content.items = '(
 			Menu.Item("  1P vs COM  ", (@
 				screen.container.transit(StageMenu(screen, "1P vs COM", (@(player0, player1)
@@ -647,14 +648,11 @@ MainScreen = Object + @
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
 		gl.disable(gl.DEPTH_TEST
 		$container.render(Matrix4(1.0
-	$key_press = @(modifier, key, ascii) $container.key_press(key
-	$key_release = @(modifier, key, ascii)
+	$key_press = @(key) $container.key_press(key
+	$key_release = @(key)
 
-Game = xraft.GLWidget + @
-	$glcontext
+Game = Object + @
 	$alcontext
-	$last
-	$timer
 	$sound_cursor
 	$sound_select
 	$shaders
@@ -663,38 +661,6 @@ Game = xraft.GLWidget + @
 	$aspect
 	$projection
 	$text_scale
-	$on_create = @
-		$glcontext.make_current($
-		$shaders = glshaders.shaders(
-		$font = glimage.Font(
-		gl.enable(gl.CULL_FACE
-		$on_move(
-		$screen = MainScreen($
-		$timer.start(1000 / 60
-	$on_move = @
-		extent = $geometry(
-		width = extent.width(
-		height = extent.height(
-		w = Float(width) / height
-		$aspect = w
-		$projection = Matrix4().orthographic(-w, w, -1.0, 1.0, -1.0, 1.0).bytes
-		$text_scale = width < height ? Matrix4().scale(w, w, 1.0) : Matrix4().scale(1.0, 1.0, 1.0)
-	$on_paint = @(g)
-		t0 = time.now(
-		$glcontext.make_current($
-		extent = $geometry(
-		$screen.render(extent.width(), extent.height()
-		print_time && print("render: " + (time.now() - t0)
-		t0 = time.now(
-		$glcontext.flush(
-		print_time && print("flush: " + (time.now() - t0)
-	$on_key_press = @(modifier, key, ascii)
-		key == xraft.Key.Q && return xraft.application().exit(
-		$glcontext.make_current($
-		$screen.key_press(modifier, key, ascii
-	$on_key_release = @(modifier, key, ascii)
-		$glcontext.make_current($
-		$screen.key_release(modifier, key, ascii
 	Sound = Object + @
 		$buffer
 		$source
@@ -715,38 +681,72 @@ Game = xraft.GLWidget + @
 	$screen__ = @(screen)
 		$screen.destroy(
 		$screen = screen
-	$__initialize = @(format, alcontext)
-		xraft.GLWidget.__initialize[$](format
-		$glcontext = xraft.GLContext(format
+	$__initialize = @(alcontext)
 		$alcontext = alcontext
-		$last = time.now(
-		$timer = xraft.Timer((@
-			print_time && print("since last: " + (time.now() - $last)
-			$last = t0 = time.now(
-			$screen.step(
-			extent = $geometry(
-			$invalidate(0, 0, extent.width(), extent.height()
-			print_time && print("step: " + (time.now() - t0)
-		)[$]
 		$sound_cursor = $load_sound("data/cursor.wav"
 		$sound_select = $load_sound("data/select.wav"
+		$shaders = glshaders.shaders(
+		$font = glimage.Font(
+		gl.enable(gl.CULL_FACE
+		$screen = MainScreen($
+	$resize = @(width, height)
+		w = Float(width) / height
+		$aspect = w
+		$projection = Matrix4().orthographic(-w, w, -1.0, 1.0, -1.0, 1.0).bytes
+		$text_scale = width < height ? Matrix4().scale(w, w, 1.0) : Matrix4().scale(1.0, 1.0, 1.0)
+	$step = @ $screen.step(
+	$render = @(width, height) $screen.render(width, height
+	$key_press = @(key) $screen.key_press(key
+	$key_release = @(key) $screen.key_release(key
 
-Frame = xraft.Frame + @
-	$on_move = @
-		extent = $geometry(
-		$at(0).move(xraft.Rectangle(0, 0, extent.width(), extent.height()
-	$on_focus_enter = @ xraft.application().focus__($at(0
-	$on_close = @ xraft.application().exit(
-	$__initialize = @(alcontext)
-		xraft.Frame.__initialize[$](
-		$add(Game(xraft.GLFormat(true, true, false, true), alcontext
-
-xraft.main(system.arguments, @(application) cairo.main(@ gl.main(@ al.main(@
+suisha.main(@ xade.main(@ cairo.main(@ gl.main(@ al.main(@
 	device = al.Device(null
 	context = device.default_context(
-	frame = Frame(context
-	frame.caption__("Tennis"
-	frame.move(xraft.Rectangle(0, 0, 800, 600
-	application.add(frame
-	frame.show(
-	application.run(
+	cursor_move = xade.Cursor("move"
+	cursor_resize = xade.Cursor("se-resize"
+	frame = xade.Frame(true
+	frame.make_current(
+	game = Game(context
+	#frame.caption__("Tennis"
+	frame.on_measure = @(width, height) '(
+		width > 0 ? width : 800
+		height > 0 ? height : 600
+	frame.on_map = @(width, height)
+		frame.make_current(
+		:size = '(width, height
+		game.resize(width, height
+	frame.on_frame = @(_)
+		t0 = time.now(
+		frame.request_frame(
+		game.render(size[0], size[1
+		print_time && print("render: " + (time.now() - t0
+		t0 = time.now(
+		frame.swap_buffers(
+		print_time && print("flush: " + (time.now() - t0
+	loop = suisha.loop(
+	frame.on_close = loop.exit
+	client = xade.client(
+	frame.on_pointer_enter = frame.on_pointer_move = @
+		w = size[0
+		h = size[1
+		s = (w < h ? w : h) * 0.5
+		p = client.pointer(
+		if p[0] + p[1] > w + h - s
+			client.cursor__(cursor_resize
+			frame.on_button_press = @(button) frame.resize(xade.FrameResizeEdge.BOTTOM_RIGHT
+		else
+			client.cursor__(cursor_move
+			frame.on_button_press = @(button) frame.move(
+	frame.on_key_press = @(sym, c)
+		sym == xade.Key.F && return (frame.is(xade.FrameState.FULLSCREEN) ? frame.unset_fullscreen : frame.set_fullscreen)(
+		sym == xade.Key.q && return loop.exit(
+		game.key_press(sym
+	frame.on_key_release = @(sym, c) game.key_release(sym
+	last = time.now(
+	loop.timer(@
+		print_time && print("since last: " + (time.now() - last
+		:last = t0 = time.now(
+		game.step(
+		print_time && print("step: " + (time.now() - t0
+	, 1000 / 60
+	loop.run(
