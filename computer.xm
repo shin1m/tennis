@@ -29,7 +29,7 @@ $main = @(controller, player)
 			player.reset(
 			reset_decision(
 			:net = false
-		else if ball.hitter === null
+		else if !ball.hitter
 			if player === $server
 				if player.state === Player.state_serve_set
 					player.reset(
@@ -121,7 +121,7 @@ $main = @(controller, player)
 			actions = player.actions.swing
 			swing = null
 			t = projected_time_for_y(position.y, velocity.y, player.smash_height(), 1.0
-			if t !== null
+			if t
 				hand = whichhand > player.smash_hand ? actions.forehand : actions.backhand
 				smash = hand.smash
 				d = (Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t) - player.placement.position).length(
@@ -131,9 +131,9 @@ $main = @(controller, player)
 					iz = swing.spot[14]
 					t0 = 0.0
 					t = projected_time_for_y(position.y, velocity.y, swing.spot[13], 1.0
-					if t === null
+					if !t
 						t = velocity.y / G
-			if swing === null
+			if !swing
 				hand = whichhand > 0.0 ? actions.forehand : actions.backhand
 				swing = (net && !ball.in ? hand.volley.middle : hand.stroke).(shot)
 				ix = swing.spot[12]
@@ -149,11 +149,11 @@ $main = @(controller, player)
 					point = player.placement.position - Vector3(-v.z, 0.0, v.x) * ix + v * iz
 					t = reach_range(position, velocity, point, player.speed, 0.0, -1.0) + 1.0
 					tt = projected_time_for_y(position.y, velocity.y, swing.spot[13] + 1.0, 1.0
-					if tt !== null && tt > t
+					if tt && tt > t
 						t = tt
 				else
 					t = projected_time_for_y(position.y, velocity.y, 1.25, -1.0
-					if t === null
+					if !t
 						t = velocity.y / G
 			point = Vector3(position.x + velocity.x * t, 0.0, position.z + velocity.z * t
 			v = shot_direction(point, player.end, left, right, forward, backward

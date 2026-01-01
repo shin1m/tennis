@@ -376,9 +376,9 @@ $Player = Object + @
 		$state.enter[$](
 	$reset = @(end = null, state = null)
 		$left = $right = $forward = $backward = false
-		if end !== null
+		if end
 			$end = end
-		state !== null && $transit(state
+		state && $transit(state
 	$setup = @ $placement.validate(
 	$root_position = @
 		v = $root.transforms[1].v
@@ -390,7 +390,7 @@ $Player = Object + @
 		v.length() > 0.01 / 64.0 ? v : Vector3(0.0, 0.0, -$end)
 	$whichhand = @(v) Vector3(-v.z, 0.0, v.x) * ($ball.position - $placement.position)
 	$relative_ball = @(swing, ball = null)
-		if ball === null
+		if !ball
 			ball = $ball.position
 		$placement.validate(
 		p = ball - $placement.position
@@ -437,7 +437,7 @@ $Player = Object + @
 		from.placement.copy($placement
 		bytes = from.root.bytes
 		bytes.copy(0, bytes.size(), $root.transforms[1].bytes, 0
-		from.ready !== null && from.ready.rewind(
+		from.ready && from.ready.rewind(
 		from.action.rewind(
 		from.action.forward(from.time
 	$state_default = State(@
@@ -462,7 +462,7 @@ $Player = Object + @
 			action = actions.default
 			if actions === $actions.run
 				run = $actions.run.lower
-		else if $ball.hitter === null || $ball.hitter.end == $end
+		else if !$ball.hitter || $ball.hitter.end == $end
 			v = $ball.position - $placement.position
 			v.y = 0.0
 			v.normalize(
@@ -511,7 +511,7 @@ $Player = Object + @
 		actions = $actions.swing
 		whichhand = $whichhand($direction().normalized(
 		t = $ball.projected_time_for_y($smash_height(), 1.0
-		if t !== null
+		if t
 			swing = whichhand > $smash_hand ? actions.forehand.smash : actions.backhand.smash
 			impact = (swing.impact - swing.start) * 60.0
 			if t > impact
@@ -607,7 +607,7 @@ $Player = Object + @
 				$stage.sound_hit.play(
 		$motion(
 		$motion.time < $motion.end && return
-		!$ball.done && $ball.hitter === null && $ball.emit_serve_air(
+		$ball.done || $ball.hitter || $ball.emit_serve_air(
 		$motion.action.merge($
 		$transit($state_default
 	, @(shot)

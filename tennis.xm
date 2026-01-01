@@ -33,10 +33,10 @@ Container = Object + @
 	$duration
 	$t
 	$destroy = @
-		$transit_from !== null && $transit_from.?destroy && $transit_from.destroy(
-		$content !== null && $content.?destroy && $content.destroy(
+		$transit_from && $transit_from.?destroy && $transit_from.destroy(
+		$content && $content.?destroy && $content.destroy(
 	$step = @
-		if $transit_from !== null
+		if $transit_from
 			if $t < $duration
 				$t = $t + 1
 			else
@@ -44,12 +44,12 @@ Container = Object + @
 				$transit_from = null
 		$content.step(
 	$render = @(viewing)
-		if $transit_from !== null
+		if $transit_from
 			t = Float($t) / $duration
 			$transit_from.render(Matrix4(viewing).translate($slide * t, 0.0, 0.0
 			viewing = Matrix4(viewing).translate($slide * (t - 1.0), 0.0, 0.0
-		$content !== null && $content.render(viewing
-	$key_press = @(key) $transit_from === null && $content !== null && $content.key_press(key)
+		$content && $content.render(viewing
+	$key_press = @(key) $transit_from || $content && $content.key_press(key
 	$transit = @(content, slide)
 		$transit_from = $content
 		$content = content

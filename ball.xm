@@ -183,7 +183,7 @@ $Ball = Object + @
 			if !$done
 				if $in
 					$emit_ace(
-				else if $hitter === null
+				else if !$hitter
 					$emit_serve_air(
 				else
 					x = $hitter.end * $position.x

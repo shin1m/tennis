@@ -44,7 +44,7 @@ Reader = libxml.TextReader + @
 	$_type
 	$read_next = @ $_type = $read() ? $node_type() : null
 	$type = @ $_type
-	$move_to_tag = @ while $_type !== null && $_type != libxml.ReaderTypes.ELEMENT && $_type != libxml.ReaderTypes.END_ELEMENT
+	$move_to_tag = @ while $_type && $_type != libxml.ReaderTypes.ELEMENT && $_type != libxml.ReaderTypes.END_ELEMENT
 		$read_next(
 	$is_start_element = @(name)
 		$move_to_tag(
@@ -1037,7 +1037,7 @@ Channel = Object + @
 				j = find_index(path[1], i, @(x) x == 0x29
 				row = Integer(path[1].substring(i, j - i
 				ij = column * 4 + row
-				$_call = ij < 15 ? @(value) target.v[ij] = value : @(value) null
+				$_call = ij < 15 ? @(value) target.v[ij] = value : @(value)
 			else
 				$_call = @(value) value.bytes.copy(0, 16 * gl.Float32Array.BYTES_PER_ELEMENT, target.bytes, 0
 		$built = true
