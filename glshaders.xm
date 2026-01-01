@@ -417,14 +417,14 @@ void main()
 #endif
 	vec3 normal = normalize(varyingNormal);
 	vec3 light = normalize(vec3(5.0, 5.0, 10.0));
-	vec3 r = reflect(-light, normal);
 	vec3 eye = vec3(0.0, 0.0, 1.0);
+	float r = dot(reflect(-light, normal), eye);
 #ifdef USE_TEXTURE
 	gl_FragColor = color + sample
 #else
 	gl_FragColor = color + diffuse
 #endif
-	* max(dot(normal, light), 0.0) + specular * pow(max(dot(r, eye), 0.0), shininess);
+	* max(dot(normal, light), 0.0) + specular * (r > 0.0 ? pow(r, shininess) : 0.0);
 }
 "
 	skin_shader = @(joints, weights, defines)
