@@ -1,37 +1,25 @@
+io = Module("io"
 gl = Module("gl"
 glshaders = Module("glshaders"
-cairo = Module("cairo"
-
-get_rgba = @(image0)
-	width = image0.get_width(
-	height = image0.get_height(
-	image1 = cairo.ImageSurface(cairo.Format.ARGB32, width, height
-	try
-		context = cairo.Context(image1
-		try
-			context.set_operator(cairo.Operator.CLEAR
-			context.paint(
-			context.set_operator(cairo.Operator.OVER
-			context.set_source(image0, 0.0, 0.0
-			context.paint(
-		finally
-			context.release(
-		data = image1.get_data(
-		n = width * height
-		for i = 0; i < n; i = i + 1
-			t = data[i * 4]
-			data[i * 4] = data[i * 4 + 2]
-			data[i * 4 + 2] = t
-		'(width, height, data
-	finally
-		image1.release(
+skia = Module("skia"
 
 load_rgba = @(path)
-	image = cairo.ImageSurface.create_from_file(path
+	file = io.File(path, "r"
 	try
-		get_rgba(image
+		image = skia.Image.create_from_stream(file.read
+		try
+			width = image.width(
+			height = image.height(
+			surface = skia.Surface.raster(width, height
+			try
+				surface.draw(@(canvas) canvas.draw_image(image, 0.0, 0.0
+				'(width, height, surface.read_pixels(width, height, skia.ColorType.RGBA_8888, skia.AlphaType.UNPREMUL, 0, 0
+			finally
+				surface.dispose(
+		finally
+			image.dispose(
 	finally
-		image.release(
+		file.close(
 $load_rgba = load_rgba
 
 $Image = Object + @
@@ -89,9 +77,7 @@ void main()
 		gl.tex_parameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR
 		gl.bind_texture(gl.TEXTURE_2D, null
 		$vertices = gl.Buffer(
-	$__initialize = @(path)
-		rgba = load_rgba(path
-		$create(rgba[0], rgba[1], rgba[2]
+	$__initialize = @(path) $create(*load_rgba(path
 	$destroy = @
 		$program.delete(
 		$texture.delete(
@@ -181,30 +167,34 @@ void main()
 		gl.bind_buffer(gl.ARRAY_BUFFER, $vertices
 		gl.buffer_data(gl.ARRAY_BUFFER, bytes, gl.STATIC_DRAW
 		gl.bind_buffer(gl.ARRAY_BUFFER, null
-	$__initialize = @
-		image = cairo.ImageSurface(cairo.Format.ARGB32, 32 * 128, 64
+	$__initialize = @(typeface)
+		font = skia.Font(typeface, 48.0
+		width = 32 * 128
+		height = 64
+		surface = skia.Surface.raster(width, height
+		stroke = skia.Paint(
+		stroke.color__(0xff000000
+		fill = skia.Paint(
+		fill.color__(0xffffffff
 		try
-			context = cairo.Context(image
-			try
-				context.set_operator(cairo.Operator.CLEAR
-				context.paint(
-				context.set_operator(cairo.Operator.OVER
-				context.select_font_face("Monospace", cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD
-				context.set_font_size(48
+			surface.draw(@(canvas)
+				canvas.clear(0x00000000
 				for i = 32; i < 127; i = i + 1
-					context.move_to(i * 32 + 2, 64 - 3
-					context.text_path(String.from_code(i
-					context.set_source_rgb(0.0, 0.0, 0.0
-					context.set_line_width(4.0
-					context.stroke_preserve(
-					context.set_source_rgb(1.0, 1.0, 1.0
-					context.fill(
-			finally
-				context.release(
-			rgba = get_rgba(image
-			$create(rgba[0], rgba[1], rgba[2], 128, 0.5
+					s = String.from_code(i
+					x = i * 32 + 2
+					y = 64 - 3
+					for j = -2; j <= 2; j = j + 1
+						for k = -2; k <= 2; k = k + 1
+							canvas.draw_text(s, x + k, y + j, font, stroke
+					canvas.draw_text(s, x, y, font, fill
+			$create(width, height
+				surface.read_pixels(width, height, skia.ColorType.RGBA_8888, skia.AlphaType.UNPREMUL, 0, 0
+				128, 0.5
 		finally
-			image.release(
+			stroke.dispose(
+			fill.dispose(
+			surface.dispose(
+			font.dispose(
 	$destroy = @
 		$program.delete(
 		$texture.delete(

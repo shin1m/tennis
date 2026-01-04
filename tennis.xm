@@ -7,7 +7,7 @@ glmatrix = Module("glmatrix"
 glshaders = Module("glshaders"
 glimage = Module("glimage"
 al = Module("al"
-cairo = Module("cairo"
+skia = Module("skia"
 suisha = Module("suisha"
 xade = Module("xade"
 collada = Module("collada"
@@ -681,12 +681,12 @@ Game = Object + @
 	$screen__ = @(screen)
 		$screen.destroy(
 		$screen = screen
-	$__initialize = @(alcontext)
+	$__initialize = @(alcontext, typeface)
 		$alcontext = alcontext
 		$sound_cursor = $load_sound("data/cursor.wav"
 		$sound_select = $load_sound("data/select.wav"
 		$shaders = glshaders.shaders(
-		$font = glimage.Font(
+		$font = glimage.Font(typeface
 		gl.enable(gl.CULL_FACE
 		$screen = MainScreen($
 	$resize = @(width, height)
@@ -699,14 +699,16 @@ Game = Object + @
 	$key_press = @(key) $screen.key_press(key
 	$key_release = @(key) $screen.key_release(key
 
-suisha.main(@ xade.main(@ cairo.main(@ gl.main(@ al.main(@
+suisha.main(@ xade.main(@ skia.main(@ gl.main(@ al.main(@
 	device = al.Device(null
 	context = device.default_context(
+	fm = skia.FontManager.make_default(
+	typeface = fm.match_family_style(null, skia.FontStyle.Normal(
 	cursor_move = xade.Cursor("move"
 	cursor_resize = xade.Cursor("se-resize"
 	frame = xade.Frame(true
 	frame.make_current(
-	game = Game(context
+	game = Game(context, typeface
 	#frame.caption__("Tennis"
 	frame.on_measure = @(width, height) '(
 		width > 0 ? width : 800
